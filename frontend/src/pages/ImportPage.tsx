@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import { DebugDetails, DebugPageShell } from "../components/atelier/DebugPageShell";
 import { GhostwriterIndicator } from "../components/atelier/GhostwriterIndicator";
@@ -358,18 +358,11 @@ export function ImportPage() {
           <div>流程：上传 txt/md → 后端切分 chunk →（可选）写入向量 KB → 生成提案（proposal）。</div>
           <ul className="grid list-disc gap-1 pl-5 text-xs text-subtext">
             <li>故事记忆（story_memory）：会生成 StoryMemory 的候选条目；应用后可在记忆预览/检索中命中。</li>
-            <li>向量 KB（vector_kb / kb）：用于 RAG 语义检索（可在「RAG」页管理）。</li>
+            <li>向量 KB（vector_kb / kb）：用于语义检索与导入结果回溯。</li>
             <li>Chunk（chunk）：系统切分后的文本片段（用于检索与溯源）。</li>
           </ul>
           <div className="callout-warning">提示：导入后请先预览，再选择性应用（默认不会自动写入长期记忆）。</div>
         </div>
-      }
-      actions={
-        projectId ? (
-          <Link className="btn btn-secondary" to={`/projects/${projectId}/rag`}>
-            返回 RAG
-          </Link>
-        ) : null
       }
     >
       <section className="grid gap-3">

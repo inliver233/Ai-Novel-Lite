@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.errors import AppError
 from app.core.logging import exception_log_fields, log_event, redact_secrets_text
 from app.core.secrets import redact_api_keys
@@ -28,9 +27,6 @@ from app.services.vector_embedding_overrides import vector_embedding_overrides
 from app.services.vector_rag_service import build_project_chunks, rebuild_project, vector_rag_status
 
 logger = logging.getLogger("ainovel")
-
-
-_MODEL_BY_TABLE: dict[str, type] = {}
 
 
 def _compact_json_dumps(value: Any) -> str:
@@ -69,74 +65,16 @@ def _parse_dt(value: object) -> datetime | None:
         return None
 
 
-def _parse_attributes_json(raw: str | None) -> dict[str, Any] | str | None:
-    if raw is None:
-        return None
-    try:
-        value = json.loads(raw)
-    except Exception:
-        return raw
-    if isinstance(value, dict):
-        return value
-    return raw
+def _unsupported_target_table_error(*, target_table: str) -> AppError:
+    return AppError.validation(details={"reason": "unsupported_target_table", "target_table": target_table})
 
 
 def _row_payload(target_table: str, row: Any) -> dict[str, Any]:
-    if target_table == "entities":
-        return {
-            "id": str(row.id),
-            "entity_type": str(row.entity_type or "generic"),
-            "name": str(row.name or ""),
-            "summary_md": row.summary_md,
-            "attributes": _parse_attributes_json(row.attributes_json),
-            "deleted_at": _iso(row.deleted_at),
-        }
-    if target_table == "relations":
-        return {
-            "id": str(row.id),
-            "from_entity_id": str(row.from_entity_id),
-            "to_entity_id": str(row.to_entity_id),
-            "relation_type": str(row.relation_type or "related_to"),
-            "description_md": row.description_md,
-            "attributes": _parse_attributes_json(row.attributes_json),
-            "deleted_at": _iso(row.deleted_at),
-        }
-    if target_table == "events":
-        return {
-            "id": str(row.id),
-            "chapter_id": row.chapter_id,
-            "event_type": str(row.event_type or "event"),
-            "title": row.title,
-            "content_md": str(row.content_md or ""),
-            "attributes": _parse_attributes_json(row.attributes_json),
-            "deleted_at": _iso(row.deleted_at),
-        }
-    if target_table == "evidence":
-        return {
-            "id": str(row.id),
-            "source_type": str(row.source_type or "unknown"),
-            "source_id": row.source_id,
-            "quote_md": str(row.quote_md or ""),
-            "attributes": _parse_attributes_json(row.attributes_json),
-            "deleted_at": _iso(row.deleted_at),
-        }
-    raise AppError.validation(details={"target_table": target_table})
+    raise _unsupported_target_table_error(target_table=target_table)
 
 
 def _load_target_row(db: Session, *, target_table: str, project_id: str, target_id: str) -> Any | None:
-    model = _MODEL_BY_TABLE.get(target_table)
-    if model is None:
-        raise AppError.validation(details={"target_table": target_table})
-    return (
-        db.execute(
-            select(model).where(  # type: ignore[arg-type]
-                model.id == target_id,  # type: ignore[attr-defined]
-                model.project_id == project_id,  # type: ignore[attr-defined]
-            )
-        )
-        .scalars()
-        .first()
-    )
+    raise _unsupported_target_table_error(target_table=target_table)
 
 
 def _change_set_to_dict(change_set: MemoryChangeSet) -> dict[str, Any]:
@@ -492,12 +430,14 @@ def propose_chapter_memory_change_set(
     for idx, op in enumerate(payload.ops):
         target_table = str(op.target_table)
         target_id = str(op.target_id or "").strip()
+        if target_table not in AFTER_MODEL_BY_TABLE:
+            raise AppError.validation(
+                details={"item_index": idx, "reason": "unsupported_target_table", "target_table": target_table}
+            )
 
         after_dict: dict[str, Any] | None = None
         if op.op == "upsert":
             model_cls = AFTER_MODEL_BY_TABLE.get(target_table)
-            if model_cls is None:
-                raise AppError.validation(details={"item_index": idx, "reason": "unsupported_target_table"})
             after_obj = model_cls.model_validate(op.after or {})
             after_dict = dict(after_obj.model_dump())
 
@@ -589,74 +529,7 @@ def propose_chapter_memory_change_set(
 def _apply_upsert(
     db: Session, *, target_table: str, project_id: str, target_id: str, after: dict[str, Any]
 ) -> Any:
-    model = _MODEL_BY_TABLE.get(target_table)
-    if model is None:
-        raise AppError.validation(details={"target_table": target_table})
-
-    row = _load_target_row(db, target_table=target_table, project_id=project_id, target_id=target_id)
-    if row is None:
-        row = model(id=target_id, project_id=project_id)  # type: ignore[call-arg]
-        db.add(row)
-
-    if target_table == "entities":
-        row.entity_type = str(after.get("entity_type") or "generic")  # type: ignore[attr-defined]
-        row.name = str(after.get("name") or "")  # type: ignore[attr-defined]
-        row.summary_md = after.get("summary_md")  # type: ignore[attr-defined]
-        attrs = after.get("attributes")
-        if isinstance(attrs, dict):
-            row.attributes_json = _compact_json_dumps(attrs)  # type: ignore[attr-defined]
-        elif isinstance(attrs, str):
-            row.attributes_json = attrs  # type: ignore[attr-defined]
-        else:
-            row.attributes_json = None  # type: ignore[attr-defined]
-        row.deleted_at = None  # type: ignore[attr-defined]
-        return row
-
-    if target_table == "relations":
-        row.from_entity_id = str(after.get("from_entity_id") or "")  # type: ignore[attr-defined]
-        row.to_entity_id = str(after.get("to_entity_id") or "")  # type: ignore[attr-defined]
-        row.relation_type = str(after.get("relation_type") or "related_to")  # type: ignore[attr-defined]
-        row.description_md = after.get("description_md")  # type: ignore[attr-defined]
-        attrs = after.get("attributes")
-        if isinstance(attrs, dict):
-            row.attributes_json = _compact_json_dumps(attrs)  # type: ignore[attr-defined]
-        elif isinstance(attrs, str):
-            row.attributes_json = attrs  # type: ignore[attr-defined]
-        else:
-            row.attributes_json = None  # type: ignore[attr-defined]
-        row.deleted_at = None  # type: ignore[attr-defined]
-        return row
-
-    if target_table == "events":
-        row.chapter_id = after.get("chapter_id")  # type: ignore[attr-defined]
-        row.event_type = str(after.get("event_type") or "event")  # type: ignore[attr-defined]
-        row.title = after.get("title")  # type: ignore[attr-defined]
-        row.content_md = str(after.get("content_md") or "")  # type: ignore[attr-defined]
-        attrs = after.get("attributes")
-        if isinstance(attrs, dict):
-            row.attributes_json = _compact_json_dumps(attrs)  # type: ignore[attr-defined]
-        elif isinstance(attrs, str):
-            row.attributes_json = attrs  # type: ignore[attr-defined]
-        else:
-            row.attributes_json = None  # type: ignore[attr-defined]
-        row.deleted_at = None  # type: ignore[attr-defined]
-        return row
-
-    if target_table == "evidence":
-        row.source_type = str(after.get("source_type") or "unknown")  # type: ignore[attr-defined]
-        row.source_id = after.get("source_id")  # type: ignore[attr-defined]
-        row.quote_md = str(after.get("quote_md") or "")  # type: ignore[attr-defined]
-        attrs = after.get("attributes")
-        if isinstance(attrs, dict):
-            row.attributes_json = _compact_json_dumps(attrs)  # type: ignore[attr-defined]
-        elif isinstance(attrs, str):
-            row.attributes_json = attrs  # type: ignore[attr-defined]
-        else:
-            row.attributes_json = None  # type: ignore[attr-defined]
-        row.deleted_at = None  # type: ignore[attr-defined]
-        return row
-
-    raise AppError.validation(details={"target_table": target_table})
+    raise _unsupported_target_table_error(target_table=target_table)
 
 
 def apply_memory_change_set(
@@ -783,7 +656,7 @@ def _ensure_memory_tasks(
     change_set_id: str,
     actor_user_id: str,
 ) -> list[MemoryTask]:
-    kinds = ["vector_rebuild", "graph_update"]
+    kinds = ["vector_rebuild"]
     existing = (
         db.execute(select(MemoryTask).where(MemoryTask.change_set_id == change_set_id).order_by(MemoryTask.kind.asc()))
         .scalars()
@@ -887,9 +760,7 @@ def run_memory_task(*, task_id: str) -> str:
         project_id = str(task.project_id)
 
         result: dict[str, Any]
-        if kind == "graph_update":
-            result = {"skipped": True, "note": "graph context is computed on query; no rebuild required"}
-        elif kind == "vector_rebuild":
+        if kind == "vector_rebuild":
             db2 = SessionLocal()
             try:
                 embedding = vector_embedding_overrides(db2.get(ProjectSettings, project_id))

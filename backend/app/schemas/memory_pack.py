@@ -5,10 +5,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 MemoryContextSection = Literal[
-    "worldbook",  # removed: always disabled; kept for backward compat
     "story_memory",
     "semantic_history",
-    "structured",  # deprecated: always disabled; kept for backward compat
     "vector_rag",
 ]
 
@@ -35,9 +33,7 @@ class MemoryContextPackOut(BaseModel):
     Later phases will progressively populate these sections.
     """
 
-    worldbook: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     story_memory: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     semantic_history: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
-    structured: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     vector_rag: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     logs: list[MemoryContextLogItemOut] = Field(default_factory=list)

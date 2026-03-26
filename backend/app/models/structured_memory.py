@@ -9,7 +9,7 @@ from app.db.base import Base
 from app.db.utils import utc_now
 
 
-# NOTE: The graph subsystem uses a flexible schema:
+# NOTE: Relation metadata keeps a flexible schema:
 # - relation_type is a short string (NOT enforced by DB beyond length).
 # - attributes_json stores optional structured attributes.
 #

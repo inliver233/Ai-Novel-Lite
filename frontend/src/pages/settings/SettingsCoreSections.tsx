@@ -218,7 +218,7 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
         </div>
 
         <div className="mt-2 text-xs text-subtext">
-          提示：关闭后不会在「章节定稿」时自动排队；仍可在对应页面/任务中心手动触发。
+          提示：关闭后不会在「章节定稿」时自动排队；仍可在对应页面手动触发相关操作。
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -238,7 +238,7 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
           <div className="grid gap-1">
             <div className="font-content text-xl text-ink">上下文优化（Context Optimizer）</div>
             <div className="text-xs text-subtext">
-              对 StructuredMemory / WORLD_BOOK 注入做去重、排序、表格化合并，用于节省 tokens 并提升可读性（默认关闭）。
+              对注入上下文做去重、排序、表格化合并，用于节省 tokens 并提升可读性（默认关闭）。
             </div>
             <div className="text-xs text-subtext">
               {SETTINGS_COPY.contextOptimizer.status(baselineSettings.context_optimizer_enabled)}

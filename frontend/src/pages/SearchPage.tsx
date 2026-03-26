@@ -23,16 +23,19 @@ type SearchQueryResponse = {
   fts_enabled?: boolean;
 };
 
+const ACTIVE_SOURCE_TYPES = new Set(["chapter", "outline", "character", "story_memory", "source_document"]);
+
 const SOURCE_OPTIONS: Array<{ key: string; label: string }> = [
   { key: "chapter", label: UI_COPY.search.sourceLabels.chapter },
   { key: "outline", label: UI_COPY.search.sourceLabels.outline },
   { key: "character", label: UI_COPY.search.sourceLabels.character },
   { key: "story_memory", label: UI_COPY.search.sourceLabels.storyMemory },
   { key: "source_document", label: UI_COPY.search.sourceLabels.sourceDocument },
-  { key: "memory_entity", label: UI_COPY.search.sourceLabels.memoryEntity },
-  { key: "memory_relation", label: UI_COPY.search.sourceLabels.memoryRelation },
-  { key: "memory_evidence", label: UI_COPY.search.sourceLabels.memoryEvidence },
 ];
+
+function filterActiveItems(items: SearchItem[]): SearchItem[] {
+  return items.filter((item) => ACTIVE_SOURCE_TYPES.has(item.source_type));
+}
 
 function dedupeItems(items: SearchItem[]): SearchItem[] {
   const out: SearchItem[] = [];
@@ -85,7 +88,7 @@ export function SearchPage() {
         });
 
         const data = res.data;
-        const nextItems = Array.isArray(data.items) ? data.items : [];
+        const nextItems = filterActiveItems(Array.isArray(data.items) ? data.items : []);
         setItems((prev) => (append ? dedupeItems([...prev, ...nextItems]) : dedupeItems(nextItems)));
         setNextOffset(typeof data.next_offset === "number" ? data.next_offset : null);
         setDebug({ mode: data.mode, fts_enabled: data.fts_enabled });
@@ -125,12 +128,6 @@ export function SearchPage() {
         return UI_COPY.search.sourceLabels.storyMemory;
       case "source_document":
         return UI_COPY.search.sourceLabels.sourceDocument;
-      case "memory_entity":
-        return UI_COPY.search.sourceLabels.memoryEntity;
-      case "memory_relation":
-        return UI_COPY.search.sourceLabels.memoryRelation;
-      case "memory_evidence":
-        return UI_COPY.search.sourceLabels.memoryEvidence;
       default:
         return sourceType;
     }
@@ -143,11 +140,7 @@ export function SearchPage() {
       it.source_type === "outline" ||
       it.source_type === "character" ||
       it.source_type === "story_memory" ||
-      it.source_type === "source_document" ||
-      it.source_type === "project_table_row" ||
-      it.source_type === "memory_entity" ||
-      it.source_type === "memory_relation" ||
-      it.source_type === "memory_evidence"
+      it.source_type === "source_document"
     );
   }, []);
 
@@ -173,13 +166,9 @@ export function SearchPage() {
         navigate(`/projects/${projectId}/characters`);
         return;
       }
-      if (it.source_type === "memory_entity" || it.source_type === "memory_evidence") {
-        navigate(`/projects/${projectId}/structured-memory`);
-        return;
-      }
       toast.toastWarning(`该来源暂不支持跳转：${it.source_type}`);
     },
-    [navigate, projectId, query, toast],
+    [navigate, projectId, toast],
   );
 
   const copySourceId = useCallback(

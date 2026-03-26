@@ -12,7 +12,7 @@ export const SETTINGS_COPY = {
   queryPreprocess: {
     ariaLabel: "Query 预处理（Query Preprocessing）",
     title: "Query 预处理（Query Preprocessing）",
-    subtitle: "用于把 query_text 先”标准化/去噪”，让 Vector RAG / Graph 的检索更稳定（默认关闭）。",
+    subtitle: "用于把 query_text 先”标准化/去噪”，让检索输入更稳定（默认关闭）。",
     featureHint: "功能：提取 #tag、移除 exclusion_rules、可选识别章节引用（index_ref_enhance）。",
     enableLabel: "启用 query_preprocessing（默认关闭）",
     tagsLabel: "tags（每行一条；匹配 #tag；留空=提取所有 tag）",

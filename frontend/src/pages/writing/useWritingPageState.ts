@@ -28,13 +28,7 @@ import { useChapterGeneration } from "./useChapterGeneration";
 import { useGenerationHistory } from "./useGenerationHistory";
 import { useOutlineSwitcher } from "./useOutlineSwitcher";
 import type { ChapterForm } from "./writingUtils";
-import {
-  buildBatchTaskCenterHref,
-  buildProjectTaskCenterHref,
-  buildWritingTaskCenterHref,
-  pickFirstProjectTaskId,
-  type ChapterAutoUpdatesTriggerResult,
-} from "./writingPageModels";
+import { type ChapterAutoUpdatesTriggerResult } from "./writingPageModels";
 import {
   getWritingAnalysisHref,
   getWritingDoneOnlyWarning,
@@ -291,20 +285,7 @@ export function useWritingPageState(): WritingPageState {
           body: JSON.stringify({}),
         },
       );
-      const taskId = pickFirstProjectTaskId(response.data.tasks);
-      toast.toastSuccess(
-        WRITING_PAGE_COPY.autoUpdatesCreated,
-        response.request_id,
-        taskId
-          ? {
-              label: WRITING_PAGE_COPY.openTaskCenter,
-              onClick: () => {
-                const href = buildProjectTaskCenterHref(projectId, taskId);
-                if (href) navigate(href);
-              },
-            }
-          : undefined,
-      );
+      toast.toastSuccess(WRITING_PAGE_COPY.autoUpdatesCreated, response.request_id);
     } catch (error) {
       const err =
         error instanceof ApiError
@@ -385,10 +366,6 @@ export function useWritingPageState(): WritingPageState {
         }
         setMemoryUpdateOpen(true);
       },
-      onOpenTaskCenter: () => {
-        if (!projectId) return;
-        navigate(buildWritingTaskCenterHref(projectId, activeId));
-      },
       onOpenContextPreview: () => setContextPreviewOpen(true),
       onCreateChapter: chapterCrud.openCreate,
     },
@@ -462,7 +439,6 @@ export function useWritingPageState(): WritingPageState {
       batchItems: batch.batchItems,
       batchRuntime: batch.batchRuntime,
       projectTaskStreamStatus: batch.projectTaskStreamStatus,
-      taskCenterHref: buildBatchTaskCenterHref(projectId, batch.batchTask?.project_task_id),
       onClose: batch.closeModal,
       onCancelTask: () => void batch.cancelBatchGeneration(),
       onPauseTask: () => void batch.pauseBatchGeneration(),
@@ -558,7 +534,6 @@ export function useWritingPageState(): WritingPageState {
     memoryUpdateDrawerProps: {
       open: memoryUpdateOpen,
       onClose: () => setMemoryUpdateOpen(false),
-      projectId,
       chapterId: activeId ?? undefined,
     },
     generationHistoryDrawerProps: {

@@ -16,7 +16,6 @@ export function WritingToolbar(props: {
   onOpenAiGenerate: () => void;
   onOpenContextPreview: () => void;
   onOpenMemoryUpdate: () => void;
-  onOpenTaskCenter: () => void;
   onCreateChapter: () => void;
 }) {
   return (
@@ -90,9 +89,6 @@ export function WritingToolbar(props: {
           type="button"
         >
           记忆更新（Memory Update）
-        </button>
-        <button className="btn btn-secondary" onClick={props.onOpenTaskCenter} type="button">
-          任务中心
         </button>
       </div>
 

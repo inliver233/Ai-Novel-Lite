@@ -36,12 +36,8 @@ test("api: chapter_generate_precheck contract (macro_seed pinned)", async ({ req
     memory_injection_enabled: true,
     memory_query_text: "dragon",
     memory_modules: {
-      worldbook: false,
       story_memory: true,
       structured: false,
-      vector_rag: false,
-      graph: false,
-      fractal: false,
     },
     context: {
       include_world_setting: false,
@@ -118,4 +114,3 @@ test("api: chapter_generate_precheck contract (macro_seed pinned)", async ({ req
   expect(raw).not.toContain("test-key");
   expect(raw).not.toMatch(/sk-[a-zA-Z0-9]{10,}/);
 });
-

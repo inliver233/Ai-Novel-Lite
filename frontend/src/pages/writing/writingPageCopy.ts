@@ -22,7 +22,6 @@ export const WRITING_PAGE_COPY = {
   saveAndTriggerPending: "保存并触发中...",
   save: "保存",
   saving: "保存中...",
-  openTaskCenter: "打开 TaskCenter",
   openChapterAnalysis: "打开标注页",
   switchedOutline: "已切换大纲",
   saveQueued: "保存中：已加入队列，将自动保存。",

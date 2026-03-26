@@ -6,6 +6,7 @@ import {
   getQueryPreprocessErrorField,
   isSameQueryPreprocess,
   parseLineList,
+  previewQueryPreprocess,
   queryPreprocessFromBaseline,
   queryPreprocessFromForm,
   validateQueryPreprocess,
@@ -62,5 +63,21 @@ describe("settings/queryPreprocessing", () => {
     expect(error).toBe("tag 过长（最多 64 字符）");
     expect(getQueryPreprocessErrorField(error)).toBe("tags");
     expect(getQueryPreprocessErrorField("exclusion_rule 过长（最多 256 字符）")).toBe("exclusion_rules");
+  });
+
+  it("builds a local preprocessing preview without graph requests", () => {
+    const preview = previewQueryPreprocess("回顾第12章 #hero REMOVE chapter 8", {
+      enabled: true,
+      tags: [],
+      exclusion_rules: ["REMOVE"],
+      index_ref_enhance: true,
+    });
+
+    expect(preview.normalized).toBe("回顾第12章 chapter 8 chapter:8 chapter:12");
+    expect(preview.obs).toMatchObject({
+      extracted_tags: ["hero"],
+      applied_exclusion_rules: ["REMOVE"],
+      index_refs: ["chapter:8", "chapter:12"],
+    });
   });
 });

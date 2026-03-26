@@ -41,7 +41,7 @@ from app.services.prompt_presets import ensure_default_chapter_analyze_preset, r
 from app.services.search_index_service import schedule_search_rebuild_task
 from app.services.vector_rag_service import schedule_vector_rebuild_task
 
-_MANAGED_MEMORY_TYPES = {"chapter_summary", "hook", "plot_point", "foreshadow", "character_state"}
+_MANAGED_MEMORY_TYPES = {"chapter_summary", "hook", "plot_point", "character_state"}
 
 logger = logging.getLogger("ainovel")
 
@@ -258,8 +258,6 @@ def extract_story_memory_seeds(
             "story_timeline": timeline,
             "text_position": -1,
             "text_length": 0,
-            "is_foreshadow": 0,
-            "foreshadow_resolved_at_chapter_id": None,
             "metadata": None,
         }
     )
@@ -286,8 +284,6 @@ def extract_story_memory_seeds(
                     "story_timeline": timeline,
                     "text_position": pos,
                     "text_length": length,
-                    "is_foreshadow": 0,
-                    "foreshadow_resolved_at_chapter_id": None,
                     "metadata": None,
                 }
             )
@@ -314,8 +310,6 @@ def extract_story_memory_seeds(
                     "story_timeline": timeline,
                     "text_position": pos,
                     "text_length": length,
-                    "is_foreshadow": 0,
-                    "foreshadow_resolved_at_chapter_id": None,
                     "metadata": None,
                 }
             )
@@ -344,8 +338,6 @@ def extract_story_memory_seeds(
                     "story_timeline": timeline,
                     "text_position": -1,
                     "text_length": 0,
-                    "is_foreshadow": 0,
-                    "foreshadow_resolved_at_chapter_id": None,
                     "metadata": None,
                 }
             )
@@ -450,8 +442,6 @@ def apply_chapter_analysis(
                     story_timeline=_int_or_default(seed.get("story_timeline"), chapter_number),
                     text_position=_int_or_default(seed.get("text_position"), -1),
                     text_length=_int_or_default(seed.get("text_length"), 0),
-                    is_foreshadow=_int_or_default(seed.get("is_foreshadow"), 0),
-                    foreshadow_resolved_at_chapter_id=seed.get("foreshadow_resolved_at_chapter_id"),
                     metadata_json=metadata_json,
                     created_at=now,
                     updated_at=now,

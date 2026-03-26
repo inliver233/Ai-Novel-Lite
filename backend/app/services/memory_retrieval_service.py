@@ -184,8 +184,6 @@ def retrieve_memory_context_pack(
         if "vector_rag" in budgets
         else int(getattr(settings, "vector_final_char_limit", 6000) or 6000)
     )
-    worldbook: dict[str, Any] = {"enabled": False, "disabled_reason": "removed", "triggered": [], "text_md": "", "truncated": False}
-
     story_memory: dict[str, Any] = {"enabled": False, "disabled_reason": "empty", "items": [], "text_md": ""}
     if not story_memory_enabled:
         story_memory = {"enabled": False, "disabled_reason": "disabled", "items": [], "text_md": ""}
@@ -221,7 +219,6 @@ def retrieve_memory_context_pack(
                         "title": m.title,
                         "importance_score": float(m.importance_score or 0.0),
                         "story_timeline": int(m.story_timeline or 0),
-                        "is_foreshadow": bool(m.is_foreshadow),
                         "content_preview": (str(m.content or "").strip()[:200] + "…")
                         if len(str(m.content or "").strip()) > 200
                         else str(m.content or "").strip(),
@@ -376,8 +373,6 @@ def retrieve_memory_context_pack(
                 }
                 semantic_history["text_chars"] = len(str(text_md or ""))
 
-    structured: dict[str, Any] = {"enabled": False, "disabled_reason": "removed", "counts": {}, "text_md": ""}
-
     try:
         if not vector_rag_enabled:
             vector_rag = vector_rag_status(project_id=project_id, embedding=embedding_overrides, rerank=rerank_config)
@@ -420,13 +415,6 @@ def retrieve_memory_context_pack(
 
     logs: list[dict[str, Any]] = [
         {
-            "section": "worldbook",
-            "enabled": False,
-            "disabled_reason": "removed",
-            "note": "worldbook feature removed",
-            "token_estimate": 0,
-        },
-        {
             "section": "story_memory",
             "enabled": bool(story_memory.get("enabled")),
             "disabled_reason": story_memory.get("disabled_reason"),
@@ -447,13 +435,6 @@ def retrieve_memory_context_pack(
             "truncated": bool(semantic_history.get("truncated")) if "truncated" in semantic_history else None,
             "budget_char_limit": int(semantic_history_budget),
             "budget_source": "override" if "semantic_history" in budgets else "default",
-        },
-        {
-            "section": "structured",
-            "enabled": False,
-            "disabled_reason": "removed",
-            "note": "structured memory section removed",
-            "token_estimate": 0,
         },
         {
             "section": "vector_rag",
@@ -483,10 +464,8 @@ def retrieve_memory_context_pack(
     return MemoryContextPackOut.model_validate(
         redact_api_keys(
             {
-                "worldbook": worldbook,
                 "story_memory": story_memory,
                 "semantic_history": semantic_history,
-                "structured": structured,
                 "vector_rag": vector_rag,
                 "logs": logs,
             }

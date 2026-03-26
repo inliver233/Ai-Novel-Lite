@@ -77,7 +77,6 @@ export function BatchGenerationModal(props: {
   batchItems: BatchGenerationTaskItem[];
   batchRuntime: ProjectTaskRuntime | null;
   projectTaskStreamStatus: "idle" | "connecting" | "open" | "error";
-  taskCenterHref?: string | null;
   onClose: () => void;
   onCancelTask: () => void;
   onPauseTask: () => void;
@@ -144,15 +143,6 @@ export function BatchGenerationModal(props: {
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-atelier border border-border bg-canvas px-3 py-2 text-xs text-subtext">
         <span aria-label="batch_generation_live_status">Runtime SSE: {streamStatusLabel}</span>
-        {props.taskCenterHref ? (
-          <a
-            className="btn btn-secondary btn-sm"
-            href={props.taskCenterHref}
-            aria-label="Open TaskCenter (batch_generation_open_task_center)"
-          >
-            Open TaskCenter
-          </a>
-        ) : null}
       </div>
 
       <div className="mt-4 grid gap-3">

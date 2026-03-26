@@ -31,7 +31,6 @@ export interface ProjectSettings {
   auto_update_story_memory_enabled: boolean;
   auto_update_vector_enabled: boolean;
   auto_update_search_enabled: boolean;
-  auto_update_tables_enabled: boolean;
 
   query_preprocessing?: QueryPreprocessingConfig | null;
   query_preprocessing_default?: QueryPreprocessingConfig;

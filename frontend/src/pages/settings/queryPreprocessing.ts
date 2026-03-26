@@ -2,6 +2,10 @@ import type { ProjectSettings, QueryPreprocessingConfig } from "../../types";
 
 import type { SettingsForm } from "./models";
 
+const TAG_PATTERN = /(^|\s)#([0-9A-Za-z_\-\u4e00-\u9fff]{1,64})/g;
+const CHAPTER_REF_PATTERN = /第(\d{1,4})章/g;
+const CHAPTER_REF_EN_PATTERN = /\bchapter\s*(\d{1,4})\b/gi;
+
 export function parseLineList(raw: string): string[] {
   return (raw || "")
     .split(/\r?\n/)
@@ -64,4 +68,76 @@ export function getQueryPreprocessErrorField(error: string | null): "tags" | "ex
   if (error.startsWith("tags") || error.startsWith("tag")) return "tags";
   if (error.startsWith("exclusion_rule") || error.startsWith("exclusion_rules")) return "exclusion_rules";
   return null;
+}
+
+export function previewQueryPreprocess(
+  queryText: string,
+  config: QueryPreprocessingConfig,
+): { normalized: string; obs: Record<string, unknown> } {
+  const raw = typeof queryText === "string" ? queryText : String(queryText ?? "");
+  const enabled = Boolean(config?.enabled);
+  const obs: Record<string, unknown> = {
+    enabled,
+    raw_query_text: raw,
+    normalized_query_text: raw,
+    extracted_tags: [],
+    ignored_tags: [],
+    applied_exclusion_rules: [],
+    index_refs: [],
+    steps: [],
+  };
+
+  if (!enabled) {
+    obs.steps = ["disabled_passthrough"];
+    return { normalized: raw, obs };
+  }
+
+  const allowTags = config.tags?.length ? new Set(config.tags) : null;
+  const extractedTags = new Set<string>();
+  const ignoredTags = new Set<string>();
+
+  let text = raw.replace(TAG_PATTERN, (match, prefix: string, tag: string) => {
+    if (!allowTags || allowTags.has(tag)) {
+      extractedTags.add(tag);
+      return prefix || "";
+    }
+    ignoredTags.add(tag);
+    return match;
+  });
+
+  obs.steps = ["tag_extract"];
+  obs.extracted_tags = [...extractedTags].sort();
+  obs.ignored_tags = [...ignoredTags].sort();
+
+  const appliedRules: string[] = [];
+  for (const rule of config.exclusion_rules ?? []) {
+    if (rule && text.includes(rule)) {
+      appliedRules.push(rule);
+      text = text.split(rule).join(" ");
+    }
+  }
+  (obs.steps as string[]).push("exclusion_rules");
+  obs.applied_exclusion_rules = appliedRules;
+
+  const indexRefs = new Set<string>();
+  if (config.index_ref_enhance) {
+    for (const match of text.matchAll(CHAPTER_REF_PATTERN)) {
+      if (match[1]) indexRefs.add(match[1]);
+    }
+    for (const match of text.matchAll(CHAPTER_REF_EN_PATTERN)) {
+      if (match[1]) indexRefs.add(match[1]);
+    }
+
+    const sortedIndexRefs = [...indexRefs].sort((left, right) => Number(left) - Number(right)).map((n) => `chapter:${n}`);
+    if (sortedIndexRefs.length) {
+      text = `${text} ${sortedIndexRefs.join(" ")}`;
+    }
+    (obs.steps as string[]).push("index_ref_enhance");
+    obs.index_refs = sortedIndexRefs;
+  }
+
+  const normalized = text.replace(/\s+/g, " ").trim();
+  (obs.steps as string[]).push("basic_clean");
+  obs.normalized_query_text = normalized;
+  return { normalized, obs };
 }

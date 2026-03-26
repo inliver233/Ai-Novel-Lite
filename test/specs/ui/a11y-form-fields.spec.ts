@@ -1,5 +1,5 @@
 import { type Page } from "@playwright/test";
-import { test, expect, waitForWorldbookPageReady } from "../../lib/ui-test";
+import { test, expect } from "../../lib/ui-test";
 
 import { bootstrapProject } from "../../lib/bootstrap";
 
@@ -12,16 +12,6 @@ type MissingFieldSummary = {
   placeholder?: string;
   className?: string;
 };
-
-async function expandDetailsByTitle(page: Page, title: string) {
-  const summary = page.locator("summary", { hasText: title });
-  await expect(summary).toBeVisible();
-  const details = summary.locator("..");
-  if ((await details.getAttribute("open")) === null) {
-    await summary.click();
-    await expect(details).toHaveAttribute("open", "");
-  }
-}
 
 async function collectMissingFormFields(page: Page): Promise<MissingFieldSummary[]> {
   return await page.evaluate(() => {
@@ -109,11 +99,9 @@ test("ui: a11y form fields have id or name (key pages)", async ({ page, request 
 
   await page.goto(`/projects/${projectId}/settings`);
   await expect(page.getByText("项目信息", { exact: true })).toBeVisible();
-  await expandDetailsByTitle(page, "向量检索（Vector RAG）");
-  await expandDetailsByTitle(page, "Rerank 提供方配置");
   await check("SettingsPage");
 
-  await page.goto(`/projects/${projectId}/prompts#rag-config`);
+  await page.goto(`/projects/${projectId}/prompts`);
   await expect(page.getByRole("heading", { name: "模型配置", exact: true })).toBeVisible();
   await check("PromptsPage");
 
@@ -124,8 +112,4 @@ test("ui: a11y form fields have id or name (key pages)", async ({ page, request 
   await page.goto(`/projects/${projectId}/writing`);
   await expect(page.getByText("请选择或新建章节开始写作。", { exact: true })).toBeVisible();
   await check("WritingPage");
-
-  await page.goto(`/projects/${projectId}/worldbook`);
-  await waitForWorldbookPageReady(page);
-  await check("WorldBookPage");
 });

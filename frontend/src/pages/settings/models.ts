@@ -42,7 +42,7 @@ export type ProjectMembershipItem = {
   updated_at?: string | null;
 };
 
-export type QpPreviewState = { normalized: string; obs: unknown; requestId: string };
+export type QpPreviewState = { normalized: string; obs: unknown; requestId: string | null };
 
 export type VectorEmbeddingDryRunResult = {
   enabled: boolean;

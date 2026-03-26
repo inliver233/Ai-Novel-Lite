@@ -76,9 +76,6 @@ export const UI_COPY = {
       character: "角色",
       storyMemory: "剧情记忆",
       sourceDocument: "导入文档",
-      memoryEntity: "图谱实体",
-      memoryRelation: "人物关系",
-      memoryEvidence: "关系证据",
     },
     emptyHint: "暂无结果",
     loadMore: "加载更多",
@@ -252,12 +249,6 @@ export const UI_COPY = {
       chapterRewrite: "章节重写（chapter_rewrite，P2）",
     },
   },
-  taskCenter: {
-    title: "任务中心",
-    subtitle: "查看记忆变更集与后台任务的状态、错误与排障信息。",
-    usageHint: "何时用：生成/记忆更新后结果不符合预期，或需要查看后台任务是否失败/排队/运行中。",
-    riskHint: "风险：该页包含较多排障字段（request_id/error 等）；对外分享时注意脱敏。",
-  },
   featureDefaults: {
     ariaLabel: "默认行为（Feature Defaults）",
     title: "默认行为（默认开启）",
@@ -271,6 +262,6 @@ export const UI_COPY = {
     toastDisabled: "已关闭：写作默认记忆注入",
     toastReset: "已恢复默认：写作默认记忆注入（开启）",
     autoUpdateHint:
-      "后台自动更新（图谱/向量/搜索）默认开启：章节定稿/内容变更后会静默调度任务；可在「任务中心」查看状态与重试。",
+      "后台自动更新（向量/搜索/角色/剧情记忆）默认开启：章节定稿或内容变更后会静默调度任务；如需排障，请结合请求 ID 与当前页面提示定位。",
   },
 } as const;

@@ -32,6 +32,7 @@ import {
 import {
   getQueryPreprocessErrorField,
   isSameQueryPreprocess,
+  previewQueryPreprocess,
   queryPreprocessFromBaseline,
   queryPreprocessFromForm,
   validateQueryPreprocess,
@@ -345,7 +346,7 @@ export function useSettingsPageState(): SettingsPageState {
   );
 
   const runQpPreview = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !baselineSettings) return;
     const queryText = qpPreviewQueryText.trim();
     if (!queryText) {
       setQpPreview(null);
@@ -369,19 +370,11 @@ export function useSettingsPageState(): SettingsPageState {
 
       setQpPanelOpen(true);
 
-      const res = await apiJson<{
-        result: unknown;
-        raw_query_text: string;
-        normalized_query_text: string;
-        preprocess_obs: unknown;
-      }>(`/api/projects/${projectId}/graph/query`, {
-        method: "POST",
-        body: JSON.stringify({ query_text: queryText, enabled: false }),
-      });
+      const result = previewQueryPreprocess(queryText, queryPreprocessFromBaseline(baselineSettings));
       const next: QpPreviewState = {
-        normalized: String(res.data.normalized_query_text ?? ""),
-        obs: res.data.preprocess_obs ?? null,
-        requestId: res.request_id ?? "unknown",
+        normalized: result.normalized,
+        obs: result.obs,
+        requestId: null,
       };
       setQpPreview(next);
       qpPreviewCache.set(projectId, next);
@@ -396,7 +389,7 @@ export function useSettingsPageState(): SettingsPageState {
     } finally {
       setQpPreviewLoading(false);
     }
-  }, [projectId, qpPreviewQueryText]);
+  }, [baselineSettings, projectId, qpPreviewQueryText]);
 
   const dirty = useMemo(() => {
     if (!baselineProject || !baselineSettings) return false;

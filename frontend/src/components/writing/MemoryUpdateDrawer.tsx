@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { UI_COPY } from "../../lib/uiCopy";
 import { ApiError, apiJson } from "../../services/apiClient";
@@ -9,7 +8,6 @@ import { useToast } from "../ui/toast";
 type Props = {
   open: boolean;
   onClose: () => void;
-  projectId?: string;
   chapterId?: string;
 };
 
@@ -49,18 +47,6 @@ type ApplyResult = {
   idempotent: boolean;
   change_set: MemoryChangeSet;
   warnings: Array<{ code?: string; message?: string; item_id?: string }>;
-};
-
-type StructuredEntity = {
-  id: string;
-  entity_type: string;
-  name: string;
-  deleted_at?: string | null;
-};
-
-type StructuredMemory = {
-  entities: StructuredEntity[];
-  counts?: Record<string, number>;
 };
 
 const EXAMPLE_OPS = JSON.stringify(
@@ -127,9 +113,8 @@ function safeParseJsonField(raw: string | null | undefined): unknown {
 }
 
 export function MemoryUpdateDrawer(props: Props) {
-  const navigate = useNavigate();
   const toast = useToast();
-  const { chapterId, onClose, open, projectId } = props;
+  const { chapterId, onClose, open } = props;
   const titleId = useId();
   const copy = UI_COPY.writing.memoryUpdateDrawer;
   const [inputJson, setInputJson] = useState(EXAMPLE_OPS);
@@ -145,15 +130,10 @@ export function MemoryUpdateDrawer(props: Props) {
   const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [lastApplyChangeSetId, setLastApplyChangeSetId] = useState<string | null>(null);
 
-  const [structuredLoading, setStructuredLoading] = useState(false);
-  const [structuredError, setStructuredError] = useState<ApiError | null>(null);
-  const [structured, setStructured] = useState<StructuredMemory | null>(null);
-
   useEffect(() => {
     if (!open) return;
     setProposeError(null);
     setApplyError(null);
-    setStructuredError(null);
   }, [open]);
 
   useEffect(() => {
@@ -351,37 +331,6 @@ export function MemoryUpdateDrawer(props: Props) {
     }
   }, [lastApplyChangeSetId, toast]);
 
-  const refreshStructured = useCallback(async () => {
-    if (!projectId) {
-      toast.toastError("缺少 projectId");
-      return;
-    }
-    setStructuredLoading(true);
-    setStructuredError(null);
-    try {
-      const res = await apiJson<StructuredMemory>(`/api/projects/${projectId}/memory/structured`, {
-        method: "GET",
-      });
-      setStructured(res.data);
-    } catch (e) {
-      const err =
-        e instanceof ApiError
-          ? e
-          : new ApiError({ code: "UNKNOWN", message: String(e), requestId: "unknown", status: 0 });
-      setStructuredError(err);
-    } finally {
-      setStructuredLoading(false);
-    }
-  }, [projectId, toast]);
-
-  const openTaskCenter = useCallback(() => {
-    if (!projectId) return;
-    const qs = new URLSearchParams();
-    if (chapterId) qs.set("chapterId", chapterId);
-    navigate(`/projects/${projectId}/tasks${qs.toString() ? `?${qs.toString()}` : ""}`);
-    onClose();
-  }, [chapterId, navigate, onClose, projectId]);
-
   return (
     <Drawer
       open={open}
@@ -398,9 +347,6 @@ export function MemoryUpdateDrawer(props: Props) {
             <div className="mt-0.5 truncate text-xs text-subtext">{copy.subtitle}</div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn btn-secondary" disabled={!projectId} onClick={openTaskCenter} type="button">
-              任务中心
-            </button>
             <button className="btn btn-secondary" aria-label="关闭" onClick={onClose} type="button">
               关闭
             </button>
@@ -599,56 +545,6 @@ export function MemoryUpdateDrawer(props: Props) {
                   )}
                 </div>
               ) : null}
-            </div>
-
-            <div className="rounded-atelier border border-border bg-surface p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm text-ink">结构化记忆（调试）</div>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => void refreshStructured()}
-                  disabled={structuredLoading}
-                  type="button"
-                >
-                  {structuredLoading ? "刷新..." : "刷新"}
-                </button>
-              </div>
-
-              {structuredError ? (
-                <div className="mt-2 text-xs text-subtext">
-                  {structuredError.message} ({structuredError.code}) | request_id: {structuredError.requestId}
-                </div>
-              ) : null}
-
-              {structured ? (
-                <div className="mt-2">
-                  <div className="text-xs text-subtext">
-                    counts:{" "}
-                    {structured.counts
-                      ? Object.entries(structured.counts)
-                          .map(([k, v]) => `${k}:${v}`)
-                          .join(" | ")
-                      : "-"}
-                  </div>
-                  <div className="mt-2 grid gap-2">
-                    {(structured.entities ?? []).slice(0, 12).map((e) => (
-                      <div key={e.id} className="rounded-atelier border border-border bg-surface p-2 text-xs">
-                        <div className="text-ink">
-                          {e.entity_type}:{e.name}
-                        </div>
-                        <div className="mt-1 text-subtext">
-                          {e.deleted_at ? `deleted_at: ${e.deleted_at}` : "active"}
-                        </div>
-                      </div>
-                    ))}
-                    {(structured.entities ?? []).length === 0 ? (
-                      <div className="text-xs text-subtext">entities: 0</div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2 text-xs text-subtext">提示：应用后点“刷新”确认结构化事实已落库。</div>
-              )}
             </div>
           </div>
         </div>

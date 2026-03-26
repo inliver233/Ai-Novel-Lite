@@ -3,7 +3,9 @@ import { test, expect } from "../../lib/ui-test";
 import { bootstrapProject } from "../../lib/bootstrap";
 import { loadState } from "../../lib/state";
 
-test("ui: writing generate -> save -> trigger auto updates is trackable in TaskCenter", async ({ page, request }) => {
+type ApiOk<T> = { ok: true; data: T; request_id: string };
+
+test("ui: writing generate -> save -> trigger remaining background tasks", async ({ page, request }) => {
   const state = loadState();
   const { projectId } = await bootstrapProject(request);
 
@@ -34,15 +36,17 @@ test("ui: writing generate -> save -> trigger auto updates is trackable in TaskC
   await saveAndTrigger.click();
 
   await expect(page.getByText("已保存并创建无感更新任务", { exact: true })).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("button", { name: "打开 TaskCenter", exact: true }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/tasks`));
-
-  const projectTasksSection = page.getByRole("region", { name: "项目任务 (taskcenter_projecttasks_section)", exact: true });
-  await expect(projectTasksSection).toBeVisible({ timeout: 60_000 });
-
-  await expect(projectTasksSection.getByRole("button", { name: /vector_rebuild/ }).first()).toBeVisible({ timeout: 60_000 });
-  await expect(projectTasksSection.getByRole("button", { name: /search_rebuild/ }).first()).toBeVisible();
-  await expect(projectTasksSection.getByRole("button", { name: /worldbook_auto_update/ }).first()).toBeVisible();
-  await expect(projectTasksSection.getByRole("button", { name: /graph_auto_update/ }).first()).toBeVisible();
+  await expect
+    .poll(
+      async () => {
+        const res = await request.get(`${state.backendUrl}/api/projects/${projectId}/tasks?limit=20`);
+        if (!res.ok()) return false;
+        const json = (await res.json()) as ApiOk<{ items: Array<{ kind?: string | null }> }>;
+        const kinds = new Set((json.data?.items ?? []).map((item) => String(item?.kind ?? "")));
+        return kinds.has("vector_rebuild") && kinds.has("search_rebuild");
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true);
 });

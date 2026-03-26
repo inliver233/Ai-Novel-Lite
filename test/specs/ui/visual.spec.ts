@@ -81,35 +81,6 @@ test("ui: visual smoke (update with --update-snapshots)", async ({ page, request
   await expect(page.getByText("请选择或新建章节开始写作。", { exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot("writing-empty.png");
 
-  await page.goto(`/projects/${projectId}/rag`);
-  await stabilizeUi(page);
-  await expect(page.getByText("Vector RAG 管理", { exact: true })).toBeVisible();
-  await hideUnstableBadges(page);
-  await expect(page).toHaveScreenshot("rag.png");
-
-  await page.goto(`/projects/${projectId}/graph`);
-  await stabilizeUi(page);
-  await expect(page.getByLabel("graph_query_text", { exact: true })).toBeVisible();
-  await expect(page).toHaveScreenshot("graph.png");
-
-  await page.goto(`/projects/${projectId}/fractal`);
-  await stabilizeUi(page);
-  await expect(page.getByText("分形记忆（Fractal）", { exact: true })).toBeVisible();
-  await expect(page).toHaveScreenshot("fractal.png");
-
-  await page.goto(`/projects/${projectId}/tasks`);
-  await stabilizeUi(page);
-  await expect(page.getByRole("region", { name: "变更集 (taskcenter_changesets_section)", exact: true })).toBeVisible();
-  await expect(page.getByText("暂无变更集", { exact: true })).toBeVisible();
-  await expect(page.getByText("暂无任务", { exact: true })).toBeVisible();
-  await expect(page).toHaveScreenshot("task-center.png");
-
-  await page.goto(`/projects/${projectId}/structured-memory`);
-  await stabilizeUi(page);
-  await expect(page.getByRole("button", { name: /structured_tab_entities/ })).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText("暂无数据", { exact: true })).toBeVisible({ timeout: 60_000 });
-  await expect(page).toHaveScreenshot("structured-memory.png");
-
   await page.goto(`/projects/${projectId}/prompt-studio`);
   await stabilizeUi(page);
   await expect(page.getByText("提示词工作室（beta）", { exact: true })).toBeVisible();
@@ -119,27 +90,6 @@ test("ui: visual smoke (update with --update-snapshots)", async ({ page, request
   await stabilizeUi(page);
   await expect(page.getByText("项目信息", { exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot("settings.png");
-
-  // Capture sidebar advanced-debug section to cover nav icon changes (RAG / Glossary / etc).
-  const expandSidebar = page.getByRole("button", { name: "展开侧边栏", exact: true });
-  if (await expandSidebar.isVisible()) await expandSidebar.click();
-
-  const advancedToggle = page.getByLabel("显示高级调试 (toggle_advanced_debug)", { exact: true });
-  await expect(advancedToggle).toBeVisible();
-  await advancedToggle.check();
-
-  const sidebar = page.locator("aside").first();
-  const navRag = sidebar.getByLabel("知识库（RAG） (nav_rag)", { exact: true });
-  if (!(await navRag.isVisible())) {
-    const summary = sidebar.locator("summary", { hasText: "高级调试" }).first();
-    await expect(summary).toBeVisible();
-    await summary.scrollIntoViewIfNeeded();
-    await summary.click();
-    await expect(navRag).toBeVisible();
-  }
-
-  const advancedDebugDetails = sidebar.locator("details").filter({ hasText: "高级调试" }).first();
-  await expect(advancedDebugDetails).toHaveScreenshot("sidebar-advanced-debug.png");
 
   // Additional visual baselines: Search / Writing / ChapterAnalysis.
   const token = `VISUAL_${Date.now()}`;

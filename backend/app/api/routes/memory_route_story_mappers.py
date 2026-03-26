@@ -26,11 +26,7 @@ def _build_story_memory_import_row(*, project_id: str, item: Any, now: datetime)
         story_timeline=int(getattr(item, 'story_timeline', 0) or 0),
         text_position=-1,
         text_length=0,
-        is_foreshadow=int(getattr(item, 'is_foreshadow', 0) or 0),
-        foreshadow_resolved_at_chapter_id=None,
         metadata_json=json.dumps({'source': 'import_all'}, ensure_ascii=False),
         created_at=now,
         updated_at=now,
     )
-
-
