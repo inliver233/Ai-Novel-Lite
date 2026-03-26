@@ -15,7 +15,7 @@ from app.core.logging import exception_log_fields, log_event
 
 
 TaskQueueBackend = Literal["rq", "inline"]
-TaskKind = Literal["batch_generation", "memory_task", "import_task", "project_task"]
+TaskKind = Literal["batch_generation", "import_task", "project_task"]
 
 logger = logging.getLogger("ainovel")
 
@@ -174,10 +174,6 @@ class _InlineWorker:
                     from app.services.import_export_service import run_import_task
 
                     run_import_task(task_id=task_id)
-                elif kind == "memory_task":
-                    from app.services.memory_update_service import run_memory_task
-
-                    run_memory_task(task_id=task_id)
                 elif kind == "project_task":
                     from app.services.project_task_service import run_project_task
 
@@ -256,10 +252,6 @@ class RqTaskQueue:
                 from app.services.import_export_service import run_import_task
 
                 fn = run_import_task
-            elif kind == "memory_task":
-                from app.services.memory_update_service import run_memory_task
-
-                fn = run_memory_task
             elif kind == "project_task":
                 from app.services.project_task_service import run_project_task
 

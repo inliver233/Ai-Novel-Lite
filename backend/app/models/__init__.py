@@ -6,7 +6,6 @@ from app.models.knowledge_base import KnowledgeBase
 from app.models.llm_profile import LLMProfile
 from app.models.llm_preset import LLMPreset
 from app.models.llm_task_preset import LLMTaskPreset
-from app.models.memory_task import MemoryTask
 from app.models.outline import Outline
 from app.models.project import Project
 from app.models.project_membership import ProjectMembership
@@ -20,10 +19,6 @@ from app.models.prompt_preset import PromptPreset
 from app.models.plot_analysis import PlotAnalysis
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
-from app.models.structured_memory import (
-    MemoryChangeSet,
-    MemoryChangeSetItem,
-)
 from app.models.auth_external_account import AuthExternalAccount
 from app.models.user import User
 from app.models.user_activity_stat import UserActivityStat
@@ -41,7 +36,6 @@ __all__ = [
     "LLMProfile",
     "LLMPreset",
     "LLMTaskPreset",
-    "MemoryTask",
     "Outline",
     "Project",
     "ProjectMembership",
@@ -55,8 +49,6 @@ __all__ = [
     "PromptPreset",
     "PlotAnalysis",
     "SearchDocument",
-    "MemoryChangeSet",
-    "MemoryChangeSetItem",
     "StoryMemory",
     "AuthExternalAccount",
     "User",

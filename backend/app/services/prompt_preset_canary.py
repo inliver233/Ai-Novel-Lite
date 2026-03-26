@@ -50,12 +50,6 @@ DEFAULT_PROMPT_PRESET_CANARIES: tuple[PromptPresetCanaryDefinition, ...] = (
         expected_substrings=("\"outline_md\"", "\"chapters\""),
         values={"chapter_count_rule": "", "chapter_detail_rule": ""},
     ),
-    PromptPresetCanaryDefinition(
-        resource_key="memory_update_v1",
-        block_identifier="sys.memory_update.contract.json",
-        expected_substrings=("schema: memory_update_v1", "\"ops\""),
-        values={},
-    ),
 )
 
 

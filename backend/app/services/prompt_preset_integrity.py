@@ -14,6 +14,7 @@ _ALLOWED_INJECTION_POSITIONS = {"relative", "absolute"}
 _ALLOWED_BUDGET_PRIORITIES = {"must", "important", "optional", "drop_first"}
 _MARKER_KEY_RE = re.compile(r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$")
 _TASK_KEY_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+_REMOVED_RESOURCE_KEYS = {"memory_update_v1"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,9 +65,13 @@ def collect_prompt_preset_integrity(
 ) -> PromptPresetIntegrityReport:
     effective_base_dir = Path(base_dir) if base_dir is not None else _default_resource_base_dir()
     if resource_keys is None:
-        keys = sorted(path.name for path in effective_base_dir.iterdir() if path.is_dir()) if effective_base_dir.exists() else []
+        keys = (
+            sorted(path.name for path in effective_base_dir.iterdir() if path.is_dir() and path.name not in _REMOVED_RESOURCE_KEYS)
+            if effective_base_dir.exists()
+            else []
+        )
     else:
-        keys = list(resource_keys)
+        keys = [key for key in resource_keys if key not in _REMOVED_RESOURCE_KEYS]
 
     issues: list[PromptPresetIntegrityIssue] = []
     checked: list[str] = []

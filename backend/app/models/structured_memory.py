@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -171,62 +171,6 @@ class MemoryEvidence(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
-class MemoryChangeSet(Base):
-    __tablename__ = "memory_change_sets"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-    actor_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    generation_run_id: Mapped[str | None] = mapped_column(ForeignKey("generation_runs.id", ondelete="SET NULL"), nullable=True)
-
-    request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    idempotency_key: Mapped[str] = mapped_column(String(64), nullable=False)
-
-    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    summary_md: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="proposed")
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    rolled_back_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint("project_id", "idempotency_key", name="uq_memory_change_sets_project_idempotency_key"),
-        CheckConstraint(
-            "status IN ('proposed','applied','rolled_back','failed')",
-            name="ck_memory_change_sets_status",
-        ),
-    )
-
-
-class MemoryChangeSetItem(Base):
-    __tablename__ = "memory_change_set_items"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-    change_set_id: Mapped[str] = mapped_column(ForeignKey("memory_change_sets.id", ondelete="CASCADE"), nullable=False)
-
-    item_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    target_table: Mapped[str] = mapped_column(String(32), nullable=False)
-    target_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    op: Mapped[str] = mapped_column(String(16), nullable=False, default="upsert")
-
-    before_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    after_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    evidence_ids_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-
-    __table_args__ = (
-        UniqueConstraint("change_set_id", "item_index", name="uq_memory_change_set_items_change_set_index"),
-        CheckConstraint("op IN ('upsert','delete')", name="ck_memory_change_set_items_op"),
-        CheckConstraint(
-            "target_table IN ('entities','relations','events','foreshadows','evidence')",
-            name="ck_memory_change_set_items_target_table",
-        ),
-    )
-
-
 Index("ix_entities_project_id", MemoryEntity.project_id)
 Index("ix_entities_project_id_entity_type", MemoryEntity.project_id, MemoryEntity.entity_type)
 Index(
@@ -268,8 +212,3 @@ Index(
     MemoryEvidence.deleted_at,
     MemoryEvidence.created_at,
 )
-Index("ix_memory_change_sets_project_id", MemoryChangeSet.project_id)
-Index("ix_memory_change_sets_project_id_status", MemoryChangeSet.project_id, MemoryChangeSet.status)
-Index("ix_memory_change_set_items_project_id", MemoryChangeSetItem.project_id)
-Index("ix_memory_change_set_items_change_set_id", MemoryChangeSetItem.change_set_id)
-Index("ix_memory_change_set_items_project_target", MemoryChangeSetItem.project_id, MemoryChangeSetItem.target_table)

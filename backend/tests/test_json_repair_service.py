@@ -40,7 +40,7 @@ class TestJsonRepairService(unittest.TestCase):
                 schema='{"ops":[...]}',
                 expected_root="object",
                 origin_run_id="run-orig",
-                origin_task="memory_update",
+                origin_task="outline_generate",
             )
 
         self.assertTrue(res.get("ok"))

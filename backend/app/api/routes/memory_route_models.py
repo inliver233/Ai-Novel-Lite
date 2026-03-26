@@ -25,8 +25,3 @@ class StoryMemoryImportV1Request(RequestModel):
 
 class StoryMemoryForeshadowResolveRequest(RequestModel):
     resolved_at_chapter_id: str | None = Field(default=None, max_length=64)
-
-
-class MemoryAutoProposeRequest(RequestModel):
-    idempotency_key: str | None = Field(default=None, max_length=64)
-    focus: str | None = Field(default=None, max_length=4000)

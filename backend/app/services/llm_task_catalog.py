@@ -43,12 +43,6 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         description="大纲生成与填充缺失章节",
     ),
     LLMTaskCatalogItem(
-        key="memory_update",
-        label="记忆更新提议",
-        group="memory",
-        description="memory_update JSON 变更提议",
-    ),
-    LLMTaskCatalogItem(
         key="characters_auto_update",
         label="角色卡自动更新",
         group="memory",

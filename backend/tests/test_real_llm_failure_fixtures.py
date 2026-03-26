@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import json
-import re
 import unittest
 from pathlib import Path
 
 from app.schemas.characters_auto_update import CharactersAutoUpdateV1Request
 from app.schemas.worldbook_auto_update import WorldbookAutoUpdateV1Request
-from app.services.output_contracts import contract_for_task
 from app.services.output_parsers import extract_json_value
 
 
@@ -66,25 +64,3 @@ class TestRealLlmFailureFixtures(unittest.TestCase):
         self.assertIn("content_md", entry0)
         self.assertNotIn("content", entry0)
         self.assertIn(str(entry0.get("priority") or ""), {"drop_first", "optional", "important", "must"})
-
-    def test_graph_auto_update_fixture_missing_memory_update_envelope(self) -> None:
-        p = FIX_DIR / "ea1ca685-7989-49cb-8767-f3d883a7ea05.graph_auto_update.output.txt"
-        text = p.read_text(encoding="utf-8")
-        value, _raw_json = extract_json_value(text)
-
-        self.assertIsInstance(value, dict)
-        self.assertNotIn("schema_version", value)
-        self.assertNotIn("idempotency_key", value)
-        self.assertIsInstance(value.get("ops"), list)
-
-        contract = contract_for_task("memory_update")
-        parsed = contract.parse(text)
-        self.assertIsNone(parsed.parse_error, msg=str(parsed.parse_error))
-
-        ops = list((parsed.data or {}).get("ops") or [])
-        self.assertGreaterEqual(len(ops), 1)
-        self.assertEqual(ops[0].get("target_table"), "entities")
-        self.assertEqual(ops[0].get("target_id"), "ca4e3e50-6cb7-4983-af1a-94775a7b676d")
-        after0 = ops[0].get("after") or {}
-        self.assertEqual(after0.get("entity_type"), "person")
-
