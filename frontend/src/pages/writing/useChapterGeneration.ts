@@ -81,7 +81,6 @@ const DEFAULT_GEN_FORM: GenerateForm = {
     tables: true,
     vector_rag: true,
     graph: true,
-    fractal: true,
   },
   context: {
     include_world_setting: true,

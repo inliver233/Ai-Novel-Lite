@@ -13,7 +13,6 @@ export type SettingsForm = {
   auto_update_graph_enabled: boolean;
   auto_update_vector_enabled: boolean;
   auto_update_search_enabled: boolean;
-  auto_update_fractal_enabled: boolean;
   auto_update_tables_enabled: boolean;
   query_preprocessing_enabled: boolean;
   query_preprocessing_tags: string;
@@ -100,7 +99,6 @@ export function createDefaultSettingsForm(): SettingsForm {
     auto_update_graph_enabled: true,
     auto_update_vector_enabled: true,
     auto_update_search_enabled: true,
-    auto_update_fractal_enabled: true,
     auto_update_tables_enabled: true,
     query_preprocessing_enabled: false,
     query_preprocessing_tags: "",
@@ -151,7 +149,6 @@ export function mapLoadedSettingsToForms(loaded: SettingsLoaded): LoadedSettings
       auto_update_graph_enabled: Boolean(settings.auto_update_graph_enabled ?? true),
       auto_update_vector_enabled: Boolean(settings.auto_update_vector_enabled ?? true),
       auto_update_search_enabled: Boolean(settings.auto_update_search_enabled ?? true),
-      auto_update_fractal_enabled: Boolean(settings.auto_update_fractal_enabled ?? true),
       auto_update_tables_enabled: Boolean(settings.auto_update_tables_enabled ?? true),
       query_preprocessing_enabled: Boolean(settings.query_preprocessing_effective?.enabled),
       query_preprocessing_tags: Array.isArray(settings.query_preprocessing_effective?.tags)

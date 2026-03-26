@@ -32,7 +32,6 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
       tables: true,
       vector_rag: true,
       graph: true,
-      fractal: true,
     },
     context: {
       include_world_setting: true,
@@ -100,7 +99,6 @@ describe("aiGenerateDrawerModels", () => {
       "structured",
       "vector_rag",
       "graph",
-      "fractal",
     ]);
     expect(AI_GENERATE_CONTEXT_TOGGLES.map((item) => item.key)).toEqual([
       "include_world_setting",

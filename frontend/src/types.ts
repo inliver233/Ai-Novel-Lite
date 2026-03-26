@@ -33,7 +33,6 @@ export interface ProjectSettings {
   auto_update_graph_enabled: boolean;
   auto_update_vector_enabled: boolean;
   auto_update_search_enabled: boolean;
-  auto_update_fractal_enabled: boolean;
   auto_update_tables_enabled: boolean;
 
   query_preprocessing?: QueryPreprocessingConfig | null;

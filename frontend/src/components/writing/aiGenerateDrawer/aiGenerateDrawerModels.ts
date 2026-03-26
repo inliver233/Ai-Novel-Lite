@@ -23,7 +23,6 @@ export const AI_GENERATE_ADVANCED_MEMORY_MODULES: ReadonlyArray<{ key: MemoryMod
   { key: "structured", label: "结构化记忆（structured）" },
   { key: "vector_rag", label: "向量 RAG（vector_rag）" },
   { key: "graph", label: "关系图（graph）" },
-  { key: "fractal", label: "Fractal（fractal）" },
 ];
 
 export const AI_GENERATE_CONTEXT_TOGGLES: ReadonlyArray<{ key: ContextToggleKey; label: string; inputName: string }> = [

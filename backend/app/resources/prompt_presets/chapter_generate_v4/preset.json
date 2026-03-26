@@ -22,8 +22,7 @@
     "sys.memory.structured",
     "sys.memory.tables",
     "sys.memory.vector_rag",
-    "sys.memory.graph_context",
-    "sys.memory.fractal"
+    "sys.memory.graph_context"
   ],
   "blocks": [
     {
@@ -339,26 +338,6 @@
       "budget": {
         "priority": "optional",
         "maxTokens": 1600
-      },
-      "cache": null
-    },
-    {
-      "identifier": "sys.memory.fractal",
-      "name": "记忆：分形摘要（可选）",
-      "role": "system",
-      "enabled": true,
-      "template_file": "templates/sys.memory.fractal.md",
-      "marker_key": "memory.fractal.text_md",
-      "injection_position": "relative",
-      "injection_depth": null,
-      "injection_order": 107,
-      "triggers": [
-        "chapter_generate"
-      ],
-      "forbid_overrides": false,
-      "budget": {
-        "priority": "optional",
-        "maxTokens": 1200
       },
       "cache": null
     },

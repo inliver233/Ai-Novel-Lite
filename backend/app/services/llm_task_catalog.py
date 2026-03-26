@@ -90,12 +90,6 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         group="memory",
         description="剧情记忆后台自动更新任务",
     ),
-    LLMTaskCatalogItem(
-        key="fractal_v2",
-        label="分形摘要 v2",
-        group="memory",
-        description="Fractal v2 LLM 摘要任务",
-    ),
 )
 
 LLM_TASK_KEY_SET: frozenset[str] = frozenset(item.key for item in LLM_TASK_CATALOG)

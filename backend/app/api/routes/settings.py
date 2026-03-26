@@ -74,7 +74,6 @@ def _build_settings_payload(*, project_id: str, row: ProjectSettings | None) -> 
     auto_update_graph_enabled = bool(getattr(row, "auto_update_graph_enabled", True)) if row is not None else True
     auto_update_vector_enabled = bool(getattr(row, "auto_update_vector_enabled", True)) if row is not None else True
     auto_update_search_enabled = bool(getattr(row, "auto_update_search_enabled", True)) if row is not None else True
-    auto_update_fractal_enabled = bool(getattr(row, "auto_update_fractal_enabled", True)) if row is not None else True
     auto_update_tables_enabled = bool(getattr(row, "auto_update_tables_enabled", True)) if row is not None else True
 
     qp_default = QueryPreprocessingConfig()
@@ -245,7 +244,6 @@ def _build_settings_payload(*, project_id: str, row: ProjectSettings | None) -> 
         auto_update_graph_enabled=auto_update_graph_enabled,
         auto_update_vector_enabled=auto_update_vector_enabled,
         auto_update_search_enabled=auto_update_search_enabled,
-        auto_update_fractal_enabled=auto_update_fractal_enabled,
         auto_update_tables_enabled=auto_update_tables_enabled,
         query_preprocessing=qp_override,
         query_preprocessing_default=qp_default,
@@ -335,8 +333,6 @@ def put_settings(request: Request, db: DbDep, user_id: UserIdDep, project_id: st
         row.auto_update_vector_enabled = bool(body.auto_update_vector_enabled)
     if "auto_update_search_enabled" in body.model_fields_set and body.auto_update_search_enabled is not None:
         row.auto_update_search_enabled = bool(body.auto_update_search_enabled)
-    if "auto_update_fractal_enabled" in body.model_fields_set and body.auto_update_fractal_enabled is not None:
-        row.auto_update_fractal_enabled = bool(body.auto_update_fractal_enabled)
     if "auto_update_tables_enabled" in body.model_fields_set and body.auto_update_tables_enabled is not None:
         row.auto_update_tables_enabled = bool(body.auto_update_tables_enabled)
 

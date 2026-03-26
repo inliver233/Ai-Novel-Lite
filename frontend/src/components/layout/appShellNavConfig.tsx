@@ -11,7 +11,6 @@ import {
   PenLine,
   Share2,
   Settings,
-  Snowflake,
   Sparkles,
   TableOfContents,
   Table2,
@@ -169,14 +168,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.search,
     ariaLabel: "搜索引擎 (nav_search)",
     to: (projectId) => `/projects/${projectId}/search`,
-  },
-  {
-    id: "fractal",
-    group: "advancedDebug",
-    icon: Snowflake,
-    label: UI_COPY.nav.fractal,
-    ariaLabel: "分形（Fractal） (nav_fractal)",
-    to: (projectId) => `/projects/${projectId}/fractal`,
   },
   {
     id: "structuredMemory",

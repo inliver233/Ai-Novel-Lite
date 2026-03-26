@@ -295,104 +295,6 @@ def schedule_worldbook_auto_update_task(
             db.close()
 
 
-def schedule_fractal_rebuild_task(
-    *,
-    db: Session | None = None,
-    project_id: str,
-    actor_user_id: str | None,
-    request_id: str | None,
-    chapter_id: str | None,
-    chapter_token: str | None,
-    reason: str,
-) -> str | None:
-    """
-    Fail-soft scheduler: ensure/enqueue a ProjectTask(kind=fractal_rebuild).
-
-    Used to avoid blocking request latency on chapter status transition (done) while still allowing dev inline execution.
-    """
-
-    pid = str(project_id or "").strip()
-    if not pid:
-        return None
-
-    cid = str(chapter_id or "").strip() or None
-    token_norm = str(chapter_token or "").strip() or utc_now().isoformat().replace("+00:00", "Z")
-    reason_norm = str(reason or "").strip() or "dirty"
-
-    if cid:
-        idempotency_key = f"fractal:chapter:{cid}:since:{token_norm}:v1"
-    else:
-        idempotency_key = f"fractal:project:since:{token_norm}:v1"
-
-    owns_session = db is None
-    if db is None:
-        db = SessionLocal()
-    try:
-        task = (
-            db.execute(
-                select(ProjectTask).where(
-                    ProjectTask.project_id == pid,
-                    ProjectTask.idempotency_key == idempotency_key,
-                )
-            )
-            .scalars()
-            .first()
-        )
-
-        created_task = False
-        if task is None:
-            created_task = True
-            task = ProjectTask(
-                id=new_id(),
-                project_id=pid,
-                actor_user_id=actor_user_id,
-                kind="fractal_rebuild",
-                status="queued",
-                idempotency_key=idempotency_key,
-                params_json=_compact_json_dumps(
-                    {
-                        "reason": reason_norm,
-                        "request_id": (str(request_id or "").strip() or None),
-                        "chapter_id": cid,
-                        "chapter_token": token_norm,
-                        "triggered_at": utc_now().isoformat().replace("+00:00", "Z"),
-                    }
-                ),
-                result_json=None,
-                error_json=None,
-            )
-            db.add(task)
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-                task = (
-                    db.execute(
-                        select(ProjectTask).where(
-                            ProjectTask.project_id == pid,
-                            ProjectTask.idempotency_key == idempotency_key,
-                        )
-                    )
-                    .scalars()
-                    .first()
-                )
-
-        if task is None:
-            return None
-
-        return _emit_and_enqueue_project_task(
-            db=db,
-            task=task,
-            request_id=request_id,
-            event_type="queued" if created_task else None,
-            source="scheduler",
-            payload={"reason": reason_norm, "request_id": request_id, "chapter_id": cid, "chapter_token": token_norm},
-        )
-    finally:
-        if owns_session:
-            db.close()
-
-
 def _task_params_reason(params_json: str | None) -> str:
     if not params_json:
         return ""
@@ -510,7 +412,6 @@ def schedule_chapter_done_tasks(
     - ProjectTask(kind=plot_auto_update)
     - ProjectTask(kind=table_ai_update)
     - ProjectTask(kind=graph_auto_update)
-    - ProjectTask(kind=fractal_rebuild)
 
     All schedulers are idempotent; this helper never raises.
     """
@@ -528,7 +429,6 @@ def schedule_chapter_done_tasks(
         "plot_auto_update": None,
         "table_ai_update": None,
         "graph_auto_update": None,
-        "fractal_rebuild": None,
     }
 
     if not pid or not cid:
@@ -543,7 +443,6 @@ def schedule_chapter_done_tasks(
     auto_graph = bool(getattr(settings_row, "auto_update_graph_enabled", True)) if settings_row is not None else True
     auto_vector = bool(getattr(settings_row, "auto_update_vector_enabled", True)) if settings_row is not None else True
     auto_search = bool(getattr(settings_row, "auto_update_search_enabled", True)) if settings_row is not None else True
-    auto_fractal = bool(getattr(settings_row, "auto_update_fractal_enabled", True)) if settings_row is not None else True
     auto_tables = bool(getattr(settings_row, "auto_update_tables_enabled", True)) if settings_row is not None else True
 
     try:
@@ -756,31 +655,6 @@ def schedule_chapter_done_tasks(
             project_id=pid,
             chapter_id=cid,
             kind="graph_auto_update",
-            error_type=type(exc).__name__,
-            **exception_log_fields(exc),
-        )
-
-    try:
-        if auto_fractal:
-            out["fractal_rebuild"] = schedule_fractal_rebuild_task(
-                db=db,
-                project_id=pid,
-                actor_user_id=actor_user_id,
-                request_id=request_id,
-                chapter_id=cid,
-                chapter_token=token_norm,
-                reason=reason_norm,
-            )
-            if isinstance(db, Session):
-                _try_dedupe_queued_chapter_tasks(db=db, project_id=pid, keep_task_id=out.get("fractal_rebuild"))
-    except Exception as exc:
-        log_event(
-            logger,
-            "warning",
-            event="CHAPTER_DONE_TASK_SCHEDULE_ERROR",
-            project_id=pid,
-            chapter_id=cid,
-            kind="fractal_rebuild",
             error_type=type(exc).__name__,
             **exception_log_fields(exc),
         )
@@ -1350,14 +1224,6 @@ def run_project_task(*, task_id: str) -> str:
 
                 raise AppError(code="GRAPH_AUTO_UPDATE_FAILED", message=msg, status_code=500, details=details)
             result = res
-        elif kind == "fractal_rebuild":
-            params = _compact_json_loads(task.params_json) if task.params_json else None
-            params_dict = params if isinstance(params, dict) else {}
-            reason2 = str(params_dict.get("reason") or "").strip() or f"project_task:{task_id}"
-
-            from app.services.fractal_memory_service import rebuild_fractal_memory
-
-            result = rebuild_fractal_memory(db=db, project_id=project_id, reason=reason2)
         else:
             raise ValueError(f"Unsupported ProjectTask.kind: {kind!r}")
 

@@ -13,7 +13,6 @@ MemoryContextSection = Literal[
     "tables",
     "vector_rag",
     "graph",
-    "fractal",
 ]
 
 
@@ -47,5 +46,4 @@ class MemoryContextPackOut(BaseModel):
     tables: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     vector_rag: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     graph: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
-    fractal: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     logs: list[MemoryContextLogItemOut] = Field(default_factory=list)

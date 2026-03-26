@@ -13,7 +13,6 @@ from app.models.project_settings import ProjectSettings
 from app.models.story_memory import StoryMemory
 from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryForeshadow, MemoryRelation
 from app.schemas.memory_pack import MemoryContextPackOut
-from app.services.fractal_memory_service import enrich_fractal_context_for_query, get_fractal_context
 from app.services.graph_context_service import query_graph_context
 from app.services.prompt_budget import estimate_tokens
 from app.services.table_context_service import build_tables_context_text_md
@@ -34,7 +33,6 @@ _ALLOWED_SECTIONS = {
     "tables",
     "vector_rag",
     "graph",
-    "fractal",
 }
 _MAX_BUDGET_CHAR_LIMIT = 50000
 
@@ -255,8 +253,6 @@ def retrieve_memory_context_pack(
     tables_enabled = bool(enabled_map.get("tables", False))
     vector_rag_enabled = bool(enabled_map.get("vector_rag", True))
     graph_enabled = bool(enabled_map.get("graph", True))
-    fractal_enabled = bool(enabled_map.get("fractal", True)) and bool(getattr(settings, "fractal_enabled", True))
-
     worldbook_budget = _clamp_char_limit(budgets.get("worldbook"), default=12000) if "worldbook" in budgets else 12000
     story_memory_budget = (
         _clamp_char_limit(budgets.get("story_memory"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
@@ -287,12 +283,6 @@ def retrieve_memory_context_pack(
     graph_budget = (
         _clamp_char_limit(budgets.get("graph"), default=6000) if "graph" in budgets else 6000
     )
-    fractal_budget = (
-        _clamp_char_limit(budgets.get("fractal"), default=int(getattr(settings, "fractal_char_limit", 6000) or 6000))
-        if "fractal" in budgets
-        else int(getattr(settings, "fractal_char_limit", 6000) or 6000)
-    )
-
     if worldbook_enabled:
         worldbook_preview = preview_worldbook_trigger(
             db=db,
@@ -730,29 +720,6 @@ def retrieve_memory_context_pack(
                 vector_rag["final"] = final
         vector_rag["text_md"] = text_md
 
-    fractal = get_fractal_context(db=db, project_id=project_id, enabled=fractal_enabled)
-    if isinstance(fractal, dict):
-        if str(query_text or "").strip():
-            fractal = enrich_fractal_context_for_query(
-                fractal_context=fractal,
-                query_text=query_text,
-                max_hits=max(1, int(getattr(settings, "fractal_long_retrieval_hits", 3) or 3)),
-                char_limit_override=int(fractal_budget),
-            )
-        pb = fractal.get("prompt_block") if isinstance(fractal.get("prompt_block"), dict) else {}
-        text_md = str(pb.get("text_md") or "")
-        if "fractal" in budgets and text_md:
-            inner = _unwrap_text_md_block(text_md=text_md, tag="FractalMemory")
-            clipped, was_truncated = _wrap_block_with_inner_limit(
-                tag="FractalMemory", inner=inner, char_limit=int(fractal_budget), ellipsis=True
-            )
-            text_md = clipped
-            pb = dict(pb) if isinstance(pb, dict) else {}
-            pb["text_md"] = text_md
-            fractal["prompt_block"] = pb
-            fractal["truncated"] = bool(fractal.get("truncated") or was_truncated)
-        fractal["text_md"] = text_md
-
     worldbook_triggered = worldbook.get("triggered") if isinstance(worldbook, dict) else None
     worldbook_triggered_list = worldbook_triggered if isinstance(worldbook_triggered, list) else []
     worldbook_triggered_sample: list[dict[str, Any]] = []
@@ -867,23 +834,6 @@ def retrieve_memory_context_pack(
             "budget_char_limit": int(graph_budget),
             "budget_source": "override" if "graph" in budgets else "default",
         },
-        {
-            "section": "fractal",
-            "enabled": bool(fractal.get("enabled")),
-            "disabled_reason": fractal.get("disabled_reason"),
-            "note": "Phase 6.2: use /api/projects/{project_id}/fractal/rebuild to rebuild deterministically",
-            "budget_observability": fractal.get("budget_observability")
-            if isinstance(fractal.get("budget_observability"), dict)
-            else None,
-            "retrieval": fractal.get("retrieval") if isinstance(fractal.get("retrieval"), dict) else None,
-            "retrieval_hit_count": int((fractal.get("retrieval") or {}).get("hit_count") or 0)
-            if isinstance(fractal.get("retrieval"), dict)
-            else 0,
-            "token_estimate": estimate_tokens(str(fractal.get("text_md") or "")),
-            "truncated": bool(fractal.get("truncated")) if "truncated" in fractal else None,
-            "budget_char_limit": int(fractal_budget),
-            "budget_source": "override" if "fractal" in budgets else "default",
-        },
     ]
 
     return MemoryContextPackOut.model_validate(
@@ -897,7 +847,6 @@ def retrieve_memory_context_pack(
                 "tables": tables,
                 "vector_rag": vector_rag,
                 "graph": graph,
-                "fractal": fractal,
                 "logs": logs,
             }
         )

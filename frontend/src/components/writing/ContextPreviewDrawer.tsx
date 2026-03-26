@@ -29,7 +29,6 @@ type Props = {
     tables?: boolean;
     vector_rag: boolean;
     graph: boolean;
-    fractal: boolean;
   };
 };
 
@@ -49,7 +48,6 @@ type MemorySectionEnabled = {
   tables: boolean;
   vector_rag: boolean;
   graph: boolean;
-  fractal: boolean;
 };
 
 type ContextOptimizerBlockLog = {
@@ -83,7 +81,6 @@ const DEFAULT_PREVIEW_SECTIONS: MemorySectionEnabled = {
   tables: true,
   vector_rag: true,
   graph: true,
-  fractal: true,
 };
 
 const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
@@ -95,7 +92,6 @@ const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
   tables: "",
   vector_rag: "",
   graph: "",
-  fractal: "",
 };
 
 const EMPTY_PACK: MemoryContextPack = {
@@ -107,7 +103,6 @@ const EMPTY_PACK: MemoryContextPack = {
   tables: {},
   vector_rag: {},
   graph: {},
-  fractal: {},
   logs: [],
 };
 
@@ -279,7 +274,6 @@ export function ContextPreviewDrawer(props: Props) {
       "tables",
       "vector_rag",
       "graph",
-      "fractal",
     ] as const) {
       const raw = String(budgetOverrideInputs[key] ?? "").trim();
       if (!raw) continue;
@@ -381,8 +375,7 @@ export function ContextPreviewDrawer(props: Props) {
       !getTextMd(effectivePack.structured) &&
       !getTextMd(effectivePack.tables) &&
       !getTextMd(effectivePack.vector_rag) &&
-      !getTextMd(effectivePack.graph) &&
-      !getTextMd(effectivePack.fractal)
+      !getTextMd(effectivePack.graph)
     );
   }, [effectivePack]);
 
@@ -714,7 +707,6 @@ export function ContextPreviewDrawer(props: Props) {
                     ["tables", "表格系统（tables）"],
                     ["vector_rag", "向量 RAG（vector_rag）"],
                     ["graph", "关系图（graph）"],
-                    ["fractal", "Fractal（fractal）"],
                   ] as const
                 ).map(([key, label]) => (
                   <label key={key} className="flex items-center justify-between gap-3 text-sm text-ink">
@@ -744,7 +736,6 @@ export function ContextPreviewDrawer(props: Props) {
                       ["tables", "tables char_limit"],
                       ["vector_rag", "vector_rag char_limit"],
                       ["graph", "graph char_limit"],
-                      ["fractal", "fractal char_limit"],
                     ] as const
                   ).map(([key, label]) => (
                     <label key={key} className="grid gap-1 text-xs text-subtext">
@@ -1007,7 +998,7 @@ export function ContextPreviewDrawer(props: Props) {
           <div className="panel p-4">
             <div className="text-sm text-ink">Memory text_md</div>
             {(
-              ["story_memory", "semantic_history", "foreshadow_open_loops", "structured", "graph", "fractal"] as const
+              ["story_memory", "semantic_history", "foreshadow_open_loops", "structured", "graph"] as const
             ).map((key) => {
               const raw = (effectivePack[key] ?? {}) as Record<string, unknown>;
               const textMd = typeof raw.text_md === "string" ? raw.text_md : "";

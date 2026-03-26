@@ -30,7 +30,6 @@ export const UI_COPY = {
     rag: "知识库（RAG）",
     search: "搜索引擎",
     graph: "图谱/关系",
-    fractal: "分形（Fractal）",
     styles: "风格",
     prompts: "模型配置",
     promptStudio: "提示词工作室",
@@ -472,13 +471,6 @@ export const UI_COPY = {
       chapterAnalyze: "章节分析（chapter_analyze，P2）",
       chapterRewrite: "章节重写（chapter_rewrite，P2）",
     },
-  },
-  fractal: {
-    title: "分形记忆（Fractal）",
-    tag: "Fractal",
-    subtitle: "用于查看/回放分形记忆注入文本，帮助排查记忆注入与摘要是否按预期工作。",
-    usageHint: "何时用：写作中出现“记忆注入不生效/摘要异常/上下文不稳定”等问题时。",
-    riskHint: "风险：该页为高级调试，会展示部分 prompt/内部状态；请避免在共享环境泄露项目内容。",
   },
   taskCenter: {
     title: "任务中心",

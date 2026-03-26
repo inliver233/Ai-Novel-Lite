@@ -113,10 +113,6 @@ const GraphPage = lazy(async () => {
   return { default: mod.GraphPage };
 });
 
-const FractalPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/FractalPage"));
-  return { default: mod.FractalPage };
-});
 
 const StylesPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/StylesPage"));
@@ -243,10 +239,6 @@ const router = createBrowserRouter([
               {
                 path: "graph",
                 element: <GraphPage />,
-              },
-              {
-                path: "fractal",
-                element: <FractalPage />,
               },
               {
                 path: "styles",

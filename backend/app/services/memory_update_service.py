@@ -31,7 +31,6 @@ from app.models.structured_memory import (
 )
 from app.schemas.memory_update import AFTER_MODEL_BY_TABLE, MemoryUpdateV1Request
 from app.services.table_executor import TableUpdateV1Request, is_key_value_schema, validate_row_data_for_table
-from app.services.fractal_memory_service import rebuild_fractal_memory
 from app.services.vector_embedding_overrides import vector_embedding_overrides
 from app.services.vector_rag_service import build_project_chunks, rebuild_project, vector_rag_status
 
@@ -1110,7 +1109,7 @@ def _ensure_memory_tasks(
     change_set_id: str,
     actor_user_id: str,
 ) -> list[MemoryTask]:
-    kinds = ["vector_rebuild", "graph_update", "fractal_rebuild"]
+    kinds = ["vector_rebuild", "graph_update"]
     existing = (
         db.execute(select(MemoryTask).where(MemoryTask.change_set_id == change_set_id).order_by(MemoryTask.kind.asc()))
         .scalars()
@@ -1216,11 +1215,6 @@ def run_memory_task(*, task_id: str) -> str:
         result: dict[str, Any]
         if kind == "graph_update":
             result = {"skipped": True, "note": "graph context is computed on query; no rebuild required"}
-        elif kind == "fractal_rebuild":
-            if not bool(getattr(settings, "fractal_enabled", True)):
-                result = {"skipped": True, "disabled_reason": "disabled"}
-            else:
-                result = rebuild_fractal_memory(db=db, project_id=project_id, reason=f"memory_task:{task_id[:8]}")
         elif kind == "vector_rebuild":
             db2 = SessionLocal()
             try:

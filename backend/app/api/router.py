@@ -9,7 +9,6 @@ from app.api.routes import (
     chapters,
     characters,
     export,
-    fractal,
     graph,
     generation_runs,
     health,
@@ -46,7 +45,6 @@ api_router.include_router(search.router, tags=["search"])
 api_router.include_router(tables.router, tags=["tables"])
 api_router.include_router(vector.router, tags=["vector"])
 api_router.include_router(graph.router, tags=["graph"])
-api_router.include_router(fractal.router, tags=["fractal"])
 api_router.include_router(settings.router, tags=["settings"])
 api_router.include_router(characters.router, tags=["characters"])
 api_router.include_router(outline.router, tags=["outline"])

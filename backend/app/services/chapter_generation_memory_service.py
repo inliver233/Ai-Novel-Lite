@@ -20,7 +20,6 @@ def resolve_memory_modules(raw_modules: dict[str, bool]) -> dict[str, bool]:
         "tables": bool(raw_modules.get("tables", True)),
         "vector_rag": bool(raw_modules.get("vector_rag", True)),
         "graph": bool(raw_modules.get("graph", True)),
-        "fractal": bool(raw_modules.get("fractal", True)),
     }
 
 def prepare_chapter_memory_injection(

@@ -50,7 +50,6 @@ class ProjectSettings(Base):
     auto_update_graph_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_vector_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_search_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    auto_update_fractal_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_tables_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     vector_index_dirty: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

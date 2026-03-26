@@ -154,7 +154,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.auto_update_graph_enabled &&
       settingsForm.auto_update_vector_enabled &&
       settingsForm.auto_update_search_enabled &&
-      settingsForm.auto_update_fractal_enabled &&
       settingsForm.auto_update_tables_enabled,
     [settingsForm],
   );
@@ -167,7 +166,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.auto_update_graph_enabled ||
       settingsForm.auto_update_vector_enabled ||
       settingsForm.auto_update_search_enabled ||
-      settingsForm.auto_update_fractal_enabled ||
       settingsForm.auto_update_tables_enabled,
     [settingsForm],
   );
@@ -187,7 +185,6 @@ export function useSettingsPageState(): SettingsPageState {
       auto_update_graph_enabled: enabled,
       auto_update_vector_enabled: enabled,
       auto_update_search_enabled: enabled,
-      auto_update_fractal_enabled: enabled,
       auto_update_tables_enabled: enabled,
     }));
   }, []);
@@ -432,7 +429,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.auto_update_graph_enabled !== baselineSettings.auto_update_graph_enabled ||
       settingsForm.auto_update_vector_enabled !== baselineSettings.auto_update_vector_enabled ||
       settingsForm.auto_update_search_enabled !== baselineSettings.auto_update_search_enabled ||
-      settingsForm.auto_update_fractal_enabled !== baselineSettings.auto_update_fractal_enabled ||
       settingsForm.auto_update_tables_enabled !== baselineSettings.auto_update_tables_enabled ||
       qpDirty ||
       settingsForm.vector_rerank_enabled !== baselineSettings.vector_rerank_effective_enabled ||
@@ -565,7 +561,6 @@ export function useSettingsPageState(): SettingsPageState {
         nextSettingsForm.auto_update_graph_enabled !== baselineSettings.auto_update_graph_enabled ||
         nextSettingsForm.auto_update_vector_enabled !== baselineSettings.auto_update_vector_enabled ||
         nextSettingsForm.auto_update_search_enabled !== baselineSettings.auto_update_search_enabled ||
-        nextSettingsForm.auto_update_fractal_enabled !== baselineSettings.auto_update_fractal_enabled ||
         nextSettingsForm.auto_update_tables_enabled !== baselineSettings.auto_update_tables_enabled ||
         qpDirty ||
         Boolean(nextSettingsForm.vector_rerank_enabled) !== Boolean(baselineSettings.vector_rerank_effective_enabled) ||
@@ -639,7 +634,6 @@ export function useSettingsPageState(): SettingsPageState {
                   auto_update_graph_enabled: Boolean(nextSettingsForm.auto_update_graph_enabled),
                   auto_update_vector_enabled: Boolean(nextSettingsForm.auto_update_vector_enabled),
                   auto_update_search_enabled: Boolean(nextSettingsForm.auto_update_search_enabled),
-                  auto_update_fractal_enabled: Boolean(nextSettingsForm.auto_update_fractal_enabled),
                   auto_update_tables_enabled: Boolean(nextSettingsForm.auto_update_tables_enabled),
                   ...(qpDirty ? { query_preprocessing: queryPreprocessFromForm(nextSettingsForm) } : {}),
                   vector_rerank_enabled: Boolean(nextSettingsForm.vector_rerank_enabled),

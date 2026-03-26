@@ -55,7 +55,6 @@ class ProjectSettingsOut(BaseModel):
     auto_update_graph_enabled: bool = True
     auto_update_vector_enabled: bool = True
     auto_update_search_enabled: bool = True
-    auto_update_fractal_enabled: bool = True
     auto_update_tables_enabled: bool = True
 
     query_preprocessing: QueryPreprocessingConfig | None
@@ -118,7 +117,6 @@ class ProjectSettingsUpdate(BaseModel):
     auto_update_graph_enabled: bool | None = None
     auto_update_vector_enabled: bool | None = None
     auto_update_search_enabled: bool | None = None
-    auto_update_fractal_enabled: bool | None = None
     auto_update_tables_enabled: bool | None = None
 
     query_preprocessing: QueryPreprocessingConfig | None = None

@@ -38,7 +38,6 @@ export type GenerateForm = {
     tables: boolean;
     vector_rag: boolean;
     graph: boolean;
-    fractal: boolean;
   };
   context: {
     include_world_setting: boolean;
@@ -61,7 +60,6 @@ export type MemoryContextPack = {
   tables: Record<string, unknown>;
   vector_rag: Record<string, unknown>;
   graph: Record<string, unknown>;
-  fractal: Record<string, unknown>;
   logs: unknown[];
 };
 
