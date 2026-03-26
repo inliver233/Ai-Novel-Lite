@@ -18,7 +18,6 @@ from app.models.character import Character
 from app.models.project_task import ProjectTask
 from app.models.outline import Outline
 from app.models.project_source_document import ProjectSourceDocument
-from app.models.project_table import ProjectTable, ProjectTableRow
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
 from app.models.structured_memory import MemoryEntity, MemoryEvidence, MemoryRelation
@@ -62,38 +61,6 @@ def _has_table(db: Session, *, name: str) -> bool:
         return bool(inspect(db.get_bind()).has_table(name))
     except Exception:
         return False
-
-
-def _render_table_row_text(data_json: str | None) -> str:
-    raw = _trim(data_json)
-    if not raw:
-        return ""
-    try:
-        obj = json.loads(raw)
-    except Exception:
-        return raw
-
-    if isinstance(obj, dict):
-        parts: list[str] = []
-        for k in sorted(obj.keys(), key=lambda x: str(x)):
-            v = obj.get(k)
-            if v is None:
-                continue
-            v_s = _trim(str(v))
-            if not v_s:
-                continue
-            parts.append(f"{k}: {v_s}")
-        return "\n".join(parts).strip()
-
-    if isinstance(obj, list):
-        parts = [_trim(str(x)) for x in obj if _trim(str(x))]
-        if parts:
-            return "\n".join(parts[:50]).strip()
-
-    try:
-        return json.dumps(obj, ensure_ascii=False)
-    except Exception:
-        return raw
 
 
 def _sqlite_table_exists(db: Session, *, name: str) -> bool:
@@ -383,51 +350,6 @@ def build_project_search_docs(*, db: Session, project_id: str) -> list[SearchDoc
                     content=body,
                     url_path=f"/projects/{pid}/import?docId={str(d.id)}",
                     locator_json=json.dumps({"document_id": str(d.id)}, ensure_ascii=False),
-                )
-            )
-
-    if _has_table(db, name="project_tables") and _has_table(db, name="project_table_rows"):
-        tables = (
-            db.execute(select(ProjectTable).where(ProjectTable.project_id == pid).order_by(ProjectTable.updated_at.desc()))
-            .scalars()
-            .all()
-        )
-        table_by_id: dict[str, ProjectTable] = {str(t.id): t for t in tables}
-
-        rows = (
-            db.execute(
-                select(ProjectTableRow)
-                .where(ProjectTableRow.project_id == pid)
-                .order_by(ProjectTableRow.updated_at.desc(), ProjectTableRow.id.desc())
-            )
-            .scalars()
-            .all()
-        )
-        for r in rows:
-            table = table_by_id.get(str(r.table_id))
-            table_name = _trim(getattr(table, "name", "")) if table else ""
-            table_key = _trim(getattr(table, "table_key", "")) if table else ""
-            row_text = _render_table_row_text(getattr(r, "data_json", None))
-            title = f"{table_name or '表格'} · 行 {int(getattr(r, 'row_index', 0)) + 1}"
-            body = "\n\n".join([x for x in [table_name, table_key, row_text] if x]).strip()
-            if not body:
-                continue
-            out.append(
-                SearchDocInput(
-                    source_type="project_table_row",
-                    source_id=str(r.id),
-                    title=title,
-                    content=body,
-                    url_path=f"/projects/{pid}/numeric-tables",
-                    locator_json=json.dumps(
-                        {
-                            "table_id": str(getattr(r, "table_id", "") or "").strip(),
-                            "table_key": table_key or None,
-                            "row_id": str(r.id),
-                            "row_index": int(getattr(r, "row_index", 0) or 0),
-                        },
-                        ensure_ascii=False,
-                    ),
                 )
             )
 

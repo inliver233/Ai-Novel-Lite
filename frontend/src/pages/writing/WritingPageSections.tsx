@@ -16,7 +16,6 @@ import { GenerationHistoryDrawer } from "../../components/writing/GenerationHist
 import { MemoryUpdateDrawer } from "../../components/writing/MemoryUpdateDrawer";
 import { PostEditCompareDrawer } from "../../components/writing/PostEditCompareDrawer";
 import { PromptInspectorDrawer } from "../../components/writing/PromptInspectorDrawer";
-import { TablesPanel } from "../../components/writing/TablesPanel";
 import { WritingToolbar } from "../../components/writing/WritingToolbar";
 import { humanizeChapterStatus } from "../../lib/humanize";
 import type { Chapter, ChapterListItem, ChapterStatus } from "../../types";
@@ -333,7 +332,6 @@ export type WritingPageOverlaysProps = {
   contentOptimizeCompareDrawerProps: ComponentProps<typeof ContentOptimizeCompareDrawer>;
   promptInspectorDrawerProps: ComponentProps<typeof PromptInspectorDrawer>;
   contextPreviewDrawerProps: ComponentProps<typeof ContextPreviewDrawer>;
-  tablesPanelProps: ComponentProps<typeof TablesPanel>;
   memoryUpdateDrawerProps: ComponentProps<typeof MemoryUpdateDrawer>;
   foreshadowDrawerProps: ComponentProps<typeof ForeshadowDrawer>;
   generationHistoryDrawerProps: ComponentProps<typeof GenerationHistoryDrawer>;
@@ -350,7 +348,6 @@ export function WritingPageOverlays(props: WritingPageOverlaysProps) {
       <ContentOptimizeCompareDrawer {...props.contentOptimizeCompareDrawerProps} />
       <PromptInspectorDrawer {...props.promptInspectorDrawerProps} />
       <ContextPreviewDrawer {...props.contextPreviewDrawerProps} />
-      <TablesPanel {...props.tablesPanelProps} />
       <MemoryUpdateDrawer {...props.memoryUpdateDrawerProps} />
       <ForeshadowDrawer {...props.foreshadowDrawerProps} />
       <GenerationHistoryDrawer {...props.generationHistoryDrawerProps} />

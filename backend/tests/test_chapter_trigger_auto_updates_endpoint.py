@@ -81,7 +81,6 @@ class TestChapterTriggerAutoUpdatesEndpoint(unittest.TestCase):
                 ProjectSettings(
                     project_id="p1",
                     vector_index_dirty=True,
-                    auto_update_tables_enabled=False,
                 )
             )
             db.add(Outline(id="o1", project_id="p1", title="Outline 1", content_md=None, structure_json=None))

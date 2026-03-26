@@ -410,7 +410,6 @@ def schedule_chapter_done_tasks(
     - ProjectTask(kind=worldbook_auto_update)
     - ProjectTask(kind=characters_auto_update)
     - ProjectTask(kind=plot_auto_update)
-    - ProjectTask(kind=table_ai_update)
 
     All schedulers are idempotent; this helper never raises.
     """
@@ -426,7 +425,6 @@ def schedule_chapter_done_tasks(
         "worldbook_auto_update": None,
         "characters_auto_update": None,
         "plot_auto_update": None,
-        "table_ai_update": None,
     }
 
     if not pid or not cid:
@@ -440,7 +438,6 @@ def schedule_chapter_done_tasks(
     auto_story_memory = bool(getattr(settings_row, "auto_update_story_memory_enabled", True)) if settings_row is not None else True
     auto_vector = bool(getattr(settings_row, "auto_update_vector_enabled", True)) if settings_row is not None else True
     auto_search = bool(getattr(settings_row, "auto_update_search_enabled", True)) if settings_row is not None else True
-    auto_tables = bool(getattr(settings_row, "auto_update_tables_enabled", True)) if settings_row is not None else True
 
     try:
         from app.services.vector_rag_service import schedule_vector_rebuild_task
@@ -563,67 +560,6 @@ def schedule_chapter_done_tasks(
                 project_id=pid,
                 chapter_id=cid,
                 kind="plot_auto_update",
-                error_type=type(exc).__name__,
-                **exception_log_fields(exc),
-            )
-
-    if auto_tables:
-        try:
-            from app.models.project_table import ProjectTable
-            from app.services.table_ai_update_service import schedule_table_ai_update_task
-
-            table_rows = (
-                db.execute(
-                    select(ProjectTable.id, ProjectTable.schema_json, ProjectTable.auto_update_enabled)
-                    .where(ProjectTable.project_id == pid)
-                    .order_by(ProjectTable.updated_at.desc(), ProjectTable.id.desc())
-                    .limit(12)
-                )
-                .all()
-            )
-            if not isinstance(table_rows, list):
-                table_rows = []
-
-            created: list[str] = []
-            for table_id, schema_json, auto_update_enabled in table_rows:
-                if not bool(auto_update_enabled):
-                    continue
-                schema_obj = _compact_json_loads(schema_json)
-                if not isinstance(schema_obj, dict):
-                    continue
-                cols = schema_obj.get("columns") if isinstance(schema_obj.get("columns"), list) else []
-                has_number = any(
-                    isinstance(c, dict) and str(c.get("type") or "").strip().lower() == "number"
-                    for c in cols
-                )
-                if not has_number:
-                    continue
-
-                task_id = schedule_table_ai_update_task(
-                    db=db,
-                    project_id=pid,
-                    actor_user_id=actor_user_id,
-                    request_id=request_id,
-                    table_id=str(table_id),
-                    chapter_id=cid,
-                    chapter_token=token_norm,
-                    focus=None,
-                    reason=reason_norm,
-                )
-                if task_id:
-                    created.append(str(task_id))
-                    if isinstance(db, Session):
-                        _try_dedupe_queued_chapter_tasks(db=db, project_id=pid, keep_task_id=str(task_id))
-
-            out["table_ai_update"] = created[0] if created else None
-        except Exception as exc:
-            log_event(
-                logger,
-                "warning",
-                event="CHAPTER_DONE_TASK_SCHEDULE_ERROR",
-                project_id=pid,
-                chapter_id=cid,
-                kind="table_ai_update",
                 error_type=type(exc).__name__,
                 **exception_log_fields(exc),
             )
@@ -1031,87 +967,6 @@ def run_project_task(*, task_id: str) -> str:
                         db3.commit()
                     finally:
                         db3.close()
-        elif kind == "table_ai_update":
-            params = _compact_json_loads(task.params_json) if task.params_json else None
-            params_dict = params if isinstance(params, dict) else {}
-            table_id = str(params_dict.get("table_id") or "").strip()
-            chapter_id = str(params_dict.get("chapter_id") or "").strip() or None
-            focus = str(params_dict.get("focus") or "").strip() or None
-            request_id2 = str(params_dict.get("request_id") or "").strip() or None
-            change_set_idempotency_key = str(params_dict.get("change_set_idempotency_key") or "").strip() or None
-
-            actor_user_id = str(getattr(task, "actor_user_id", "") or "").strip()
-            if not actor_user_id:
-                raise ValueError("Missing ProjectTask.actor_user_id for table_ai_update")
-            if not table_id:
-                raise ValueError("Missing ProjectTask.params_json.table_id for table_ai_update")
-
-            from app.services.table_ai_update_service import (
-                table_ai_update_v1,
-                table_update_changeset_key_from_task_idempotency_key,
-            )
-
-            res = table_ai_update_v1(
-                project_id=project_id,
-                actor_user_id=actor_user_id,
-                request_id=request_id2 or f"project_task:{task_id}",
-                table_id=table_id,
-                change_set_idempotency_key=change_set_idempotency_key
-                or table_update_changeset_key_from_task_idempotency_key(str(task.idempotency_key)),
-                chapter_id=chapter_id,
-                focus=focus,
-            )
-            if not bool(res.get("ok")):
-                reason = str(res.get("reason") or "unknown").strip() or "unknown"
-                run_id = str(res.get("run_id") or "").strip() or None
-                finish_reason = str(res.get("finish_reason") or "").strip() or None
-                error_type2 = str(res.get("error_type") or "").strip() or None
-                error_message2 = str(res.get("error_message") or "").strip() or None
-                parse_error = res.get("parse_error") if isinstance(res.get("parse_error"), dict) else None
-                warnings = res.get("warnings") if isinstance(res.get("warnings"), list) else None
-                error_obj = res.get("error") if isinstance(res.get("error"), dict) else None
-
-                how_to_fix: list[str] = []
-                if reason in {"project_not_found", "table_not_found", "chapter_not_found"}:
-                    how_to_fix = ["确认项目/表格/章节仍存在且属于当前项目", "刷新页面后重试任务"]
-                elif reason == "llm_preset_missing":
-                    how_to_fix = ["先在项目中选择/绑定可用的 LLM Profile，并刷新页面后重试任务"]
-                elif reason in {"llm_call_prepare_failed", "prompt_empty"}:
-                    how_to_fix = ["确认项目 Prompt/Preset 配置正确；必要时刷新页面后重试", "确认章节内容非空且已定稿（done）"]
-                elif reason == "llm_call_failed":
-                    how_to_fix = [
-                        "检查 base_url / 网络连通性（可用「模型配置 → 测试连接」验证）",
-                        "确认模型与参数兼容；必要时切换 provider/model 后重试",
-                    ]
-                elif reason == "parse_failed":
-                    how_to_fix = ["模型输出未满足 table_update_v1 JSON 合同：可在任务详情中查看 run_id 并定位输出", "尝试更换模型/降低温度后重试"]
-                elif reason == "propose_failed":
-                    how_to_fix = ["变更集提议失败：请查看 error.details 或后端日志；修复后重试任务"]
-
-                details: dict[str, Any] = {
-                    "task_kind": "table_ai_update",
-                    "reason": reason,
-                    "run_id": run_id,
-                    "table_id": table_id,
-                    "chapter_id": chapter_id,
-                    "finish_reason": finish_reason,
-                    "warnings": warnings,
-                    "parse_error": parse_error,
-                    "error": error_obj,
-                    "error_type": error_type2,
-                    "error_message": error_message2,
-                }
-                if how_to_fix:
-                    details["how_to_fix"] = how_to_fix
-
-                msg = f"table_ai_update 失败：{reason}"
-                if run_id:
-                    msg += f" (run_id={run_id})"
-                if error_message2:
-                    msg += f" - {error_message2[:160]}"
-
-                raise AppError(code="TABLE_AI_UPDATE_FAILED", message=msg, status_code=500, details=details)
-            result = res
         else:
             raise ValueError(f"Unsupported ProjectTask.kind: {kind!r}")
 

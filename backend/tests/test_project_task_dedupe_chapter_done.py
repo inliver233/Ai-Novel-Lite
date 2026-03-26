@@ -58,7 +58,6 @@ class TestProjectTaskDedupeChapterDone(unittest.TestCase):
                     auto_update_vector_enabled=False,
                     auto_update_search_enabled=False,
                     auto_update_fractal_enabled=False,
-                    auto_update_tables_enabled=False,
                 )
             )
             db.commit()

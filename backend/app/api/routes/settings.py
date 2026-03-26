@@ -73,7 +73,6 @@ def _build_settings_payload(*, project_id: str, row: ProjectSettings | None) -> 
     )
     auto_update_vector_enabled = bool(getattr(row, "auto_update_vector_enabled", True)) if row is not None else True
     auto_update_search_enabled = bool(getattr(row, "auto_update_search_enabled", True)) if row is not None else True
-    auto_update_tables_enabled = bool(getattr(row, "auto_update_tables_enabled", True)) if row is not None else True
 
     qp_default = QueryPreprocessingConfig()
     qp_override = _parse_query_preprocessing_json((row.query_preprocessing_json or "").strip() if row is not None else None)
@@ -242,7 +241,6 @@ def _build_settings_payload(*, project_id: str, row: ProjectSettings | None) -> 
         auto_update_story_memory_enabled=auto_update_story_memory_enabled,
         auto_update_vector_enabled=auto_update_vector_enabled,
         auto_update_search_enabled=auto_update_search_enabled,
-        auto_update_tables_enabled=auto_update_tables_enabled,
         query_preprocessing=qp_override,
         query_preprocessing_default=qp_default,
         query_preprocessing_effective=qp_effective,
@@ -329,8 +327,6 @@ def put_settings(request: Request, db: DbDep, user_id: UserIdDep, project_id: st
         row.auto_update_vector_enabled = bool(body.auto_update_vector_enabled)
     if "auto_update_search_enabled" in body.model_fields_set and body.auto_update_search_enabled is not None:
         row.auto_update_search_enabled = bool(body.auto_update_search_enabled)
-    if "auto_update_tables_enabled" in body.model_fields_set and body.auto_update_tables_enabled is not None:
-        row.auto_update_tables_enabled = bool(body.auto_update_tables_enabled)
 
     if "query_preprocessing" in body.model_fields_set:
         if body.query_preprocessing is None:

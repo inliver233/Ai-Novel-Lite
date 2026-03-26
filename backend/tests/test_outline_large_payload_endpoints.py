@@ -79,7 +79,7 @@ class TestOutlineLargePayloadEndpoints(unittest.TestCase):
         with self.SessionLocal() as db:
             db.add(User(id="u_owner", display_name="owner"))
             db.add(Project(id="p1", owner_user_id="u_owner", name="Project 1", genre=None, logline=None))
-            db.add(ProjectSettings(project_id="p1", vector_index_dirty=False, auto_update_tables_enabled=False))
+            db.add(ProjectSettings(project_id="p1", vector_index_dirty=False))
             db.add(Outline(id="o1", project_id="p1", title="Outline 1", content_md="", structure_json=None))
             db.commit()
 

@@ -14,7 +14,6 @@ from app.models.story_memory import StoryMemory
 from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryForeshadow, MemoryRelation
 from app.schemas.memory_pack import MemoryContextPackOut
 from app.services.prompt_budget import estimate_tokens
-from app.services.table_context_service import build_tables_context_text_md
 from app.services.vector_rerank_overrides import vector_rerank_overrides
 from app.services.vector_embedding_overrides import vector_embedding_overrides
 from app.services.vector_rag_service import query_project, vector_rag_status
@@ -29,7 +28,6 @@ _ALLOWED_SECTIONS = {
     "semantic_history",
     "foreshadow_open_loops",
     "structured",
-    "tables",
     "vector_rag",
 }
 _MAX_BUDGET_CHAR_LIMIT = 50000
@@ -248,7 +246,6 @@ def retrieve_memory_context_pack(
     semantic_history_enabled = bool(enabled_map.get("semantic_history", False))
     foreshadow_open_loops_enabled = bool(enabled_map.get("foreshadow_open_loops", False))
     structured_enabled = bool(enabled_map.get("structured", True))
-    tables_enabled = bool(enabled_map.get("tables", False))
     vector_rag_enabled = bool(enabled_map.get("vector_rag", True))
     worldbook_budget = _clamp_char_limit(budgets.get("worldbook"), default=12000) if "worldbook" in budgets else 12000
     story_memory_budget = (
@@ -271,7 +268,6 @@ def retrieve_memory_context_pack(
         if "structured" in budgets
         else _MEMORY_TEXT_MD_CHAR_LIMIT
     )
-    tables_budget = _clamp_char_limit(budgets.get("tables"), default=_MEMORY_TEXT_MD_CHAR_LIMIT) if "tables" in budgets else _MEMORY_TEXT_MD_CHAR_LIMIT
     vector_rag_budget = (
         _clamp_char_limit(budgets.get("vector_rag"), default=int(getattr(settings, "vector_final_char_limit", 6000) or 6000))
         if "vector_rag" in budgets
@@ -645,21 +641,6 @@ def retrieve_memory_context_pack(
                 "error": "structured_query_failed",
             }
 
-    tables: dict[str, Any] = {"enabled": False, "disabled_reason": "empty", "counts": {"tables": 0, "rows": 0}, "text_md": ""}
-    if not tables_enabled:
-        tables = {"enabled": False, "disabled_reason": "disabled", "counts": {"tables": 0, "rows": 0}, "text_md": ""}
-    else:
-        try:
-            tables = build_tables_context_text_md(db=db, project_id=project_id, char_limit=int(tables_budget))
-        except Exception:
-            tables = {
-                "enabled": False,
-                "disabled_reason": "error",
-                "counts": {"tables": 0, "rows": 0},
-                "text_md": "",
-                "error": "tables_query_failed",
-            }
-
     try:
         if not vector_rag_enabled:
             vector_rag = vector_rag_status(project_id=project_id, embedding=embedding_overrides, rerank=rerank_config)
@@ -768,17 +749,6 @@ def retrieve_memory_context_pack(
             "budget_source": "override" if "structured" in budgets else "default",
         },
         {
-            "section": "tables",
-            "enabled": bool(tables.get("enabled")),
-            "disabled_reason": tables.get("disabled_reason"),
-            "note": "table_context_service.build_tables_context_text_md",
-            "counts": tables.get("counts"),
-            "token_estimate": estimate_tokens(str(tables.get("text_md") or "")),
-            "truncated": bool(tables.get("truncated")) if "truncated" in tables else None,
-            "budget_char_limit": int(tables_budget),
-            "budget_source": "override" if "tables" in budgets else "default",
-        },
-        {
             "section": "vector_rag",
             "enabled": bool(vector_rag.get("enabled")),
             "disabled_reason": vector_rag.get("disabled_reason"),
@@ -811,7 +781,6 @@ def retrieve_memory_context_pack(
                 "semantic_history": semantic_history,
                 "foreshadow_open_loops": foreshadow_open_loops,
                 "structured": structured,
-                "tables": tables,
                 "vector_rag": vector_rag,
                 "logs": logs,
             }

@@ -84,7 +84,6 @@ export function useWritingPageState(): WritingPageState {
   const [promptInspectorOpen, setPromptInspectorOpen] = useState(false);
   const [postEditCompareOpen, setPostEditCompareOpen] = useState(false);
   const [contentOptimizeCompareOpen, setContentOptimizeCompareOpen] = useState(false);
-  const [tablesOpen, setTablesOpen] = useState(false);
   const [contextPreviewOpen, setContextPreviewOpen] = useState(false);
   const [memoryUpdateOpen, setMemoryUpdateOpen] = useState(false);
   const [foreshadowOpen, setForeshadowOpen] = useState(false);
@@ -392,7 +391,6 @@ export function useWritingPageState(): WritingPageState {
         navigate(buildWritingTaskCenterHref(projectId, activeId));
       },
       onOpenForeshadow: () => setForeshadowOpen(true),
-      onOpenTables: () => setTablesOpen(true),
       onOpenContextPreview: () => setContextPreviewOpen(true),
       onCreateChapter: chapterCrud.openCreate,
     },
@@ -558,11 +556,6 @@ export function useWritingPageState(): WritingPageState {
       genMemoryModules: genForm.memory_modules,
       onChangeMemoryInjectionEnabled: (enabled) =>
         setGenForm((prev) => ({ ...prev, memory_injection_enabled: Boolean(enabled) })),
-    },
-    tablesPanelProps: {
-      open: tablesOpen,
-      onClose: () => setTablesOpen(false),
-      projectId,
     },
     memoryUpdateDrawerProps: {
       open: memoryUpdateOpen,

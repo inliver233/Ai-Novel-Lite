@@ -62,11 +62,6 @@ const StructuredMemoryPage = lazy(async () => {
   return { default: mod.StructuredMemoryPage };
 });
 
-const NumericTablesPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/NumericTablesPage"));
-  return { default: mod.NumericTablesPage };
-});
-
 const ForeshadowsPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/ForeshadowsPage"));
   return { default: mod.ForeshadowsPage };
@@ -193,10 +188,6 @@ const router = createBrowserRouter([
               {
                 path: "structured-memory",
                 element: <StructuredMemoryPage />,
-              },
-              {
-                path: "numeric-tables",
-                element: <NumericTablesPage />,
               },
               {
                 path: "foreshadows",

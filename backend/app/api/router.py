@@ -27,7 +27,6 @@ from app.api.routes import (
     search,
     settings,
     story_memory,
-    tables,
     vector,
     worldbook,
     writing_styles,
@@ -41,7 +40,6 @@ api_router.include_router(projects.router, tags=["projects"])
 api_router.include_router(memory.router, tags=["memory"])
 api_router.include_router(mcp.router, tags=["mcp"])
 api_router.include_router(search.router, tags=["search"])
-api_router.include_router(tables.router, tags=["tables"])
 api_router.include_router(vector.router, tags=["vector"])
 api_router.include_router(settings.router, tags=["settings"])
 api_router.include_router(characters.router, tags=["characters"])

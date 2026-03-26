@@ -88,20 +88,3 @@ class TestRealLlmFailureFixtures(unittest.TestCase):
         after0 = ops[0].get("after") or {}
         self.assertEqual(after0.get("entity_type"), "person")
 
-    def test_table_ai_update_timeout_fixtures(self) -> None:
-        ids = [
-            "938e0135-960c-4c7a-9337-126fc2026d38",
-            "7d9b53d8-f7df-4ccd-900f-a53c6b5151a5",
-        ]
-        for run_id in ids:
-            p = FIX_DIR / f"{run_id}.table_ai_update.error.json"
-            data = json.loads(p.read_text(encoding="utf-8"))
-            self.assertEqual(data.get("code"), "LLM_TIMEOUT")
-            details = data.get("details") or {}
-            self.assertEqual(details.get("status_code"), 504)
-            upstream_error = str(details.get("upstream_error") or "")
-            upstream_error = re.sub(r"\\s+", " ", upstream_error).strip().lower()
-            self.assertTrue(
-                upstream_error.startswith("<!doctype html") or upstream_error.startswith("<html"),
-                msg=run_id,
-            )

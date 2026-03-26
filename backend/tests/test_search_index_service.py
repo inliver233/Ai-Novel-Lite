@@ -12,7 +12,6 @@ from app.models.character import Character
 from app.models.outline import Outline
 from app.models.project import Project
 from app.models.project_source_document import ProjectSourceDocument
-from app.models.project_table import ProjectTable, ProjectTableRow
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
 from app.models.structured_memory import MemoryEntity, MemoryEvidence, MemoryRelation
@@ -41,8 +40,6 @@ class TestSearchIndexService(unittest.TestCase):
                 Character.__table__,
                 StoryMemory.__table__,
                 ProjectSourceDocument.__table__,
-                ProjectTable.__table__,
-                ProjectTableRow.__table__,
                 MemoryEntity.__table__,
                 MemoryRelation.__table__,
                 MemoryEvidence.__table__,
@@ -123,16 +120,6 @@ class TestSearchIndexService(unittest.TestCase):
                     error_message=None,
                 )
             )
-            db.add(ProjectTable(id="t1", project_id="p1", table_key="money", name="金钱表", schema_version=1, schema_json="{}"))
-            db.add(
-                ProjectTableRow(
-                    id="tr1",
-                    project_id="p1",
-                    table_id="t1",
-                    row_index=0,
-                    data_json='{"field":"UniqueRowNote","amount":123}',
-                )
-            )
             db.add(MemoryEntity(id="e1", project_id="p1", entity_type="character", name="Bob", summary_md="UniqueEntitySummary", attributes_json=None))
             db.add(MemoryEntity(id="e2", project_id="p1", entity_type="character", name="Carol", summary_md="", attributes_json=None))
             db.add(
@@ -167,9 +154,6 @@ class TestSearchIndexService(unittest.TestCase):
 
             self.assertTrue(
                 db.execute(text("SELECT rowid FROM search_index WHERE search_index MATCH :q"), {"q": "UniqueDocToken"}).all()
-            )
-            self.assertTrue(
-                db.execute(text("SELECT rowid FROM search_index WHERE search_index MATCH :q"), {"q": "UniqueRowNote"}).all()
             )
             self.assertTrue(
                 db.execute(text("SELECT rowid FROM search_index WHERE search_index MATCH :q"), {"q": "UniqueEntitySummary"}).all()

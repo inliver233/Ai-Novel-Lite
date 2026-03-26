@@ -26,7 +26,6 @@ type Props = {
     semantic_history?: boolean;
     foreshadow_open_loops?: boolean;
     structured: boolean;
-    tables?: boolean;
     vector_rag: boolean;
   };
 };
@@ -44,7 +43,6 @@ type MemorySectionEnabled = {
   semantic_history: boolean;
   foreshadow_open_loops: boolean;
   structured: boolean;
-  tables: boolean;
   vector_rag: boolean;
 };
 
@@ -76,7 +74,6 @@ const DEFAULT_PREVIEW_SECTIONS: MemorySectionEnabled = {
   semantic_history: false,
   foreshadow_open_loops: false,
   structured: true,
-  tables: true,
   vector_rag: true,
 };
 
@@ -86,7 +83,6 @@ const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
   semantic_history: "",
   foreshadow_open_loops: "",
   structured: "",
-  tables: "",
   vector_rag: "",
 };
 
@@ -96,7 +92,6 @@ const EMPTY_PACK: MemoryContextPack = {
   semantic_history: {},
   foreshadow_open_loops: {},
   structured: {},
-  tables: {},
   vector_rag: {},
   logs: [],
 };
@@ -266,7 +261,6 @@ export function ContextPreviewDrawer(props: Props) {
       "semantic_history",
       "foreshadow_open_loops",
       "structured",
-      "tables",
       "vector_rag",
     ] as const) {
       const raw = String(budgetOverrideInputs[key] ?? "").trim();
@@ -367,7 +361,6 @@ export function ContextPreviewDrawer(props: Props) {
       !getTextMd(effectivePack.semantic_history) &&
       !getTextMd(effectivePack.foreshadow_open_loops) &&
       !getTextMd(effectivePack.structured) &&
-      !getTextMd(effectivePack.tables) &&
       !getTextMd(effectivePack.vector_rag)
     );
   }, [effectivePack]);
@@ -697,7 +690,6 @@ export function ContextPreviewDrawer(props: Props) {
                     ["semantic_history", "语义历史（semantic_history）"],
                     ["foreshadow_open_loops", "未回收伏笔（foreshadow_open_loops）"],
                     ["structured", "结构化记忆（structured）"],
-                    ["tables", "表格系统（tables）"],
                     ["vector_rag", "向量 RAG（vector_rag）"],
                   ] as const
                 ).map(([key, label]) => (
@@ -725,7 +717,6 @@ export function ContextPreviewDrawer(props: Props) {
                       ["semantic_history", "semantic_history char_limit"],
                       ["foreshadow_open_loops", "foreshadow_open_loops char_limit"],
                       ["structured", "structured char_limit"],
-                      ["tables", "tables char_limit"],
                       ["vector_rag", "vector_rag char_limit"],
                     ] as const
                   ).map(([key, label]) => (
@@ -1022,64 +1013,6 @@ export function ContextPreviewDrawer(props: Props) {
                 </details>
               );
             })}
-          </div>
-        ) : null}
-
-        {memoryInjectionEnabled ? (
-          <div className="panel p-4">
-            {(() => {
-              const raw = (effectivePack.tables ?? {}) as Record<string, unknown>;
-              const enabled = Boolean(raw.enabled);
-              const disabledReason = typeof raw.disabled_reason === "string" ? raw.disabled_reason : null;
-              const truncated = Boolean(raw.truncated);
-              const textMd = typeof raw.text_md === "string" ? raw.text_md : "";
-              const errorCode = typeof raw.error === "string" ? raw.error : null;
-              const counts =
-                raw.counts && typeof raw.counts === "object" ? (raw.counts as Record<string, unknown>) : {};
-              const rawTables = typeof counts.tables === "number" ? counts.tables : Number(counts.tables ?? 0);
-              const rawRows = typeof counts.rows === "number" ? counts.rows : Number(counts.rows ?? 0);
-              const tablesCount = Number.isFinite(rawTables) ? rawTables : 0;
-              const rowsCount = Number.isFinite(rawRows) ? rawRows : 0;
-
-              return (
-                <>
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div className="text-sm text-ink">Tables（sys.memory.tables）</div>
-                    <div className="text-[11px] text-subtext">
-                      {enabled ? "enabled" : formatWritingDisabledReason(disabledReason)} · tables:{tablesCount} · rows:
-                      {rowsCount} · truncated:{truncated ? "true" : "false"}
-                    </div>
-                  </div>
-                  {errorCode ? <div className="mt-2 text-xs text-danger">error: {errorCode}</div> : null}
-                  <details className="mt-3">
-                    <summary className="ui-transition-fast cursor-pointer text-xs text-subtext hover:text-ink">
-                      tables.text_md（最终注入文本）
-                    </summary>
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        className="btn btn-ghost px-2 py-1 text-xs"
-                        onClick={() => {
-                          void (async () => {
-                            try {
-                              await writeClipboardText(textMd || "");
-                              toast.toastSuccess("已复制 tables text_md");
-                            } catch {
-                              toast.toastError("复制失败");
-                            }
-                          })();
-                        }}
-                        type="button"
-                      >
-                        复制
-                      </button>
-                    </div>
-                    <pre className="mt-2 max-h-64 overflow-auto rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
-                      {textMd || "（空）"}
-                    </pre>
-                  </details>
-                </>
-              );
-            })()}
           </div>
         ) : null}
 

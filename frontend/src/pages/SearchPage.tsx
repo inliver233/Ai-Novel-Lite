@@ -30,7 +30,6 @@ const SOURCE_OPTIONS: Array<{ key: string; label: string }> = [
   { key: "character", label: UI_COPY.search.sourceLabels.character },
   { key: "story_memory", label: UI_COPY.search.sourceLabels.storyMemory },
   { key: "source_document", label: UI_COPY.search.sourceLabels.sourceDocument },
-  { key: "project_table_row", label: UI_COPY.search.sourceLabels.projectTableRow },
   { key: "memory_entity", label: UI_COPY.search.sourceLabels.memoryEntity },
   { key: "memory_relation", label: UI_COPY.search.sourceLabels.memoryRelation },
   { key: "memory_evidence", label: UI_COPY.search.sourceLabels.memoryEvidence },
@@ -129,8 +128,6 @@ export function SearchPage() {
         return UI_COPY.search.sourceLabels.storyMemory;
       case "source_document":
         return UI_COPY.search.sourceLabels.sourceDocument;
-      case "project_table_row":
-        return UI_COPY.search.sourceLabels.projectTableRow;
       case "memory_entity":
         return UI_COPY.search.sourceLabels.memoryEntity;
       case "memory_relation":
@@ -185,10 +182,6 @@ export function SearchPage() {
       }
       if (it.source_type === "character") {
         navigate(`/projects/${projectId}/characters`);
-        return;
-      }
-      if (it.source_type === "project_table_row") {
-        navigate(`/projects/${projectId}/numeric-tables`);
         return;
       }
       if (it.source_type === "memory_entity" || it.source_type === "memory_evidence") {

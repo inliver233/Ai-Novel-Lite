@@ -13,7 +13,6 @@ export type ContextToggleKey = Exclude<keyof GenerateForm["context"], "character
 
 export const AI_GENERATE_PRIMARY_MEMORY_MODULES: ReadonlyArray<{ key: MemoryModuleKey; label: string }> = [
   { key: "worldbook", label: "世界书（worldbook）" },
-  { key: "tables", label: "表格系统（tables）" },
 ];
 
 export const AI_GENERATE_ADVANCED_MEMORY_MODULES: ReadonlyArray<{ key: MemoryModuleKey; label: string }> = [

@@ -35,7 +35,6 @@ export type GenerateForm = {
     semantic_history: boolean;
     foreshadow_open_loops: boolean;
     structured: boolean;
-    tables: boolean;
     vector_rag: boolean;
   };
   context: {
@@ -56,7 +55,6 @@ export type MemoryContextPack = {
   semantic_history: Record<string, unknown>;
   foreshadow_open_loops: Record<string, unknown>;
   structured: Record<string, unknown>;
-  tables: Record<string, unknown>;
   vector_rag: Record<string, unknown>;
   logs: unknown[];
 };

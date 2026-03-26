@@ -54,7 +54,6 @@ class ProjectSettingsOut(BaseModel):
     auto_update_story_memory_enabled: bool = True
     auto_update_vector_enabled: bool = True
     auto_update_search_enabled: bool = True
-    auto_update_tables_enabled: bool = True
 
     query_preprocessing: QueryPreprocessingConfig | None
     query_preprocessing_default: QueryPreprocessingConfig
@@ -115,7 +114,6 @@ class ProjectSettingsUpdate(BaseModel):
     auto_update_story_memory_enabled: bool | None = None
     auto_update_vector_enabled: bool | None = None
     auto_update_search_enabled: bool | None = None
-    auto_update_tables_enabled: bool | None = None
 
     query_preprocessing: QueryPreprocessingConfig | None = None
 

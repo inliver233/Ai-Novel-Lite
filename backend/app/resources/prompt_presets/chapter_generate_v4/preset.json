@@ -20,7 +20,6 @@
     "sys.memory.worldbook",
     "sys.memory.story_memory",
     "sys.memory.structured",
-    "sys.memory.tables",
     "sys.memory.vector_rag"
   ],
   "blocks": [
@@ -277,26 +276,6 @@
       "budget": {
         "priority": "optional",
         "maxTokens": 1500
-      },
-      "cache": null
-    },
-    {
-      "identifier": "sys.memory.tables",
-      "name": "记忆：表格系统（可选）",
-      "role": "system",
-      "enabled": true,
-      "template_file": "templates/sys.memory.tables.md",
-      "marker_key": "memory.tables.text_md",
-      "injection_position": "relative",
-      "injection_depth": null,
-      "injection_order": 104,
-      "triggers": [
-        "chapter_generate"
-      ],
-      "forbid_overrides": false,
-      "budget": {
-        "priority": "optional",
-        "maxTokens": 1200
       },
       "cache": null
     },

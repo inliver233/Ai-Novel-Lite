@@ -73,14 +73,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     to: (projectId) => `/projects/${projectId}/worldbook`,
   },
   {
-    id: "numericTables",
-    group: "workbench",
-    icon: Table2,
-    label: UI_COPY.nav.numericTables,
-    ariaLabel: "数值表格（NumericTables） (nav_numeric_tables)",
-    to: (projectId) => `/projects/${projectId}/numeric-tables`,
-  },
-  {
     id: "chapterAnalysis",
     group: "view",
     icon: BookText,

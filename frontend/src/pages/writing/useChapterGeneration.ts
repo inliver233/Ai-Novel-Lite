@@ -78,7 +78,6 @@ const DEFAULT_GEN_FORM: GenerateForm = {
     semantic_history: false,
     foreshadow_open_loops: false,
     structured: true,
-    tables: true,
     vector_rag: true,
   },
   context: {

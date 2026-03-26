@@ -227,15 +227,6 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
             搜索索引：自动重建（search_rebuild）
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
-              checked={settingsForm.auto_update_tables_enabled}
-              onChange={(e) => setSettingsForm((value) => ({ ...value, auto_update_tables_enabled: e.target.checked }))}
-              type="checkbox"
-            />
-            数值表格：自动更新（table_ai_update）
-          </label>
         </div>
 
         <div className="mt-2 text-xs text-subtext">
