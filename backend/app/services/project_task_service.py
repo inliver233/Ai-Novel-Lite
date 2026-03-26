@@ -411,7 +411,6 @@ def schedule_chapter_done_tasks(
     - ProjectTask(kind=characters_auto_update)
     - ProjectTask(kind=plot_auto_update)
     - ProjectTask(kind=table_ai_update)
-    - ProjectTask(kind=graph_auto_update)
 
     All schedulers are idempotent; this helper never raises.
     """
@@ -428,7 +427,6 @@ def schedule_chapter_done_tasks(
         "characters_auto_update": None,
         "plot_auto_update": None,
         "table_ai_update": None,
-        "graph_auto_update": None,
     }
 
     if not pid or not cid:
@@ -440,7 +438,6 @@ def schedule_chapter_done_tasks(
     auto_worldbook = bool(getattr(settings_row, "auto_update_worldbook_enabled", True)) if settings_row is not None else True
     auto_characters = bool(getattr(settings_row, "auto_update_characters_enabled", True)) if settings_row is not None else True
     auto_story_memory = bool(getattr(settings_row, "auto_update_story_memory_enabled", True)) if settings_row is not None else True
-    auto_graph = bool(getattr(settings_row, "auto_update_graph_enabled", True)) if settings_row is not None else True
     auto_vector = bool(getattr(settings_row, "auto_update_vector_enabled", True)) if settings_row is not None else True
     auto_search = bool(getattr(settings_row, "auto_update_search_enabled", True)) if settings_row is not None else True
     auto_tables = bool(getattr(settings_row, "auto_update_tables_enabled", True)) if settings_row is not None else True
@@ -630,34 +627,6 @@ def schedule_chapter_done_tasks(
                 error_type=type(exc).__name__,
                 **exception_log_fields(exc),
             )
-
-    try:
-        from app.services.graph_auto_update_service import schedule_graph_auto_update_task
-
-        if auto_graph:
-            out["graph_auto_update"] = schedule_graph_auto_update_task(
-                db=db,
-                project_id=pid,
-                actor_user_id=actor_user_id,
-                request_id=request_id,
-                chapter_id=cid,
-                chapter_token=token_norm,
-                focus=None,
-                reason=reason_norm,
-            )
-            if isinstance(db, Session):
-                _try_dedupe_queued_chapter_tasks(db=db, project_id=pid, keep_task_id=out.get("graph_auto_update"))
-    except Exception as exc:
-        log_event(
-            logger,
-            "warning",
-            event="CHAPTER_DONE_TASK_SCHEDULE_ERROR",
-            project_id=pid,
-            chapter_id=cid,
-            kind="graph_auto_update",
-            error_type=type(exc).__name__,
-            **exception_log_fields(exc),
-        )
 
     return out
 
@@ -1142,87 +1111,6 @@ def run_project_task(*, task_id: str) -> str:
                     msg += f" - {error_message2[:160]}"
 
                 raise AppError(code="TABLE_AI_UPDATE_FAILED", message=msg, status_code=500, details=details)
-            result = res
-        elif kind == "graph_auto_update":
-            params = _compact_json_loads(task.params_json) if task.params_json else None
-            params_dict = params if isinstance(params, dict) else {}
-            chapter_id = str(params_dict.get("chapter_id") or "").strip()
-            focus = str(params_dict.get("focus") or "").strip() or None
-            request_id2 = str(params_dict.get("request_id") or "").strip() or None
-            change_set_idempotency_key = str(params_dict.get("change_set_idempotency_key") or "").strip() or None
-
-            actor_user_id = str(getattr(task, "actor_user_id", "") or "").strip()
-            if not actor_user_id:
-                raise ValueError("Missing ProjectTask.actor_user_id for graph_auto_update")
-            if not chapter_id:
-                raise ValueError("Missing ProjectTask.params_json.chapter_id for graph_auto_update")
-
-            from app.services.graph_auto_update_service import (
-                graph_auto_update_v1,
-                memory_update_changeset_key_from_task_idempotency_key,
-            )
-
-            res = graph_auto_update_v1(
-                project_id=project_id,
-                actor_user_id=actor_user_id,
-                request_id=request_id2 or f"project_task:{task_id}",
-                chapter_id=chapter_id,
-                change_set_idempotency_key=change_set_idempotency_key
-                or memory_update_changeset_key_from_task_idempotency_key(str(task.idempotency_key)),
-                focus=focus,
-            )
-            if not bool(res.get("ok")):
-                reason = str(res.get("reason") or "unknown").strip() or "unknown"
-                run_id = str(res.get("run_id") or "").strip() or None
-                error_type2 = str(res.get("error_type") or "").strip() or None
-                error_message2 = str(res.get("error_message") or "").strip() or None
-                parse_error = res.get("parse_error") if isinstance(res.get("parse_error"), dict) else None
-                warnings = res.get("warnings") if isinstance(res.get("warnings"), list) else None
-                attempts = res.get("attempts") if isinstance(res.get("attempts"), list) else None
-                error_obj = res.get("error") if isinstance(res.get("error"), dict) else None
-
-                how_to_fix: list[str] = []
-                if reason == "prepare_failed":
-                    how_to_fix = [
-                        "确认项目已绑定可用的 LLM Profile / Preset（用于 graph_auto_update）",
-                        "确认已登录且具备 editor 权限（用于解析 API Key）",
-                        "检查章节状态为 done 且章节存在于当前项目",
-                    ]
-                elif reason in {"llm_call_prepare_failed", "prompt_empty"}:
-                    how_to_fix = ["确认项目 Prompt/Preset 配置正确；必要时刷新页面后重试", "确认章节内容非空且已定稿（done）"]
-                elif reason == "llm_call_failed":
-                    how_to_fix = [
-                        "检查 base_url / 网络连通性（可用「模型配置 → 测试连接」验证）",
-                        "确认模型与参数兼容；必要时切换 provider/model 后重试",
-                    ]
-                elif reason == "parse_failed":
-                    how_to_fix = ["模型输出未满足 memory_update_v1 JSON 合同：可在任务详情中查看 run_id 并定位输出", "尝试更换模型/降低温度后重试"]
-                elif reason in {"unsupported_target_table", "evidence_source_id_mismatch"}:
-                    how_to_fix = ["模型输出与合同不一致：可在任务详情中查看 run_id 并定位输出", "尝试更换模型/降低温度后重试"]
-
-                details: dict[str, Any] = {
-                    "task_kind": "graph_auto_update",
-                    "reason": reason,
-                    "run_id": run_id,
-                    "error_type": error_type2,
-                    "error_message": error_message2,
-                    "parse_error": parse_error,
-                    "warnings": warnings,
-                }
-                if attempts is not None:
-                    details["attempts"] = attempts
-                if error_obj is not None:
-                    details["error"] = error_obj
-                if how_to_fix:
-                    details["how_to_fix"] = how_to_fix
-
-                msg = f"graph_auto_update 失败：{reason}"
-                if run_id:
-                    msg += f" (run_id={run_id})"
-                if error_message2:
-                    msg += f" - {error_message2[:160]}"
-
-                raise AppError(code="GRAPH_AUTO_UPDATE_FAILED", message=msg, status_code=500, details=details)
             result = res
         else:
             raise ValueError(f"Unsupported ProjectTask.kind: {kind!r}")

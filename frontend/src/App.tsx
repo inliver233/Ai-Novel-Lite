@@ -108,12 +108,6 @@ const WorldBookPage = lazy(async () => {
   return { default: mod.WorldBookPage };
 });
 
-const GraphPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/GraphPage"));
-  return { default: mod.GraphPage };
-});
-
-
 const StylesPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/StylesPage"));
   return { default: mod.StylesPage };
@@ -235,10 +229,6 @@ const router = createBrowserRouter([
               {
                 path: "worldbook",
                 element: <WorldBookPage />,
-              },
-              {
-                path: "graph",
-                element: <GraphPage />,
               },
               {
                 path: "styles",

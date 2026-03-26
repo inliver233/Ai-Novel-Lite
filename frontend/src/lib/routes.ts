@@ -24,7 +24,6 @@ const ROUTE_META: RouteMeta[] = [
   { suffix: "/worldbook", title: UI_COPY.nav.worldBook, layout: "tool" },
   { suffix: "/rag", title: UI_COPY.nav.rag, layout: "tool" },
   { suffix: "/search", title: UI_COPY.nav.search, layout: "tool" },
-  { suffix: "/graph", title: UI_COPY.nav.graph, layout: "tool" },
   { suffix: "/styles", title: UI_COPY.nav.styles, layout: "tool" },
   { suffix: "/prompts", title: UI_COPY.nav.prompts, layout: "tool" },
   { suffix: "/prompt-studio", title: UI_COPY.nav.promptStudio, layout: "tool" },

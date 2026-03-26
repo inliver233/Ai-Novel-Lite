@@ -37,7 +37,6 @@ export type GenerateForm = {
     structured: boolean;
     tables: boolean;
     vector_rag: boolean;
-    graph: boolean;
   };
   context: {
     include_world_setting: boolean;
@@ -59,7 +58,6 @@ export type MemoryContextPack = {
   structured: Record<string, unknown>;
   tables: Record<string, unknown>;
   vector_rag: Record<string, unknown>;
-  graph: Record<string, unknown>;
   logs: unknown[];
 };
 

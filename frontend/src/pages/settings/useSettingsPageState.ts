@@ -151,7 +151,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.auto_update_worldbook_enabled &&
       settingsForm.auto_update_characters_enabled &&
       settingsForm.auto_update_story_memory_enabled &&
-      settingsForm.auto_update_graph_enabled &&
       settingsForm.auto_update_vector_enabled &&
       settingsForm.auto_update_search_enabled &&
       settingsForm.auto_update_tables_enabled,
@@ -163,7 +162,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.auto_update_worldbook_enabled ||
       settingsForm.auto_update_characters_enabled ||
       settingsForm.auto_update_story_memory_enabled ||
-      settingsForm.auto_update_graph_enabled ||
       settingsForm.auto_update_vector_enabled ||
       settingsForm.auto_update_search_enabled ||
       settingsForm.auto_update_tables_enabled,
@@ -182,7 +180,6 @@ export function useSettingsPageState(): SettingsPageState {
       auto_update_worldbook_enabled: enabled,
       auto_update_characters_enabled: enabled,
       auto_update_story_memory_enabled: enabled,
-      auto_update_graph_enabled: enabled,
       auto_update_vector_enabled: enabled,
       auto_update_search_enabled: enabled,
       auto_update_tables_enabled: enabled,
@@ -426,7 +423,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.auto_update_worldbook_enabled !== baselineSettings.auto_update_worldbook_enabled ||
       settingsForm.auto_update_characters_enabled !== baselineSettings.auto_update_characters_enabled ||
       settingsForm.auto_update_story_memory_enabled !== baselineSettings.auto_update_story_memory_enabled ||
-      settingsForm.auto_update_graph_enabled !== baselineSettings.auto_update_graph_enabled ||
       settingsForm.auto_update_vector_enabled !== baselineSettings.auto_update_vector_enabled ||
       settingsForm.auto_update_search_enabled !== baselineSettings.auto_update_search_enabled ||
       settingsForm.auto_update_tables_enabled !== baselineSettings.auto_update_tables_enabled ||
@@ -558,7 +554,6 @@ export function useSettingsPageState(): SettingsPageState {
         nextSettingsForm.auto_update_worldbook_enabled !== baselineSettings.auto_update_worldbook_enabled ||
         nextSettingsForm.auto_update_characters_enabled !== baselineSettings.auto_update_characters_enabled ||
         nextSettingsForm.auto_update_story_memory_enabled !== baselineSettings.auto_update_story_memory_enabled ||
-        nextSettingsForm.auto_update_graph_enabled !== baselineSettings.auto_update_graph_enabled ||
         nextSettingsForm.auto_update_vector_enabled !== baselineSettings.auto_update_vector_enabled ||
         nextSettingsForm.auto_update_search_enabled !== baselineSettings.auto_update_search_enabled ||
         nextSettingsForm.auto_update_tables_enabled !== baselineSettings.auto_update_tables_enabled ||
@@ -631,7 +626,6 @@ export function useSettingsPageState(): SettingsPageState {
                   auto_update_worldbook_enabled: Boolean(nextSettingsForm.auto_update_worldbook_enabled),
                   auto_update_characters_enabled: Boolean(nextSettingsForm.auto_update_characters_enabled),
                   auto_update_story_memory_enabled: Boolean(nextSettingsForm.auto_update_story_memory_enabled),
-                  auto_update_graph_enabled: Boolean(nextSettingsForm.auto_update_graph_enabled),
                   auto_update_vector_enabled: Boolean(nextSettingsForm.auto_update_vector_enabled),
                   auto_update_search_enabled: Boolean(nextSettingsForm.auto_update_search_enabled),
                   auto_update_tables_enabled: Boolean(nextSettingsForm.auto_update_tables_enabled),

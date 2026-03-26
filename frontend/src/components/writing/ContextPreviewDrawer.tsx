@@ -28,7 +28,6 @@ type Props = {
     structured: boolean;
     tables?: boolean;
     vector_rag: boolean;
-    graph: boolean;
   };
 };
 
@@ -47,7 +46,6 @@ type MemorySectionEnabled = {
   structured: boolean;
   tables: boolean;
   vector_rag: boolean;
-  graph: boolean;
 };
 
 type ContextOptimizerBlockLog = {
@@ -80,7 +78,6 @@ const DEFAULT_PREVIEW_SECTIONS: MemorySectionEnabled = {
   structured: true,
   tables: true,
   vector_rag: true,
-  graph: true,
 };
 
 const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
@@ -91,7 +88,6 @@ const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
   structured: "",
   tables: "",
   vector_rag: "",
-  graph: "",
 };
 
 const EMPTY_PACK: MemoryContextPack = {
@@ -102,7 +98,6 @@ const EMPTY_PACK: MemoryContextPack = {
   structured: {},
   tables: {},
   vector_rag: {},
-  graph: {},
   logs: [],
 };
 
@@ -273,7 +268,6 @@ export function ContextPreviewDrawer(props: Props) {
       "structured",
       "tables",
       "vector_rag",
-      "graph",
     ] as const) {
       const raw = String(budgetOverrideInputs[key] ?? "").trim();
       if (!raw) continue;
@@ -374,8 +368,7 @@ export function ContextPreviewDrawer(props: Props) {
       !getTextMd(effectivePack.foreshadow_open_loops) &&
       !getTextMd(effectivePack.structured) &&
       !getTextMd(effectivePack.tables) &&
-      !getTextMd(effectivePack.vector_rag) &&
-      !getTextMd(effectivePack.graph)
+      !getTextMd(effectivePack.vector_rag)
     );
   }, [effectivePack]);
 
@@ -706,7 +699,6 @@ export function ContextPreviewDrawer(props: Props) {
                     ["structured", "结构化记忆（structured）"],
                     ["tables", "表格系统（tables）"],
                     ["vector_rag", "向量 RAG（vector_rag）"],
-                    ["graph", "关系图（graph）"],
                   ] as const
                 ).map(([key, label]) => (
                   <label key={key} className="flex items-center justify-between gap-3 text-sm text-ink">
@@ -735,7 +727,6 @@ export function ContextPreviewDrawer(props: Props) {
                       ["structured", "structured char_limit"],
                       ["tables", "tables char_limit"],
                       ["vector_rag", "vector_rag char_limit"],
-                      ["graph", "graph char_limit"],
                     ] as const
                   ).map(([key, label]) => (
                     <label key={key} className="grid gap-1 text-xs text-subtext">
@@ -998,7 +989,7 @@ export function ContextPreviewDrawer(props: Props) {
           <div className="panel p-4">
             <div className="text-sm text-ink">Memory text_md</div>
             {(
-              ["story_memory", "semantic_history", "foreshadow_open_loops", "structured", "graph"] as const
+              ["story_memory", "semantic_history", "foreshadow_open_loops", "structured"] as const
             ).map((key) => {
               const raw = (effectivePack[key] ?? {}) as Record<string, unknown>;
               const textMd = typeof raw.text_md === "string" ? raw.text_md : "";

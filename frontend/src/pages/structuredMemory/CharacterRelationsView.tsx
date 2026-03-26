@@ -389,13 +389,6 @@ export function CharacterRelationsView(props: {
             >
               {loading ? "刷新..." : "刷新"}
             </button>
-            <Link
-              className="btn btn-secondary btn-sm"
-              to={`/projects/${projectId}/graph`}
-              aria-label="structured_character_relations_open_graph"
-            >
-              去图谱 Query
-            </Link>
           </div>
         </div>
         <div className="mt-1 text-xs text-subtext">

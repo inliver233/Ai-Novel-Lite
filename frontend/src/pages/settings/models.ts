@@ -10,7 +10,6 @@ export type SettingsForm = {
   auto_update_worldbook_enabled: boolean;
   auto_update_characters_enabled: boolean;
   auto_update_story_memory_enabled: boolean;
-  auto_update_graph_enabled: boolean;
   auto_update_vector_enabled: boolean;
   auto_update_search_enabled: boolean;
   auto_update_tables_enabled: boolean;
@@ -96,7 +95,6 @@ export function createDefaultSettingsForm(): SettingsForm {
     auto_update_worldbook_enabled: true,
     auto_update_characters_enabled: true,
     auto_update_story_memory_enabled: true,
-    auto_update_graph_enabled: true,
     auto_update_vector_enabled: true,
     auto_update_search_enabled: true,
     auto_update_tables_enabled: true,
@@ -146,7 +144,6 @@ export function mapLoadedSettingsToForms(loaded: SettingsLoaded): LoadedSettings
       auto_update_worldbook_enabled: Boolean(settings.auto_update_worldbook_enabled ?? true),
       auto_update_characters_enabled: Boolean(settings.auto_update_characters_enabled ?? true),
       auto_update_story_memory_enabled: Boolean(settings.auto_update_story_memory_enabled ?? true),
-      auto_update_graph_enabled: Boolean(settings.auto_update_graph_enabled ?? true),
       auto_update_vector_enabled: Boolean(settings.auto_update_vector_enabled ?? true),
       auto_update_search_enabled: Boolean(settings.auto_update_search_enabled ?? true),
       auto_update_tables_enabled: Boolean(settings.auto_update_tables_enabled ?? true),

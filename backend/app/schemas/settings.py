@@ -52,7 +52,6 @@ class ProjectSettingsOut(BaseModel):
     auto_update_worldbook_enabled: bool = True
     auto_update_characters_enabled: bool = True
     auto_update_story_memory_enabled: bool = True
-    auto_update_graph_enabled: bool = True
     auto_update_vector_enabled: bool = True
     auto_update_search_enabled: bool = True
     auto_update_tables_enabled: bool = True
@@ -114,7 +113,6 @@ class ProjectSettingsUpdate(BaseModel):
     auto_update_worldbook_enabled: bool | None = None
     auto_update_characters_enabled: bool | None = None
     auto_update_story_memory_enabled: bool | None = None
-    auto_update_graph_enabled: bool | None = None
     auto_update_vector_enabled: bool | None = None
     auto_update_search_enabled: bool | None = None
     auto_update_tables_enabled: bool | None = None

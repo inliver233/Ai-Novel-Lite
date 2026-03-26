@@ -47,7 +47,6 @@ class ProjectSettings(Base):
     auto_update_worldbook_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_characters_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_story_memory_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    auto_update_graph_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_vector_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_search_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_update_tables_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

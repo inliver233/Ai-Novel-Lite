@@ -9,7 +9,6 @@ import {
   Globe,
   Palette,
   PenLine,
-  Share2,
   Settings,
   Sparkles,
   TableOfContents,
@@ -72,14 +71,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.worldBook,
     ariaLabel: "世界书 (nav_worldbook)",
     to: (projectId) => `/projects/${projectId}/worldbook`,
-  },
-  {
-    id: "graph",
-    group: "workbench",
-    icon: Share2,
-    label: UI_COPY.nav.graph,
-    ariaLabel: "图谱/关系 (nav_graph)",
-    to: (projectId) => `/projects/${projectId}/graph`,
   },
   {
     id: "numericTables",

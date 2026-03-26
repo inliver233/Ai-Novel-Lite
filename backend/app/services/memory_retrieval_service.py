@@ -13,7 +13,6 @@ from app.models.project_settings import ProjectSettings
 from app.models.story_memory import StoryMemory
 from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryForeshadow, MemoryRelation
 from app.schemas.memory_pack import MemoryContextPackOut
-from app.services.graph_context_service import query_graph_context
 from app.services.prompt_budget import estimate_tokens
 from app.services.table_context_service import build_tables_context_text_md
 from app.services.vector_rerank_overrides import vector_rerank_overrides
@@ -32,7 +31,6 @@ _ALLOWED_SECTIONS = {
     "structured",
     "tables",
     "vector_rag",
-    "graph",
 }
 _MAX_BUDGET_CHAR_LIMIT = 50000
 
@@ -252,7 +250,6 @@ def retrieve_memory_context_pack(
     structured_enabled = bool(enabled_map.get("structured", True))
     tables_enabled = bool(enabled_map.get("tables", False))
     vector_rag_enabled = bool(enabled_map.get("vector_rag", True))
-    graph_enabled = bool(enabled_map.get("graph", True))
     worldbook_budget = _clamp_char_limit(budgets.get("worldbook"), default=12000) if "worldbook" in budgets else 12000
     story_memory_budget = (
         _clamp_char_limit(budgets.get("story_memory"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
@@ -279,9 +276,6 @@ def retrieve_memory_context_pack(
         _clamp_char_limit(budgets.get("vector_rag"), default=int(getattr(settings, "vector_final_char_limit", 6000) or 6000))
         if "vector_rag" in budgets
         else int(getattr(settings, "vector_final_char_limit", 6000) or 6000)
-    )
-    graph_budget = (
-        _clamp_char_limit(budgets.get("graph"), default=6000) if "graph" in budgets else 6000
     )
     if worldbook_enabled:
         worldbook_preview = preview_worldbook_trigger(
@@ -666,20 +660,6 @@ def retrieve_memory_context_pack(
                 "error": "tables_query_failed",
             }
 
-    graph = query_graph_context(db=db, project_id=project_id, query_text=query_text, enabled=graph_enabled)
-    if isinstance(graph, dict):
-        pb = graph.get("prompt_block") if isinstance(graph.get("prompt_block"), dict) else {}
-        if "graph" in budgets and isinstance(pb, dict):
-            inner = _unwrap_text_md_block(text_md=str(pb.get("text_md") or ""), tag="GraphContext")
-            clipped, was_truncated = _wrap_and_truncate_block(tag="GraphContext", inner=inner, char_limit=int(graph_budget))
-            pb = dict(pb)
-            pb["text_md"] = clipped
-            pb["truncated"] = bool(pb.get("truncated") or was_truncated)
-            pb["char_limit"] = int(graph_budget)
-            pb["original_chars"] = int(pb.get("original_chars") or len(str(pb.get("text_md") or "")))
-            graph["prompt_block"] = pb
-        graph["text_md"] = str(pb.get("text_md") or "")
-
     try:
         if not vector_rag_enabled:
             vector_rag = vector_rag_status(project_id=project_id, embedding=embedding_overrides, rerank=rerank_config)
@@ -821,19 +801,6 @@ def retrieve_memory_context_pack(
             "budget_char_limit": int(vector_rag_budget),
             "budget_source": "override" if "vector_rag" in budgets else "default",
         },
-        {
-            "section": "graph",
-            "enabled": bool(graph.get("enabled")),
-            "disabled_reason": graph.get("disabled_reason"),
-            "note": "graph_context_service.query_graph_context",
-            "budget_observability": graph.get("budget_observability")
-            if isinstance(graph.get("budget_observability"), dict)
-            else None,
-            "token_estimate": estimate_tokens(str(graph.get("text_md") or "")),
-            "truncated": bool(graph.get("truncated")) if "truncated" in graph else None,
-            "budget_char_limit": int(graph_budget),
-            "budget_source": "override" if "graph" in budgets else "default",
-        },
     ]
 
     return MemoryContextPackOut.model_validate(
@@ -846,7 +813,6 @@ def retrieve_memory_context_pack(
                 "structured": structured,
                 "tables": tables,
                 "vector_rag": vector_rag,
-                "graph": graph,
                 "logs": logs,
             }
         )

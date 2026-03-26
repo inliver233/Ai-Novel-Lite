@@ -80,7 +80,6 @@ const DEFAULT_GEN_FORM: GenerateForm = {
     structured: true,
     tables: true,
     vector_rag: true,
-    graph: true,
   },
   context: {
     include_world_setting: true,

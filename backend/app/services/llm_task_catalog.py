@@ -73,12 +73,6 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         description="角色卡后台自动更新任务",
     ),
     LLMTaskCatalogItem(
-        key="graph_auto_update",
-        label="图谱自动更新",
-        group="memory",
-        description="图谱关系后台自动更新任务",
-    ),
-    LLMTaskCatalogItem(
         key="table_ai_update",
         label="数值表自动更新",
         group="memory",

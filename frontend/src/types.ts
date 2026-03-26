@@ -30,7 +30,6 @@ export interface ProjectSettings {
   auto_update_worldbook_enabled: boolean;
   auto_update_characters_enabled: boolean;
   auto_update_story_memory_enabled: boolean;
-  auto_update_graph_enabled: boolean;
   auto_update_vector_enabled: boolean;
   auto_update_search_enabled: boolean;
   auto_update_tables_enabled: boolean;

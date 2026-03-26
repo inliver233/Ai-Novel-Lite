@@ -203,7 +203,7 @@ export function PromptInspectorDrawer(props: Props) {
   const packTextBlocks = useMemo(() => {
     const pack = precheck?.memory_pack;
     if (!pack) return [];
-    const sections = ["worldbook", "story_memory", "structured", "vector_rag", "graph"];
+    const sections = ["worldbook", "story_memory", "structured", "vector_rag"];
     const out: Array<{ section: string; textMd: string }> = [];
     for (const s of sections) {
       const textMd = extractTextMdFromPackSection(pack, s);

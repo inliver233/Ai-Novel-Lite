@@ -22,7 +22,6 @@ export const AI_GENERATE_ADVANCED_MEMORY_MODULES: ReadonlyArray<{ key: MemoryMod
   { key: "foreshadow_open_loops", label: "未回收伏笔（foreshadow_open_loops）" },
   { key: "structured", label: "结构化记忆（structured）" },
   { key: "vector_rag", label: "向量 RAG（vector_rag）" },
-  { key: "graph", label: "关系图（graph）" },
 ];
 
 export const AI_GENERATE_CONTEXT_TOGGLES: ReadonlyArray<{ key: ContextToggleKey; label: string; inputName: string }> = [

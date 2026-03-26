@@ -21,8 +21,7 @@
     "sys.memory.story_memory",
     "sys.memory.structured",
     "sys.memory.tables",
-    "sys.memory.vector_rag",
-    "sys.memory.graph_context"
+    "sys.memory.vector_rag"
   ],
   "blocks": [
     {
@@ -311,26 +310,6 @@
       "injection_position": "relative",
       "injection_depth": null,
       "injection_order": 104,
-      "triggers": [
-        "chapter_generate"
-      ],
-      "forbid_overrides": false,
-      "budget": {
-        "priority": "optional",
-        "maxTokens": 1600
-      },
-      "cache": null
-    },
-    {
-      "identifier": "sys.memory.graph_context",
-      "name": "记忆：图谱上下文（可选）",
-      "role": "system",
-      "enabled": true,
-      "template_file": "templates/sys.memory.graph_context.md",
-      "marker_key": "memory.graph.text_md",
-      "injection_position": "relative",
-      "injection_depth": null,
-      "injection_order": 106,
       "triggers": [
         "chapter_generate"
       ],

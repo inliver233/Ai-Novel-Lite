@@ -210,16 +210,6 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
           <label className="flex items-center gap-2 text-sm text-ink">
             <input
               className="checkbox"
-              checked={settingsForm.auto_update_graph_enabled}
-              onChange={(e) => setSettingsForm((value) => ({ ...value, auto_update_graph_enabled: e.target.checked }))}
-              type="checkbox"
-            />
-            图谱：自动更新（graph_auto_update）
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
               checked={settingsForm.auto_update_vector_enabled}
               onChange={(e) => setSettingsForm((value) => ({ ...value, auto_update_vector_enabled: e.target.checked }))}
               type="checkbox"
