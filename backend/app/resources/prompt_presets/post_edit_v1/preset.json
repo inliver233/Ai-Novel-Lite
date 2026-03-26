@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "name": "Default post_edit v1",
+  "category": "娑﹁壊",
+  "scope": "project",
+  "version": 1,
+  "activation_tasks": [
+    "post_edit"
+  ],
+  "upgrade_add_identifiers": [
+    "sys.post_edit.sanitize",
+    "sys.project.style_guide"
+  ],
+  "blocks": [
+    {
+      "identifier": "sys.post_edit.role",
+      "name": "post_edit system",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.post_edit.role.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 10,
+      "triggers": [
+        "post_edit"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must"
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.post_edit.sanitize",
+      "name": "post_edit sanitize (optional)",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.post_edit.sanitize.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 12,
+      "triggers": [
+        "post_edit"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "important"
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.project.style_guide",
+      "name": "project style_guide",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.project.style_guide.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 15,
+      "triggers": [
+        "post_edit"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "important"
+      },
+      "cache": null
+    },
+    {
+      "identifier": "user.post_edit.input",
+      "name": "post_edit user",
+      "role": "user",
+      "enabled": true,
+      "template_file": "templates/user.post_edit.input.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 20,
+      "triggers": [
+        "post_edit"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must"
+      },
+      "cache": null
+    }
+  ]
+}

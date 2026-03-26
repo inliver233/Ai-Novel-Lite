@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Local DB / env
+*.db
+*.db.bak*
+*.bak.*
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+backend/.env
+frontend/.env
+.env.docker
+.env
+backend/.dev-backend.*.log
+frontend/.dev-frontend.*.log
+*.log
+*.err.log
+*.out.log
+tmp_*
+.tmp_*
+backend/.tmp*/
+frontend/.tmp*/
+backend/.tmp_test/
+test/.artifacts/
+test/.tmp/
+test-results/
+playwright-report/
+*.trace
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Windows reserved device names (PowerShell `> nul` can create this file)
+# Cleanup (repo root):
+#   Remove-Item -LiteralPath ("\\?\{0}\nul" -f (Get-Location)) -Force
+/nul
