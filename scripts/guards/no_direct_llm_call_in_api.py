@@ -22,7 +22,6 @@ DISALLOWED_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 WARNING_ALLOWLIST = {
-    "backend/app/api/routes/chapter_analysis.py",
     "backend/app/api/routes/chapters.py",
     "backend/app/api/routes/llm.py",
     "backend/app/api/routes/memory.py",
@@ -48,4 +47,3 @@ def run(context: GuardContext):
         "Legacy direct-LLM routes stay warning-only in Wave A; new violations outside allowlist fail the guard.",
     )
     return make_result(GUARD_ID, DESCRIPTION, findings=findings, notes=notes)
-

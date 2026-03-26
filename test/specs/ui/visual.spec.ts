@@ -16,30 +16,6 @@ async function stabilizeUi(page: Page): Promise<void> {
   });
 }
 
-async function hideUnstableBadges(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const removeRequestIdBadges = () => {
-      for (const btn of document.querySelectorAll('button[aria-label="copy_request_id"]')) {
-        btn.closest("div")?.remove();
-      }
-    };
-
-    removeRequestIdBadges();
-
-    const key = "__ainovelVisualHideRequestIdObserver";
-    const globalWindow = window as typeof window & {
-      [key: string]: MutationObserver | undefined;
-    };
-    globalWindow[key]?.disconnect();
-
-    const observer = new MutationObserver(() => {
-      removeRequestIdBadges();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    globalWindow[key] = observer;
-  });
-}
-
 async function hideWritingUpdatedAt(page: Page): Promise<void> {
   await page.evaluate(() => {
     for (const el of document.querySelectorAll("div")) {
@@ -91,10 +67,8 @@ test("ui: visual smoke (update with --update-snapshots)", async ({ page, request
   await expect(page.getByText("项目信息", { exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot("settings.png");
 
-  // Additional visual baselines: Search / Writing / ChapterAnalysis.
+  // Additional visual baselines: Search / Writing.
   const token = `VISUAL_${Date.now()}`;
-  const hookExcerpt = `VISUAL_HOOK_${token}`;
-  const foreshadowExcerpt = `VISUAL_FORESHADOW_${token}`;
 
   const createChapterRes = await request.post(`${state.backendUrl}/api/projects/${projectId}/chapters`, {
     data: { number: 1, title: "Visual Chapter", plan: "Visual plan", status: "drafting" },
@@ -105,10 +79,6 @@ test("ui: visual smoke (update with --update-snapshots)", async ({ page, request
 
   const contentMd = [
     "# Visual Chapter",
-    "",
-    `${hookExcerpt} appears here.`,
-    "",
-    `${foreshadowExcerpt} appears here.`,
     "",
     // Make the editor area scrollable (helps catch scrollbar/overflow regressions).
     ...Array.from({ length: 48 }, (_, i) => `line_${i + 1}: ${token}`),
@@ -149,29 +119,4 @@ test("ui: visual smoke (update with --update-snapshots)", async ({ page, request
   await stabilizeUi(page);
   await hideWritingUpdatedAt(page);
   await expect(page.locator("main")).toHaveScreenshot("writing.png");
-
-  const apply = await request.post(`${state.backendUrl}/api/chapters/${chapterId}/analysis/apply`, {
-    data: {
-      draft_content_md: contentMd,
-      analysis: {
-        schema_version: 1,
-        chapter_summary: `Visual summary ${token}`,
-        hooks: [{ excerpt: hookExcerpt, note: `hook note ${token}` }],
-        foreshadows: [{ excerpt: foreshadowExcerpt, note: `foreshadow note ${token}`, type: "open" }],
-        plot_points: [],
-        character_states: [],
-        suggestions: [],
-        overall_notes: "",
-      },
-    },
-  });
-  expect(apply.ok()).toBeTruthy();
-
-  await page.goto(`/projects/${projectId}/chapter-analysis?chapterId=${chapterId}`);
-  await expect(page.getByText("章节标注回溯", { exact: true })).toBeVisible();
-  const highlights = page.locator("[data-annotation-id]");
-  await expect.poll(async () => await highlights.count(), { timeout: 60_000 }).toBeGreaterThan(0);
-  await stabilizeUi(page);
-  await hideUnstableBadges(page);
-  await expect(page.locator("main")).toHaveScreenshot("chapter-analysis.png");
 });

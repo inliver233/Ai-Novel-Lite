@@ -54,7 +54,7 @@ export function guessPreviewValues(args: {
   const previousChapter = "（示例上一章摘要）";
   const targetWordCount = 2500;
   const rawContent = "（示例已生成正文，用于 post_edit 预览）";
-  const chapterContentMd = "（示例章节正文，用于 chapter_analyze / chapter_rewrite）";
+  const chapterContentMd = "（示例章节正文）";
   const planText = "（示例规划，可用于 plan_first 注入）";
   const analysisJson = JSON.stringify(
     {

@@ -161,12 +161,11 @@ test("ui: global search hits multi-sources and can jump", async ({ page, request
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/characters$`));
   await expect(page.getByText(characterName, { exact: true })).toBeVisible();
 
-  // story_memory -> chapter analysis
+  // story_memory -> no jump target after feature cleanup
   const resultsMem = await runSearch();
   const memCard = resultsMem.locator(".panel").filter({ hasText: "story_memory" }).first();
   await expect(memCard).toBeVisible();
-  await memCard.getByLabel("search_jump", { exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/chapter-analysis\\?chapterId=${chapterId}$`));
+  await expect(memCard.getByLabel("search_jump", { exact: true })).toBeDisabled();
 
   // source_document -> import page (auto-open docId)
   const resultsImport = await runSearch();

@@ -263,8 +263,8 @@ def update_story_memory(
     db.commit()
     db.refresh(row)
 
-    schedule_vector_rebuild_task(db=db, project_id=project_id, actor_user_id=user_id, request_id=request_id, reason="story_memory_update")
-    schedule_search_rebuild_task(db=db, project_id=project_id, actor_user_id=user_id, request_id=request_id, reason="story_memory_update")
+    schedule_vector_rebuild_task(db=db, project_id=project_id, actor_user_id=user_id, request_id=request_id, reason="story_memory_refresh")
+    schedule_search_rebuild_task(db=db, project_id=project_id, actor_user_id=user_id, request_id=request_id, reason="story_memory_refresh")
 
     return ok_payload(request_id=request_id, data={"story_memory": _to_out(row)})
 
@@ -397,4 +397,3 @@ def mark_story_memory_done(
     schedule_search_rebuild_task(db=db, project_id=project_id, actor_user_id=user_id, request_id=request_id, reason="story_memory_mark_done")
 
     return ok_payload(request_id=request_id, data={"story_memory": _to_out(row)})
-

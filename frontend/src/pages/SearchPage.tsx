@@ -139,7 +139,6 @@ export function SearchPage() {
       it.source_type === "chapter" ||
       it.source_type === "outline" ||
       it.source_type === "character" ||
-      it.source_type === "story_memory" ||
       it.source_type === "source_document"
     );
   }, []);

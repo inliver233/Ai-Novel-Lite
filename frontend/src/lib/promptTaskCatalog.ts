@@ -27,16 +27,6 @@ export const PROMPT_TASK_CATALOG = [
     uiCopyKey: "contentOptimize",
     label: UI_COPY.promptStudio.tasks.contentOptimize,
   },
-  {
-    key: "chapter_analyze",
-    uiCopyKey: "chapterAnalyze",
-    label: UI_COPY.promptStudio.tasks.chapterAnalyze,
-  },
-  {
-    key: "chapter_rewrite",
-    uiCopyKey: "chapterRewrite",
-    label: UI_COPY.promptStudio.tasks.chapterRewrite,
-  },
 ] as const satisfies ReadonlyArray<{
   key: string;
   uiCopyKey: keyof typeof UI_COPY.promptStudio.tasks;

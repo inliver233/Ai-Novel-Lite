@@ -257,9 +257,7 @@ def build_project_search_docs(*, db: Session, project_id: str) -> list[SearchDoc
                 source_id=str(m.id),
                 title=title,
                 content="\n\n".join([x for x in [title, content, full_context] if x]).strip(),
-                url_path=f"/projects/{pid}/chapter-analysis?chapterId={str(getattr(m, 'chapter_id', '') or '').strip()}"
-                if _trim(getattr(m, 'chapter_id', '') or '')
-                else f"/projects/{pid}/chapter-analysis",
+                url_path=None,
                 locator_json=json.dumps(
                     {"story_memory_id": str(m.id), "chapter_id": str(getattr(m, "chapter_id", "") or "").strip() or None},
                     ensure_ascii=False,

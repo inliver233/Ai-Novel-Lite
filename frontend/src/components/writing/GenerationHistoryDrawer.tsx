@@ -128,9 +128,7 @@ export function GenerationHistoryDrawer(props: Props) {
             ? "generate"
             : type === "post_edit" || type === "post_edit_sanitize"
               ? "post_edit"
-              : type.startsWith("memory_update")
-                ? "memory_update"
-                : type || "unknown";
+              : type || "unknown";
       return { run: r, stage };
     });
   }, [pipelineRuns]);

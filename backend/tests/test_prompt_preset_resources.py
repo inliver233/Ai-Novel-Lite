@@ -10,8 +10,6 @@ class TestPromptPresetResources(unittest.TestCase):
             "post_edit_v1",
             "outline_generate_v3",
             "chapter_generate_v3",
-            "chapter_analyze_v1",
-            "chapter_rewrite_v1",
         ]
 
         for key in keys:
@@ -24,4 +22,3 @@ class TestPromptPresetResources(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
