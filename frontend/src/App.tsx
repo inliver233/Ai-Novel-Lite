@@ -108,11 +108,6 @@ const StylesPage = lazy(async () => {
   return { default: mod.StylesPage };
 });
 
-const RagPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/RagPage"));
-  return { default: mod.RagPage };
-});
-
 const ImportPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/ImportPage"));
   return { default: mod.ImportPage };
@@ -224,10 +219,6 @@ const router = createBrowserRouter([
               {
                 path: "styles",
                 element: <StylesPage />,
-              },
-              {
-                path: "rag",
-                element: <RagPage />,
               },
               {
                 path: "import",

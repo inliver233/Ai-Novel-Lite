@@ -5,7 +5,6 @@ import { ApiError, apiJson } from "../../services/apiClient";
 import { Drawer } from "../ui/Drawer";
 import { useToast } from "../ui/toast";
 import type { MemoryContextPack } from "./types";
-import { VectorRagDebugPanel } from "./contextPreview/VectorRagDebugPanel";
 import { WorldbookPreviewPanel } from "./contextPreview/WorldbookPreviewPanel";
 import { useVectorRagQuery } from "./contextPreview/useVectorRagQuery";
 import { downloadJson, writeClipboardText } from "./contextPreview/utils";
@@ -1066,7 +1065,6 @@ export function ContextPreviewDrawer(props: Props) {
           <WorldbookPreviewPanel effectivePack={effectivePack} worldbookPreview={worldbookPreview} />
         ) : null}
 
-        <VectorRagDebugPanel projectId={projectId} toast={toast} vector={vector} />
       </div>
     </Drawer>
   );

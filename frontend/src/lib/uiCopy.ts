@@ -26,7 +26,6 @@ export const UI_COPY = {
     export: "导出",
 
     worldBook: "世界书",
-    rag: "知识库（RAG）",
     search: "搜索引擎",
     styles: "风格",
     prompts: "模型配置",
@@ -364,36 +363,6 @@ export const UI_COPY = {
     deleteCancel: "取消",
 
     missingProjectId: "缺少 projectId",
-  },
-  rag: {
-    title: "Vector RAG 管理",
-    subtitle: "状态 / 查询 / 入库 / 重建索引：用于排查“注入不生效/命中不稳定/索引过期”。",
-    usageHint: "何时用：写作时感觉“世界书/上下文注入不生效”或检索结果不稳定时，先来这里看状态与命中。",
-    exampleHint: "示例：输入章节片段或关键词（如“dragon”）点击“查询”，检查命中来源与注入结果。",
-    riskHint: "风险：入库/重建可能耗时；若配置为在线模型，可能产生费用。",
-
-    settings: "模型配置（Vector RAG）",
-    ingest: "触发入库（Ingest）",
-    rebuild: "重建索引（Rebuild）",
-    rebuildNeedConfig: "重建索引（Rebuild，需配置）",
-    rebuildRecommended: "重建索引（Rebuild，建议）",
-
-    kbTitle: "知识库（KB）",
-    kbOrderLabel: "排序（order）",
-    kbEnabledLabel: "启用（enabled）",
-    kbWeightLabel: "权重（weight）",
-    kbNameLabel: "名称（name）",
-    kbNewNameLabel: "新建知识库名称（name）",
-    kbNewNamePlaceholder: "例如：我的知识库",
-
-    sourcesTitle: "查询来源",
-    queryTitle: "查询",
-    injectionTitle: "注入结果",
-    advancedDebugTitle: "高级调试",
-    rerankTitle: "重排（Rerank）",
-
-    ingestResultTitle: "入库结果（Ingest result）",
-    rebuildResultTitle: "重建结果（Rebuild result）",
   },
   promptStudio: {
     titleBeta: "提示词工作室（beta）",

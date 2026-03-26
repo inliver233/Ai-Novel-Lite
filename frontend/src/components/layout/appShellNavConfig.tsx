@@ -3,7 +3,6 @@ import {
   Bot,
   BookOpen,
   BookText,
-  Database,
   FileDown,
   Flag,
   Globe,
@@ -135,14 +134,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.projectSettings,
     ariaLabel: "项目设置 (nav_settings)",
     to: (projectId) => `/projects/${projectId}/settings`,
-  },
-  {
-    id: "rag",
-    group: "advancedDebug",
-    icon: Database,
-    label: UI_COPY.nav.rag,
-    ariaLabel: "知识库（RAG） (nav_rag)",
-    to: (projectId) => `/projects/${projectId}/rag`,
   },
   {
     id: "search",
