@@ -277,10 +277,6 @@ const router = createBrowserRouter([
                 element: <ImportPage />,
               },
               {
-                path: "glossary",
-                element: <Navigate to="../search" replace />,
-              },
-              {
                 path: "search",
                 element: <SearchPage />,
               },

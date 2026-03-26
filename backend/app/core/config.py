@@ -141,7 +141,6 @@ class Settings(BaseSettings):
     worldbook_match_regex_allowlist_json: str | None = None
     worldbook_match_max_triggered_entries: int = 40
 
-    glossary_query_expand_enabled: bool = False
 
     graph_max_hop: int = 1
     graph_max_nodes: int = 200

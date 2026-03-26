@@ -11,7 +11,6 @@ from app.api.routes import (
     export,
     fractal,
     graph,
-    glossary,
     generation_runs,
     health,
     import_export,
@@ -45,7 +44,6 @@ api_router.include_router(projects.router, tags=["projects"])
 api_router.include_router(memory.router, tags=["memory"])
 api_router.include_router(tasks.router, tags=["tasks"])
 api_router.include_router(mcp.router, tags=["mcp"])
-api_router.include_router(glossary.router, tags=["glossary"])
 api_router.include_router(search.router, tags=["search"])
 api_router.include_router(tables.router, tags=["tables"])
 api_router.include_router(vector.router, tags=["vector"])

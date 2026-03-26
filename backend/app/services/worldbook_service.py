@@ -294,17 +294,6 @@ def preview_worldbook_trigger(
     char_limit: int,
 ) -> WorldBookPreviewTriggerOut:
     effective_query_text = query_text
-    if bool(getattr(settings, "glossary_query_expand_enabled", False)):
-        try:
-            from app.services.glossary_service import expand_query_text_with_glossary
-
-            effective_query_text, _obs = expand_query_text_with_glossary(
-                db=db,
-                project_id=project_id,
-                query_text=query_text,
-            )
-        except Exception:
-            effective_query_text = query_text
 
     rows = (
         db.execute(select(WorldBookEntry).where(WorldBookEntry.project_id == project_id).order_by(WorldBookEntry.updated_at.desc()))
