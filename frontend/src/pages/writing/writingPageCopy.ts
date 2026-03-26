@@ -15,14 +15,11 @@ export const WRITING_PAGE_COPY = {
   contentLabel: "正文（Markdown）",
   contentPlaceholder: "开始写作...",
   summaryLabel: "摘要（可选）",
-  analysis: "分析",
-  trace: "标注回溯",
   delete: "删除",
   saveAndTrigger: "一键保存并触发更新",
   saveAndTriggerPending: "保存并触发中...",
   save: "保存",
   saving: "保存中...",
-  openChapterAnalysis: "打开标注页",
   switchedOutline: "已切换大纲",
   saveQueued: "保存中：已加入队列，将自动保存。",
   saveSuccess: "已保存",
@@ -38,17 +35,8 @@ export const WRITING_PAGE_COPY = {
   applyRunSuccess: "已应用生成结果（别忘了保存）",
   applyRunEmpty: "生成记录为空，无法应用",
   autoUpdatesCreated: "已保存并创建无感更新任务",
-  locateExcerptFailed: "未在正文中找到该引用片段（可复制后 Ctrl/Cmd+F 搜索）",
   memoryUpdateNeedsSaveFirst: "请先保存当前章节后再进行记忆更新。",
   promptPresetRequired: "请先在 Prompts 页保存 LLM 配置",
-  analyzeEmptyContent: "正文为空，无法分析",
-  analyzeDone: "分析完成",
-  analyzeParseFailedPrefix: "分析解析失败：",
-  analyzeInstructionDefault: "按分析建议重写，减少重复，保持叙事连续。",
-  rewriteNeedsAnalysis: "请先完成章节分析",
-  rewriteEmptyContent: "正文为空，无法重写",
-  rewriteParseFailed: "重写解析失败",
-  rewriteAppliedUnsaved: "已应用重写结果到编辑器（未保存）",
   saveAndGenerateLastChapter: "已保存，已是最后一章",
   streamFloatingTitle: "AI 流式生成中",
   streamFloatingPending: "处理中...",
@@ -118,10 +106,6 @@ export function getWritingDoneOnlyWarning(): string {
   return `仅状态为 ${DONE_LABEL} 的章节允许记忆更新；请先将章节标记为 ${DONE_LABEL}。`;
 }
 
-export function getWritingAnalysisHref(projectId: string, chapterId: string): string {
-  return `/projects/${projectId}/chapter-analysis?chapterId=${chapterId}`;
-}
-
 export function getWritingNextChapterReplaceTitle(chapterNumber: number): string {
   return `下一章（第 ${chapterNumber} 章）已有内容，仍要开始生成？`;
 }
@@ -137,8 +121,4 @@ export function getWritingMissingPrerequisiteMessage(numbers: number[]): string 
 
 export function getWritingJumpToChapterLabel(chapterNumber: number): string {
   return `跳转到第 ${chapterNumber} 章`;
-}
-
-export function getWritingApplyMemorySuccess(count: number): string {
-  return `已生成 ${count} 条记忆（标注可用）`;
 }

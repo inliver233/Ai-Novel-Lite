@@ -6,7 +6,6 @@ import { Drawer } from "../../components/ui/Drawer";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { AiGenerateDrawer } from "../../components/writing/AiGenerateDrawer";
 import { BatchGenerationModal } from "../../components/writing/BatchGenerationModal";
-import { ChapterAnalysisModal } from "../../components/writing/ChapterAnalysisModal";
 import { ChapterListPanel } from "../../components/writing/ChapterListPanel";
 import { ContentOptimizeCompareDrawer } from "../../components/writing/ContentOptimizeCompareDrawer";
 import { ContextPreviewDrawer } from "../../components/writing/ContextPreviewDrawer";
@@ -45,9 +44,6 @@ export type WritingEditorSectionProps = {
   onPlanChange: (value: string) => void;
   onContentChange: (value: string) => void;
   onSummaryChange: (value: string) => void;
-  onContentTextareaRef: (element: HTMLTextAreaElement | null) => void;
-  onOpenAnalysis: () => void;
-  onOpenChapterTrace: () => void;
   onDeleteChapter: () => void;
   onSaveAndTriggerAutoUpdates: () => void;
   onSaveChapter: () => void;
@@ -86,22 +82,6 @@ export function WritingEditorSection(props: WritingEditorSectionProps) {
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <button
-            className="btn btn-secondary"
-            disabled={props.loadingChapter || props.generating}
-            onClick={props.onOpenAnalysis}
-            type="button"
-          >
-            {WRITING_PAGE_COPY.analysis}
-          </button>
-          <button
-            className="btn btn-secondary"
-            disabled={props.loadingChapter || props.generating}
-            onClick={props.onOpenChapterTrace}
-            type="button"
-          >
-            {WRITING_PAGE_COPY.trace}
-          </button>
           <button
             className="btn btn-ghost text-accent hover:bg-accent/10"
             disabled={props.loadingChapter || props.generating}
@@ -188,7 +168,6 @@ export function WritingEditorSection(props: WritingEditorSectionProps) {
             readOnly={props.isDoneReadonly}
             tab={props.contentEditorTab}
             onTabChange={props.onContentEditorTabChange}
-            textareaRef={props.onContentTextareaRef}
           />
         </label>
         <label className="grid gap-1">
@@ -325,7 +304,6 @@ export function WritingStreamFloatingCard(props: WritingStreamFloatingCardProps)
 export type WritingPageOverlaysProps = {
   createChapterDialogProps: ComponentProps<typeof CreateChapterDialog>;
   batchGenerationModalProps: ComponentProps<typeof BatchGenerationModal>;
-  chapterAnalysisModalProps: ComponentProps<typeof ChapterAnalysisModal>;
   aiGenerateDrawerProps: ComponentProps<typeof AiGenerateDrawer>;
   postEditCompareDrawerProps: ComponentProps<typeof PostEditCompareDrawer>;
   contentOptimizeCompareDrawerProps: ComponentProps<typeof ContentOptimizeCompareDrawer>;
@@ -340,7 +318,6 @@ export function WritingPageOverlays(props: WritingPageOverlaysProps) {
     <>
       <CreateChapterDialog {...props.createChapterDialogProps} />
       <BatchGenerationModal {...props.batchGenerationModalProps} />
-      <ChapterAnalysisModal {...props.chapterAnalysisModalProps} />
       <AiGenerateDrawer {...props.aiGenerateDrawerProps} />
       <PostEditCompareDrawer {...props.postEditCompareDrawerProps} />
       <ContentOptimizeCompareDrawer {...props.contentOptimizeCompareDrawerProps} />

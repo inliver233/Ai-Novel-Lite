@@ -29,7 +29,7 @@ describe("appShellNavConfig", () => {
     expect(aiConfig.length).toBeGreaterThan(0);
 
     expect(workbench).toContain("writing");
-    expect(view).toContain("chapterAnalysis");
+    expect(view).toContain("preview");
     expect(aiConfig).toContain("prompts");
   });
 });

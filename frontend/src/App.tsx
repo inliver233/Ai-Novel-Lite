@@ -56,11 +56,6 @@ const WritingPage = lazy(async () => {
   return { default: mod.WritingPage };
 });
 
-const ChapterAnalysisPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/ChapterAnalysisPage"));
-  return { default: mod.ChapterAnalysisPage };
-});
-
 const PreviewPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/PreviewPage"));
   return { default: mod.PreviewPage };
@@ -163,10 +158,6 @@ const router = createBrowserRouter([
               {
                 path: "writing",
                 element: <WritingPage />,
-              },
-              {
-                path: "chapter-analysis",
-                element: <ChapterAnalysisPage />,
               },
               {
                 path: "preview",

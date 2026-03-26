@@ -59,14 +59,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     to: (projectId) => `/projects/${projectId}/characters`,
   },
   {
-    id: "chapterAnalysis",
-    group: "view",
-    icon: BookText,
-    label: UI_COPY.nav.chapterAnalysis,
-    ariaLabel: "剧情记忆 (nav_chapter_analysis)",
-    to: (projectId) => `/projects/${projectId}/chapter-analysis`,
-  },
-  {
     id: "preview",
     group: "view",
     icon: BookOpen,

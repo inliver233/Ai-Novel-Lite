@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import { WizardNextBar } from "../../components/atelier/WizardNextBar";
 import { useConfirm } from "../../components/ui/confirm";
@@ -21,7 +21,6 @@ import type {
 } from "./WritingPageSections";
 import { useApplyGenerationRun } from "./useApplyGenerationRun";
 import { useBatchGeneration } from "./useBatchGeneration";
-import { useChapterAnalysis } from "./useChapterAnalysis";
 import { useChapterCrud } from "./useChapterCrud";
 import { useChapterEditor } from "./useChapterEditor";
 import { useChapterGeneration } from "./useChapterGeneration";
@@ -30,7 +29,6 @@ import { useOutlineSwitcher } from "./useOutlineSwitcher";
 import type { ChapterForm } from "./writingUtils";
 import { type ChapterAutoUpdatesTriggerResult } from "./writingPageModels";
 import {
-  getWritingAnalysisHref,
   getWritingDoneOnlyWarning,
   getWritingGenerateIndicatorLabel,
   getWritingNextChapterReplaceTitle,
@@ -60,7 +58,6 @@ export function useWritingPageState(): WritingPageState {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedChapterId = searchParams.get("chapterId");
   const applyRunId = searchParams.get("applyRunId");
-  const navigate = useNavigate();
   const toast = useToast();
   const confirm = useConfirm();
   const outletActive = usePersistentOutletIsActive();
@@ -71,7 +68,6 @@ export function useWritingPageState(): WritingPageState {
 
   const [chapterListOpen, setChapterListOpen] = useState(false);
   const [contentEditorTab, setContentEditorTab] = useState<"edit" | "preview">("edit");
-  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const autoGenerateNextRef = useRef<{ chapterId: string; mode: "replace" | "append" } | null>(null);
 
   const [aiOpen, setAiOpen] = useState(false);
@@ -224,7 +220,6 @@ export function useWritingPageState(): WritingPageState {
     requestSelectChapter,
     toast,
   });
-  const analysis = useChapterAnalysis({ activeChapter, preset, genForm, form, setForm, dirty, saveChapter, toast });
   const history = useGenerationHistory({ projectId, toast });
 
   const activeOutlineId = outline?.id ?? "";
@@ -240,35 +235,6 @@ export function useWritingPageState(): WritingPageState {
     refreshChapters,
     refreshWriting,
   });
-
-  const locateInEditor = useCallback(
-    (excerpt: string) => {
-      if (!excerpt || !form) return;
-      const needleRaw = excerpt.trim();
-      if (!needleRaw) return;
-
-      const haystack = form.content_md ?? "";
-      let needle = needleRaw;
-      let index = haystack.indexOf(needle);
-      if (index < 0 && needle.length > 20) {
-        needle = needle.slice(0, 20);
-        index = haystack.indexOf(needle);
-      }
-      if (index < 0) {
-        toast.toastError(WRITING_PAGE_COPY.locateExcerptFailed);
-        return;
-      }
-
-      setContentEditorTab("edit");
-      window.requestAnimationFrame(() => {
-        const element = contentTextareaRef.current;
-        if (!element) return;
-        element.focus();
-        element.setSelectionRange(index, Math.min(haystack.length, index + needle.length));
-      });
-    },
-    [form, toast],
-  );
 
   const saveAndTriggerAutoUpdates = useCallback(async () => {
     if (!projectId || !activeChapter || autoUpdatesTriggering || !dirty) return;
@@ -295,7 +261,7 @@ export function useWritingPageState(): WritingPageState {
     } finally {
       setAutoUpdatesTriggering(false);
     }
-  }, [activeChapter, autoUpdatesTriggering, dirty, navigate, projectId, saveChapter, toast]);
+  }, [activeChapter, autoUpdatesTriggering, dirty, projectId, saveChapter, toast]);
 
   const saveAndGenerateNext = useCallback(async () => {
     if (!activeChapter) return;
@@ -391,14 +357,6 @@ export function useWritingPageState(): WritingPageState {
       onPlanChange: (value) => setForm((prev) => (prev ? { ...prev, plan: value } : prev)),
       onContentChange: (value) => setForm((prev) => (prev ? { ...prev, content_md: value } : prev)),
       onSummaryChange: (value) => setForm((prev) => (prev ? { ...prev, summary: value } : prev)),
-      onContentTextareaRef: (element) => {
-        contentTextareaRef.current = element;
-      },
-      onOpenAnalysis: analysis.openModal,
-      onOpenChapterTrace: () => {
-        if (!projectId || !activeChapter) return;
-        navigate(getWritingAnalysisHref(projectId, activeChapter.id));
-      },
       onDeleteChapter: () => void chapterCrud.deleteChapter(),
       onSaveAndTriggerAutoUpdates: () => void saveAndTriggerAutoUpdates(),
       onSaveChapter: () => void saveChapter(),
@@ -447,22 +405,6 @@ export function useWritingPageState(): WritingPageState {
       onSkipFailedTask: () => void batch.skipFailedBatchGeneration(),
       onStartTask: () => void batch.startBatchGeneration(),
       onApplyItemToEditor: (item) => void batch.applyBatchItemToEditor(item),
-    },
-    chapterAnalysisModalProps: {
-      open: analysis.open,
-      analysisLoading: analysis.analysisLoading,
-      rewriteLoading: analysis.rewriteLoading,
-      applyLoading: analysis.applyLoading,
-      analysisFocus: analysis.analysisFocus,
-      setAnalysisFocus: analysis.setAnalysisFocus,
-      analysisResult: analysis.analysisResult,
-      rewriteInstruction: analysis.rewriteInstruction,
-      setRewriteInstruction: analysis.setRewriteInstruction,
-      onClose: analysis.closeModal,
-      onAnalyze: () => void analysis.analyzeChapter(),
-      onApplyAnalysisToMemory: () => void analysis.applyAnalysisToMemory(),
-      onLocateInEditor: locateInEditor,
-      onRewriteFromAnalysis: () => void analysis.rewriteFromAnalysis(),
     },
     aiGenerateDrawerProps: {
       open: aiOpen,
