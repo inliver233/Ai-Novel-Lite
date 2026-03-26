@@ -7,7 +7,6 @@ import {
   FileDown,
   Flag,
   Globe,
-  ListTodo,
   Palette,
   PenLine,
   Share2,
@@ -39,7 +38,7 @@ export const APP_SHELL_PROJECT_NAV_GROUP_TITLES: Record<AppShellProjectNavGroup,
   workbench: UI_COPY.nav.groupWorkbench,
   view: UI_COPY.nav.groupView,
   aiConfig: UI_COPY.nav.groupAiConfig,
-  advancedDebug: UI_COPY.nav.groupAdvancedDebug,
+  advancedDebug: "高级调试",
 };
 
 export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> = [
@@ -165,7 +164,7 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
   },
   {
     id: "search",
-    group: "advancedDebug",
+    group: "workbench",
     icon: BookText,
     label: UI_COPY.nav.search,
     ariaLabel: "搜索引擎 (nav_search)",
@@ -186,14 +185,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.structuredMemory,
     ariaLabel: "图谱底座数据 (nav_structured_memory)",
     to: (projectId) => `/projects/${projectId}/structured-memory`,
-  },
-  {
-    id: "tasks",
-    group: "advancedDebug",
-    icon: ListTodo,
-    label: UI_COPY.nav.tasks,
-    ariaLabel: "任务中心 (nav_tasks)",
-    to: (projectId) => `/projects/${projectId}/tasks`,
   },
 ];
 

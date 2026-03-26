@@ -13,7 +13,6 @@ export const UI_COPY = {
     groupWorkbench: "项目工作台",
     groupView: "查看",
     groupAiConfig: "项目配置",
-    groupAdvancedDebug: "高级调试",
     groupAdmin: "管理",
 
     wizard: "开工向导",
@@ -21,7 +20,6 @@ export const UI_COPY = {
     characters: "角色卡",
     outline: "大纲",
     writing: "写作",
-    tasks: "任务中心",
     structuredMemory: "图谱底座数据",
     numericTables: "数值表格（NumericTables）",
     chapterAnalysis: "剧情记忆",
@@ -45,7 +43,6 @@ export const UI_COPY = {
     navMenu: "导航菜单",
     openNav: "打开导航",
     closeNav: "关闭导航",
-    advancedDebugToggle: "显示高级调试（仅用于排障）",
     chooseProjectHint: "请选择一个项目以进入编辑页。",
     currentProject: "当前项目",
     backToHome: "返回首页",

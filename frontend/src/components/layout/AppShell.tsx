@@ -14,12 +14,9 @@ import { UI_COPY } from "../../lib/uiCopy";
 import { fadeUpVariants, transition } from "../../lib/motion";
 import { getCurrentUserId } from "../../services/currentUser";
 import {
-  advancedDebugCollapsedStorageKey,
-  advancedDebugVisibleStorageKey,
   sidebarCollapsedStorageKey,
 } from "../../services/uiState";
 import {
-  APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP,
   APP_SHELL_PRIMARY_PROJECT_NAV_GROUPS,
   APP_SHELL_PROJECT_NAV_GROUP_TITLES,
   getAppShellProjectNavItems,
@@ -38,32 +35,6 @@ function useSidebarCollapsed(): [boolean, (v: boolean) => void] {
   ];
 }
 
-function useAdvancedDebugVisible(): [boolean, (v: boolean) => void] {
-  const storageKey = advancedDebugVisibleStorageKey(getCurrentUserId());
-  const [visible, setVisible] = useState<boolean>(() => localStorage.getItem(storageKey) === "1");
-  return [
-    visible,
-    (v) => {
-      setVisible(v);
-      localStorage.setItem(storageKey, v ? "1" : "0");
-    },
-  ];
-}
-
-function useAdvancedDebugCollapsed(): [boolean, (v: boolean) => void] {
-  const storageKey = advancedDebugCollapsedStorageKey(getCurrentUserId());
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    const raw = localStorage.getItem(storageKey);
-    return raw === null ? true : raw === "1";
-  });
-  return [
-    collapsed,
-    (v) => {
-      setCollapsed(v);
-      localStorage.setItem(storageKey, v ? "1" : "0");
-    },
-  ];
-}
 
 function SidebarLink(props: {
   to: string;
@@ -271,8 +242,6 @@ export function AppShell() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
-  const [advancedDebugVisible, setAdvancedDebugVisible] = useAdvancedDebugVisible();
-  const [advancedDebugCollapsed, setAdvancedDebugCollapsed] = useAdvancedDebugCollapsed();
   const [mobileNavOpenForPath, setMobileNavOpenForPath] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const { projectId } = useParams();
@@ -376,42 +345,6 @@ export function AppShell() {
                           </div>
                         ))}
 
-                        <label className="mt-2 flex items-center justify-between gap-2 rounded-atelier border border-border bg-canvas px-3 py-2 text-xs text-subtext">
-                          <span>显示高级调试</span>
-                          <input
-                            className="checkbox"
-                            checked={advancedDebugVisible}
-                            aria-label="显示高级调试 (toggle_advanced_debug)"
-                            onChange={(e) => {
-                              const next = e.target.checked;
-                              setAdvancedDebugVisible(next);
-                              if (next) setAdvancedDebugCollapsed(true);
-                            }}
-                            type="checkbox"
-                          />
-                        </label>
-
-                        {advancedDebugVisible ? (
-                          <details
-                            className="mt-2 rounded-atelier border border-border bg-canvas"
-                            open={!advancedDebugCollapsed}
-                            onToggle={(e) => {
-                              setAdvancedDebugCollapsed(!e.currentTarget.open);
-                            }}
-                          >
-                            <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-medium text-subtext">
-                              {APP_SHELL_PROJECT_NAV_GROUP_TITLES[APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP]}
-                            </summary>
-                            <div className="flex flex-col gap-1 px-1 pb-2">
-                              {renderProjectNavItems({
-                                group: APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP,
-                                projectId,
-                                collapsed: false,
-                                onClick: closeMobileNav,
-                              })}
-                            </div>
-                          </details>
-                        ) : null}
                       </>
                     ) : (
                       <div className="rounded-atelier border border-border bg-canvas p-3 text-xs text-subtext">
@@ -495,51 +428,6 @@ export function AppShell() {
                     </div>
                   ))}
 
-                  {collapsed ? null : (
-                    <label className="mt-2 flex items-center justify-between gap-2 rounded-atelier border border-border bg-canvas px-3 py-2 text-xs text-subtext">
-                      <span>显示高级调试</span>
-                      <input
-                        className="checkbox"
-                        checked={advancedDebugVisible}
-                        aria-label="显示高级调试 (toggle_advanced_debug)"
-                        onChange={(e) => {
-                          const next = e.target.checked;
-                          setAdvancedDebugVisible(next);
-                          if (next) setAdvancedDebugCollapsed(true);
-                        }}
-                        type="checkbox"
-                      />
-                    </label>
-                  )}
-
-                  {advancedDebugVisible ? (
-                    collapsed ? (
-                      renderProjectNavItems({
-                        group: APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP,
-                        projectId,
-                        collapsed,
-                      })
-                    ) : (
-                      <details
-                        className="mt-2 rounded-atelier border border-border bg-canvas"
-                        open={!advancedDebugCollapsed}
-                        onToggle={(e) => {
-                          setAdvancedDebugCollapsed(!e.currentTarget.open);
-                        }}
-                      >
-                        <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-medium text-subtext">
-                          {APP_SHELL_PROJECT_NAV_GROUP_TITLES[APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP]}
-                        </summary>
-                        <div className="flex flex-col gap-1 px-1 pb-2">
-                          {renderProjectNavItems({
-                            group: APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP,
-                            projectId,
-                            collapsed,
-                          })}
-                        </div>
-                      </details>
-                    )
-                  ) : null}
                 </>
               ) : (
                 <div

@@ -56,10 +56,6 @@ const WritingPage = lazy(async () => {
   return { default: mod.WritingPage };
 });
 
-const TaskCenterPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/TaskCenterPage"));
-  return { default: mod.TaskCenterPage };
-});
 
 const StructuredMemoryPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/StructuredMemoryPage"));
@@ -203,10 +199,6 @@ const router = createBrowserRouter([
               {
                 path: "writing",
                 element: <WritingPage />,
-              },
-              {
-                path: "tasks",
-                element: <TaskCenterPage />,
               },
               {
                 path: "structured-memory",
