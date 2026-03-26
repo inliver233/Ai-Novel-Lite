@@ -1,95 +1,21 @@
 from __future__ import annotations
 
-import json
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 MemoryUpdateSchemaVersion = Literal["memory_update_v1"]
-MemoryTargetTable = Literal["entities", "relations", "events", "evidence"]
+MemoryTargetTable = str  # previously Literal["entities","relations","events","evidence"]; structured tables removed
 MemoryOpType = Literal["upsert", "delete"]
 
 MAX_OPS_V1 = 50
 MAX_EVIDENCE_IDS_PER_OP = 20
 
-MAX_ATTRIBUTES_JSON_CHARS = 8000
 MAX_MD_CHARS = 40000
 
 
-def _compact_json_dumps(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-
-
-def _validate_attributes_size(attributes: dict[str, Any] | None) -> dict[str, Any] | None:
-    if attributes is None:
-        return None
-    raw = _compact_json_dumps(attributes)
-    if len(raw) > MAX_ATTRIBUTES_JSON_CHARS:
-        raise ValueError(f"attributes too large ({len(raw)} chars)")
-    return attributes
-
-
-class _AfterBase(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class EntityAfter(_AfterBase):
-    entity_type: str = Field(default="generic", max_length=64)
-    name: str = Field(min_length=1, max_length=255)
-    summary_md: str | None = Field(default=None, max_length=MAX_MD_CHARS)
-    attributes: dict[str, Any] | None = None
-
-    @field_validator("attributes")
-    @classmethod
-    def _validate_attributes(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
-        return _validate_attributes_size(v)
-
-
-class RelationAfter(_AfterBase):
-    from_entity_id: str = Field(min_length=1, max_length=36)
-    to_entity_id: str = Field(min_length=1, max_length=36)
-    relation_type: str = Field(default="related_to", max_length=64)
-    description_md: str | None = Field(default=None, max_length=MAX_MD_CHARS)
-    attributes: dict[str, Any] | None = None
-
-    @field_validator("attributes")
-    @classmethod
-    def _validate_attributes(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
-        return _validate_attributes_size(v)
-
-
-class EventAfter(_AfterBase):
-    chapter_id: str | None = Field(default=None, max_length=36)
-    event_type: str = Field(default="event", max_length=64)
-    title: str | None = Field(default=None, max_length=255)
-    content_md: str = Field(default="", max_length=MAX_MD_CHARS)
-    attributes: dict[str, Any] | None = None
-
-    @field_validator("attributes")
-    @classmethod
-    def _validate_attributes(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
-        return _validate_attributes_size(v)
-
-
-class EvidenceAfter(_AfterBase):
-    source_type: str = Field(default="unknown", max_length=32)
-    source_id: str | None = Field(default=None, max_length=64)
-    quote_md: str = Field(default="", max_length=MAX_MD_CHARS)
-    attributes: dict[str, Any] | None = None
-
-    @field_validator("attributes")
-    @classmethod
-    def _validate_attributes(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
-        return _validate_attributes_size(v)
-
-
-AFTER_MODEL_BY_TABLE: dict[str, type[_AfterBase]] = {
-    "entities": EntityAfter,
-    "relations": RelationAfter,
-    "events": EventAfter,
-    "evidence": EvidenceAfter,
-}
+AFTER_MODEL_BY_TABLE: dict[str, type[BaseModel]] = {}
 
 
 class MemoryUpdateOpV1(BaseModel):

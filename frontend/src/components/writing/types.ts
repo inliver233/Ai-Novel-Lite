@@ -33,7 +33,6 @@ export type GenerateForm = {
     worldbook: boolean;
     story_memory: boolean;
     semantic_history: boolean;
-    structured: boolean;
     vector_rag: boolean;
   };
   context: {
@@ -52,7 +51,6 @@ export type MemoryContextPack = {
   worldbook: Record<string, unknown>;
   story_memory: Record<string, unknown>;
   semantic_history: Record<string, unknown>;
-  structured: Record<string, unknown>;
   vector_rag: Record<string, unknown>;
   logs: unknown[];
 };

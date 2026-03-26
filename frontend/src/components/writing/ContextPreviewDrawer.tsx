@@ -23,7 +23,6 @@ type Props = {
     worldbook: boolean;
     story_memory: boolean;
     semantic_history?: boolean;
-    structured: boolean;
     vector_rag: boolean;
   };
 };
@@ -39,7 +38,6 @@ type MemorySectionEnabled = {
   worldbook: boolean;
   story_memory: boolean;
   semantic_history: boolean;
-  structured: boolean;
   vector_rag: boolean;
 };
 
@@ -60,8 +58,8 @@ type ContextOptimizerLog = {
 };
 
 type OptimizerCompare = {
-  baseline: { worldbook: string; structured: string };
-  optimized: { worldbook: string; structured: string };
+  baseline: { worldbook: string };
+  optimized: { worldbook: string };
   optimizerLog: ContextOptimizerLog | null;
 };
 
@@ -69,7 +67,6 @@ const DEFAULT_PREVIEW_SECTIONS: MemorySectionEnabled = {
   worldbook: true,
   story_memory: true,
   semantic_history: false,
-  structured: true,
   vector_rag: true,
 };
 
@@ -77,7 +74,6 @@ const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
   worldbook: "",
   story_memory: "",
   semantic_history: "",
-  structured: "",
   vector_rag: "",
 };
 
@@ -85,7 +81,6 @@ const EMPTY_PACK: MemoryContextPack = {
   worldbook: {},
   story_memory: {},
   semantic_history: {},
-  structured: {},
   vector_rag: {},
   logs: [],
 };
@@ -253,7 +248,6 @@ export function ContextPreviewDrawer(props: Props) {
       "worldbook",
       "story_memory",
       "semantic_history",
-      "structured",
       "vector_rag",
     ] as const) {
       const raw = String(budgetOverrideInputs[key] ?? "").trim();
@@ -352,7 +346,6 @@ export function ContextPreviewDrawer(props: Props) {
       !getTextMd(effectivePack.worldbook) &&
       !getTextMd(effectivePack.story_memory) &&
       !getTextMd(effectivePack.semantic_history) &&
-      !getTextMd(effectivePack.structured) &&
       !getTextMd(effectivePack.vector_rag)
     );
   }, [effectivePack]);
@@ -422,11 +415,9 @@ export function ContextPreviewDrawer(props: Props) {
       setOptimizerCompare({
         baseline: {
           worldbook: getPromptPreviewBlockText(baselinePreview, "sys.memory.worldbook"),
-          structured: getPromptPreviewBlockText(baselinePreview, "sys.memory.structured"),
         },
         optimized: {
           worldbook: getPromptPreviewBlockText(optimizedPreview, "sys.memory.worldbook"),
-          structured: getPromptPreviewBlockText(optimizedPreview, "sys.memory.structured"),
         },
         optimizerLog,
       });
@@ -680,7 +671,6 @@ export function ContextPreviewDrawer(props: Props) {
                     ["worldbook", "世界书（worldbook）"],
                     ["story_memory", "剧情记忆（story_memory）"],
                     ["semantic_history", "语义历史（semantic_history）"],
-                    ["structured", "结构化记忆（structured）"],
                     ["vector_rag", "向量 RAG（vector_rag）"],
                   ] as const
                 ).map(([key, label]) => (
@@ -706,7 +696,6 @@ export function ContextPreviewDrawer(props: Props) {
                       ["worldbook", "worldbook char_limit"],
                       ["story_memory", "story_memory char_limit"],
                       ["semantic_history", "semantic_history char_limit"],
-                      ["structured", "structured char_limit"],
                       ["vector_rag", "vector_rag char_limit"],
                     ] as const
                   ).map(([key, label]) => (
@@ -939,19 +928,19 @@ export function ContextPreviewDrawer(props: Props) {
                 {optimizerCompare ? (
                   <details className="rounded-atelier border border-border bg-surface p-3">
                     <summary className="ui-transition-fast cursor-pointer text-xs text-subtext hover:text-ink">
-                      diff（sys.memory.worldbook / sys.memory.structured）
+                      diff（sys.memory.worldbook）
                     </summary>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       <div>
                         <div className="text-[11px] text-subtext">baseline</div>
                         <pre className="mt-1 max-h-64 overflow-auto rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
-                          {`${optimizerCompare.baseline.worldbook || "（worldbook 为空）"}\n\n${optimizerCompare.baseline.structured || "（structured 为空）"}`}
+                          {optimizerCompare.baseline.worldbook || "（worldbook 为空）"}
                         </pre>
                       </div>
                       <div>
                         <div className="text-[11px] text-subtext">optimized</div>
                         <pre className="mt-1 max-h-64 overflow-auto rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
-                          {`${optimizerCompare.optimized.worldbook || "（worldbook 为空）"}\n\n${optimizerCompare.optimized.structured || "（structured 为空）"}`}
+                          {optimizerCompare.optimized.worldbook || "（worldbook 为空）"}
                         </pre>
                       </div>
                     </div>
@@ -970,7 +959,7 @@ export function ContextPreviewDrawer(props: Props) {
           <div className="panel p-4">
             <div className="text-sm text-ink">Memory text_md</div>
             {(
-              ["story_memory", "semantic_history", "structured"] as const
+              ["story_memory", "semantic_history"] as const
             ).map((key) => {
               const raw = (effectivePack[key] ?? {}) as Record<string, unknown>;
               const textMd = typeof raw.text_md === "string" ? raw.text_md : "";

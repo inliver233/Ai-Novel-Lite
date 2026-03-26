@@ -23,11 +23,6 @@ from app.models.story_memory import StoryMemory
 from app.models.structured_memory import (
     MemoryChangeSet,
     MemoryChangeSetItem,
-    MemoryEntity,
-    MemoryEvidence,
-    MemoryEvent,
-    MemoryForeshadow,
-    MemoryRelation,
 )
 from app.models.auth_external_account import AuthExternalAccount
 from app.models.user import User
@@ -63,11 +58,6 @@ __all__ = [
     "SearchDocument",
     "MemoryChangeSet",
     "MemoryChangeSetItem",
-    "MemoryEntity",
-    "MemoryEvidence",
-    "MemoryEvent",
-    "MemoryForeshadow",
-    "MemoryRelation",
     "StoryMemory",
     "AuthExternalAccount",
     "User",

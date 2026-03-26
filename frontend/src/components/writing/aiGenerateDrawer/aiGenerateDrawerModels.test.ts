@@ -27,7 +27,6 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
       worldbook: true,
       story_memory: true,
       semantic_history: false,
-      structured: true,
       vector_rag: true,
     },
     context: {
@@ -92,7 +91,6 @@ describe("aiGenerateDrawerModels", () => {
     expect(AI_GENERATE_ADVANCED_MEMORY_MODULES.map((item) => item.key)).toEqual([
       "story_memory",
       "semantic_history",
-      "structured",
       "vector_rag",
     ]);
     expect(AI_GENERATE_CONTEXT_TOGGLES.map((item) => item.key)).toEqual([

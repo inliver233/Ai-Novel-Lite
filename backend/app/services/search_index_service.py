@@ -20,7 +20,6 @@ from app.models.outline import Outline
 from app.models.project_source_document import ProjectSourceDocument
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
-from app.models.structured_memory import MemoryEntity, MemoryEvidence, MemoryRelation
 from app.models.worldbook_entry import WorldBookEntry
 from app.services.project_task_event_service import emit_and_enqueue_project_task, reset_project_task_to_queued
 
@@ -350,109 +349,6 @@ def build_project_search_docs(*, db: Session, project_id: str) -> list[SearchDoc
                     content=body,
                     url_path=f"/projects/{pid}/import?docId={str(d.id)}",
                     locator_json=json.dumps({"document_id": str(d.id)}, ensure_ascii=False),
-                )
-            )
-
-    entity_name_by_id: dict[str, str] = {}
-    if _has_table(db, name="entities"):
-        entities = (
-            db.execute(
-                select(MemoryEntity)
-                .where(MemoryEntity.project_id == pid, MemoryEntity.deleted_at.is_(None))
-                .order_by(MemoryEntity.updated_at.desc())
-            )
-            .scalars()
-            .all()
-        )
-        for e in entities:
-            name = _trim(getattr(e, "name", "")) or str(e.id)
-            entity_name_by_id[str(e.id)] = name
-            entity_type = _trim(getattr(e, "entity_type", "")) or "entity"
-            summary = _trim(getattr(e, "summary_md", ""))
-            attrs = _trim(getattr(e, "attributes_json", ""))
-            body = "\n\n".join([x for x in [name, summary, attrs] if x]).strip()
-            out.append(
-                SearchDocInput(
-                    source_type="memory_entity",
-                    source_id=str(e.id),
-                    title=f"[{entity_type}] {name}".strip(),
-                    content=body or name,
-                    url_path=f"/projects/{pid}/structured-memory",
-                    locator_json=json.dumps({"table": "entities", "entity_id": str(e.id)}, ensure_ascii=False),
-                )
-            )
-
-    if _has_table(db, name="relations"):
-        relations = (
-            db.execute(
-                select(MemoryRelation)
-                .where(MemoryRelation.project_id == pid, MemoryRelation.deleted_at.is_(None))
-                .order_by(MemoryRelation.updated_at.desc())
-            )
-            .scalars()
-            .all()
-        )
-        for rel in relations:
-            from_id = str(getattr(rel, "from_entity_id", "") or "").strip()
-            to_id = str(getattr(rel, "to_entity_id", "") or "").strip()
-            from_name = entity_name_by_id.get(from_id, from_id or "unknown")
-            to_name = entity_name_by_id.get(to_id, to_id or "unknown")
-            rel_type = _trim(getattr(rel, "relation_type", "")) or "related_to"
-            title = f"{from_name} --({rel_type})→ {to_name}"
-            desc = _trim(getattr(rel, "description_md", ""))
-            attrs = _trim(getattr(rel, "attributes_json", ""))
-            body = "\n\n".join([x for x in [title, desc, attrs] if x]).strip()
-            out.append(
-                SearchDocInput(
-                    source_type="memory_relation",
-                    source_id=str(rel.id),
-                    title=title,
-                    content=body or title,
-                    url_path=f"/projects/{pid}/structured-memory?view=character-relations&relationId={str(rel.id)}",
-                    locator_json=json.dumps(
-                        {
-                            "relation_id": str(rel.id),
-                            "from_entity_id": from_id or None,
-                            "to_entity_id": to_id or None,
-                            "relation_type": rel_type,
-                        },
-                        ensure_ascii=False,
-                    ),
-                )
-            )
-
-    if _has_table(db, name="evidence"):
-        evidence_rows = (
-            db.execute(
-                select(MemoryEvidence)
-                .where(MemoryEvidence.project_id == pid, MemoryEvidence.deleted_at.is_(None))
-                .order_by(MemoryEvidence.created_at.desc())
-            )
-            .scalars()
-            .all()
-        )
-        for ev in evidence_rows:
-            src_type = _trim(getattr(ev, "source_type", "")) or "unknown"
-            src_id = _trim(getattr(ev, "source_id", ""))
-            title = f"证据：{src_type}{(':' + src_id) if src_id else ''}"
-            quote = _trim(getattr(ev, "quote_md", ""))
-            attrs = _trim(getattr(ev, "attributes_json", ""))
-            body = "\n\n".join([x for x in [title, quote, attrs] if x]).strip()
-            out.append(
-                SearchDocInput(
-                    source_type="memory_evidence",
-                    source_id=str(ev.id),
-                    title=title,
-                    content=body or title,
-                    url_path=f"/projects/{pid}/structured-memory",
-                    locator_json=json.dumps(
-                        {
-                            "evidence_id": str(ev.id),
-                            "source_type": src_type,
-                            "source_id": src_id or None,
-                        },
-                        ensure_ascii=False,
-                    ),
                 )
             )
 

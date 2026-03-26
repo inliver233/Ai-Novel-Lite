@@ -10,13 +10,12 @@ import {
   Settings,
   Sparkles,
   TableOfContents,
-  Table2,
   Users,
 } from "lucide-react";
 
 import { UI_COPY } from "../../lib/uiCopy";
 
-export type AppShellProjectNavGroup = "workbench" | "view" | "aiConfig" | "advancedDebug";
+export type AppShellProjectNavGroup = "workbench" | "view" | "aiConfig";
 
 export type AppShellProjectNavItem = {
   id: string;
@@ -28,13 +27,11 @@ export type AppShellProjectNavItem = {
 };
 
 export const APP_SHELL_PRIMARY_PROJECT_NAV_GROUPS: AppShellProjectNavGroup[] = ["workbench", "view", "aiConfig"];
-export const APP_SHELL_ADVANCED_DEBUG_PROJECT_NAV_GROUP: AppShellProjectNavGroup = "advancedDebug";
 
 export const APP_SHELL_PROJECT_NAV_GROUP_TITLES: Record<AppShellProjectNavGroup, string> = {
   workbench: UI_COPY.nav.groupWorkbench,
   view: UI_COPY.nav.groupView,
   aiConfig: UI_COPY.nav.groupAiConfig,
-  advancedDebug: "高级调试",
 };
 
 export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> = [
@@ -133,14 +130,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.search,
     ariaLabel: "搜索引擎 (nav_search)",
     to: (projectId) => `/projects/${projectId}/search`,
-  },
-  {
-    id: "structuredMemory",
-    group: "advancedDebug",
-    icon: Table2,
-    label: UI_COPY.nav.structuredMemory,
-    ariaLabel: "图谱底座数据 (nav_structured_memory)",
-    to: (projectId) => `/projects/${projectId}/structured-memory`,
   },
 ];
 

@@ -22,10 +22,6 @@ from app.models.project_settings import ProjectSettings
 from app.models.structured_memory import (
     MemoryChangeSet,
     MemoryChangeSetItem,
-    MemoryEntity,
-    MemoryEvidence,
-    MemoryEvent,
-    MemoryRelation,
 )
 from app.schemas.memory_update import AFTER_MODEL_BY_TABLE, MemoryUpdateV1Request
 from app.services.vector_embedding_overrides import vector_embedding_overrides
@@ -34,12 +30,7 @@ from app.services.vector_rag_service import build_project_chunks, rebuild_projec
 logger = logging.getLogger("ainovel")
 
 
-_MODEL_BY_TABLE: dict[str, type] = {
-    "entities": MemoryEntity,
-    "relations": MemoryRelation,
-    "events": MemoryEvent,
-    "evidence": MemoryEvidence,
-}
+_MODEL_BY_TABLE: dict[str, type] = {}
 
 
 def _compact_json_dumps(value: Any) -> str:
@@ -509,44 +500,6 @@ def propose_chapter_memory_change_set(
                 raise AppError.validation(details={"item_index": idx, "reason": "unsupported_target_table"})
             after_obj = model_cls.model_validate(op.after or {})
             after_dict = dict(after_obj.model_dump())
-            if target_table == "events" and not (after_dict.get("chapter_id") or "").strip():
-                after_dict["chapter_id"] = chapter_id
-
-            # restore-on-create: resolve by unique key when caller omits target_id
-            if not target_id and target_table == "entities":
-                entity_type = str(after_dict.get("entity_type") or "generic").strip() or "generic"
-                name = str(after_dict.get("name") or "").strip()
-                existing_id = (
-                    db.execute(
-                        select(MemoryEntity.id).where(
-                            MemoryEntity.project_id == project_id,
-                            MemoryEntity.entity_type == entity_type,
-                            MemoryEntity.name == name,
-                        )
-                    )
-                    .scalars()
-                    .first()
-                )
-                if existing_id:
-                    target_id = str(existing_id)
-            if not target_id and target_table == "relations":
-                from_entity_id = str(after_dict.get("from_entity_id") or "").strip()
-                to_entity_id = str(after_dict.get("to_entity_id") or "").strip()
-                relation_type = str(after_dict.get("relation_type") or "related_to").strip() or "related_to"
-                existing_id = (
-                    db.execute(
-                        select(MemoryRelation.id).where(
-                            MemoryRelation.project_id == project_id,
-                            MemoryRelation.from_entity_id == from_entity_id,
-                            MemoryRelation.to_entity_id == to_entity_id,
-                            MemoryRelation.relation_type == relation_type,
-                        )
-                    )
-                    .scalars()
-                    .first()
-                )
-                if existing_id:
-                    target_id = str(existing_id)
 
             if not target_id:
                 target_id = new_id()

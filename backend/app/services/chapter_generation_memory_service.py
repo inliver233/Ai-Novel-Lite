@@ -15,7 +15,6 @@ def resolve_memory_modules(raw_modules: dict[str, bool]) -> dict[str, bool]:
         "worldbook": bool(raw_modules.get("worldbook", True)),
         "story_memory": bool(raw_modules.get("story_memory", True)),
         "semantic_history": bool(raw_modules.get("semantic_history", False)),
-        "structured": bool(raw_modules.get("structured", True)),
         "tables": bool(raw_modules.get("tables", True)),
         "vector_rag": bool(raw_modules.get("vector_rag", True)),
     }

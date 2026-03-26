@@ -17,9 +17,6 @@ from app.api.routes.memory_route_story_helpers import (
 from app.api.routes.memory_route_story_mappers import (
     _build_story_memory_import_row,
 )
-from app.api.routes.memory_route_structured_helpers import (
-    _build_structured_memory_payload,
-)
 from app.core.errors import AppError, ok_payload
 from app.models.chapter import Chapter
 from app.models.generation_run import GenerationRun
@@ -99,33 +96,6 @@ def import_all_story_memories(
         actor_user_id=user_id,
         request_id=request_id,
         row_builder=_build_story_memory_import_row,
-    )
-    return ok_payload(request_id=request_id, data=data)
-
-
-@router.get("/projects/{project_id}/memory/structured")
-def list_structured_memory(
-    request: Request,
-    db: DbDep,
-    user_id: UserIdDep,
-    project_id: str,
-    include_deleted: bool = Query(default=False),
-    table: str | None = Query(default=None, max_length=32),
-    q: str | None = Query(default=None, max_length=200),
-    before: str | None = Query(default=None, max_length=64),
-    limit: int = Query(default=50, ge=1, le=200),
-) -> dict:
-    request_id = request.state.request_id
-    require_project_viewer(db, project_id=project_id, user_id=user_id)
-
-    data = _build_structured_memory_payload(
-        db,
-        project_id=project_id,
-        include_deleted=include_deleted,
-        table=table,
-        q=q,
-        before=before,
-        limit=limit,
     )
     return ok_payload(request_id=request_id, data=data)
 

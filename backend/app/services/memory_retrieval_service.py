@@ -11,7 +11,6 @@ from app.core.secrets import redact_api_keys
 from app.models.chapter import Chapter
 from app.models.project_settings import ProjectSettings
 from app.models.story_memory import StoryMemory
-from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryRelation
 from app.schemas.memory_pack import MemoryContextPackOut
 from app.services.prompt_budget import estimate_tokens
 from app.services.vector_rerank_overrides import vector_rerank_overrides
@@ -26,7 +25,6 @@ _ALLOWED_SECTIONS = {
     "worldbook",
     "story_memory",
     "semantic_history",
-    "structured",
     "vector_rag",
 }
 _MAX_BUDGET_CHAR_LIMIT = 50000
@@ -155,53 +153,6 @@ def _extract_query_tokens(query_text: str, *, limit: int) -> list[str]:
     return out
 
 
-def _format_structured_text_md(
-    *,
-    entities: list[MemoryEntity],
-    relations: list[dict[str, Any]],
-    events: list[MemoryEvent],
-    char_limit: int,
-) -> tuple[str, bool]:
-    sections: list[str] = []
-    if entities:
-        lines = []
-        for e in entities:
-            name = str(e.name or "").strip()
-            if not name:
-                continue
-            entity_type = str(e.entity_type or "").strip() or "generic"
-            summary = str(e.summary_md or "").strip()
-            if len(summary) > 300:
-                summary = summary[:300].rstrip() + "…"
-            lines.append(f"- [{entity_type}] {name}{f': {summary}' if summary else ''}".rstrip())
-        if lines:
-            sections.append("## Entities\n" + "\n".join(lines))
-    if relations:
-        lines = []
-        for r in relations:
-            from_name = str(r.get("from_name") or "").strip() or str(r.get("from_entity_id") or "")
-            to_name = str(r.get("to_name") or "").strip() or str(r.get("to_entity_id") or "")
-            rel_type = str(r.get("relation_type") or "").strip() or "related_to"
-            desc = str(r.get("description_md") or "").strip()
-            if len(desc) > 240:
-                desc = desc[:240].rstrip() + "…"
-            lines.append(f"- {from_name} --({rel_type})--> {to_name}{f': {desc}' if desc else ''}".rstrip())
-        if lines:
-            sections.append("## Relations\n" + "\n".join(lines))
-    if events:
-        lines = []
-        for ev in events:
-            title = str(ev.title or "").strip() or "Untitled"
-            content = str(ev.content_md or "").strip()
-            if len(content) > 320:
-                content = content[:320].rstrip() + "…"
-            lines.append(f"- {title}{f': {content}' if content else ''}".rstrip())
-        if lines:
-            sections.append("## Events\n" + "\n".join(lines))
-
-    return _wrap_and_truncate_block(tag="StructuredMemory", inner="\n\n".join(sections), char_limit=char_limit)
-
-
 def retrieve_memory_context_pack(
     *,
     db: Session,
@@ -220,7 +171,6 @@ def retrieve_memory_context_pack(
     worldbook_enabled = bool(enabled_map.get("worldbook", True))
     story_memory_enabled = bool(enabled_map.get("story_memory", True))
     semantic_history_enabled = bool(enabled_map.get("semantic_history", False))
-    structured_enabled = bool(enabled_map.get("structured", True))
     vector_rag_enabled = bool(enabled_map.get("vector_rag", True))
     worldbook_budget = _clamp_char_limit(budgets.get("worldbook"), default=12000) if "worldbook" in budgets else 12000
     story_memory_budget = (
@@ -231,11 +181,6 @@ def retrieve_memory_context_pack(
     semantic_history_budget = (
         _clamp_char_limit(budgets.get("semantic_history"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
         if "semantic_history" in budgets
-        else _MEMORY_TEXT_MD_CHAR_LIMIT
-    )
-    structured_budget = (
-        _clamp_char_limit(budgets.get("structured"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
-        if "structured" in budgets
         else _MEMORY_TEXT_MD_CHAR_LIMIT
     )
     vector_rag_budget = (
@@ -465,85 +410,7 @@ def retrieve_memory_context_pack(
                 }
                 semantic_history["text_chars"] = len(str(text_md or ""))
 
-    structured: dict[str, Any] = {"enabled": False, "disabled_reason": "empty", "counts": {}, "text_md": ""}
-    if not structured_enabled:
-        structured = {"enabled": False, "disabled_reason": "disabled", "counts": {}, "text_md": ""}
-    else:
-        try:
-            entities_stmt = select(MemoryEntity).where(MemoryEntity.project_id == project_id)
-            relations_stmt = select(MemoryRelation).where(MemoryRelation.project_id == project_id)
-            events_stmt = select(MemoryEvent).where(MemoryEvent.project_id == project_id)
-
-            if not include_deleted:
-                entities_stmt = entities_stmt.where(MemoryEntity.deleted_at.is_(None))
-                relations_stmt = relations_stmt.where(MemoryRelation.deleted_at.is_(None))
-                events_stmt = events_stmt.where(MemoryEvent.deleted_at.is_(None))
-
-            entities = db.execute(entities_stmt.order_by(MemoryEntity.updated_at.desc()).limit(21)).scalars().all()
-            relations = db.execute(relations_stmt.order_by(MemoryRelation.updated_at.desc()).limit(41)).scalars().all()
-            events = db.execute(events_stmt.order_by(MemoryEvent.updated_at.desc()).limit(21)).scalars().all()
-            enabled = bool(entities or relations or events)
-
-            rel_entity_ids: set[str] = set()
-            for r in relations[:40]:
-                rel_entity_ids.add(str(r.from_entity_id))
-                rel_entity_ids.add(str(r.to_entity_id))
-            entity_name_rows = []
-            if rel_entity_ids:
-                entity_name_stmt = (
-                    select(MemoryEntity.id, MemoryEntity.name)
-                    .where(MemoryEntity.project_id == project_id)
-                    .where(MemoryEntity.id.in_(list(rel_entity_ids)))
-                )
-                if not include_deleted:
-                    entity_name_stmt = entity_name_stmt.where(MemoryEntity.deleted_at.is_(None))
-                entity_name_rows = db.execute(entity_name_stmt).all()
-            name_by_id = {str(eid): str(name or "") for eid, name in entity_name_rows}
-            relations_preview = []
-            for r in relations[:40]:
-                relations_preview.append(
-                    {
-                        "id": r.id,
-                        "from_entity_id": r.from_entity_id,
-                        "to_entity_id": r.to_entity_id,
-                        "from_name": name_by_id.get(str(r.from_entity_id)) or "",
-                        "to_name": name_by_id.get(str(r.to_entity_id)) or "",
-                        "relation_type": r.relation_type,
-                        "description_md": r.description_md,
-                    }
-                )
-
-            text_md, text_truncated = _format_structured_text_md(
-                entities=entities[:20],
-                relations=relations_preview,
-                events=events[:20],
-                char_limit=int(structured_budget),
-            )
-            structured = {
-                "enabled": enabled,
-                "disabled_reason": None if enabled else "empty",
-                "include_deleted": bool(include_deleted),
-                "counts": {
-                    "entities": len(entities[:20]),
-                    "relations": len(relations[:40]),
-                    "events": len(events[:20]),
-                },
-                "truncated": bool(
-                    len(entities) > 20
-                    or len(relations) > 40
-                    or len(events) > 20
-                    or text_truncated
-                ),
-                "text_md": text_md,
-            }
-        except Exception:
-            structured = {
-                "enabled": False,
-                "disabled_reason": "error",
-                "counts": {},
-                "text_md": "",
-                "error": "structured_query_failed",
-            }
+    structured: dict[str, Any] = {"enabled": False, "disabled_reason": "removed", "counts": {}, "text_md": ""}
 
     try:
         if not vector_rag_enabled:
@@ -632,13 +499,10 @@ def retrieve_memory_context_pack(
         },
         {
             "section": "structured",
-            "enabled": bool(structured.get("enabled")),
-            "disabled_reason": structured.get("disabled_reason"),
-            "note": "entities/relations/events summary",
-            "token_estimate": estimate_tokens(str(structured.get("text_md") or "")),
-            "truncated": bool(structured.get("truncated")) if "truncated" in structured else None,
-            "budget_char_limit": int(structured_budget),
-            "budget_source": "override" if "structured" in budgets else "default",
+            "enabled": False,
+            "disabled_reason": "removed",
+            "note": "structured memory section removed",
+            "token_estimate": 0,
         },
         {
             "section": "vector_rag",

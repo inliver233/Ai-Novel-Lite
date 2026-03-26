@@ -24,7 +24,6 @@ from app.models.project_settings import ProjectSettings
 from app.models.prompt_block import PromptBlock
 from app.models.prompt_preset import PromptPreset
 from app.models.story_memory import StoryMemory
-from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryEvidence, MemoryForeshadow, MemoryRelation
 from app.models.worldbook_entry import WorldBookEntry
 from app.services.vector_embedding_overrides import vector_embedding_overrides
 from app.services.vector_rag_service import VectorChunk, ingest_chunks, purge_project_vectors
@@ -336,50 +335,6 @@ def export_project_bundle(db: Session, *, project_id: str) -> dict[str, Any]:
         )
         blocks_by_preset[preset.id] = blocks
 
-    entities = (
-        db.execute(
-            select(MemoryEntity)
-            .where(MemoryEntity.project_id == project_id_norm, MemoryEntity.deleted_at.is_(None))
-            .order_by(MemoryEntity.updated_at.desc())
-        )
-        .scalars()
-        .all()
-    )
-    relations = (
-        db.execute(
-            select(MemoryRelation)
-            .where(MemoryRelation.project_id == project_id_norm, MemoryRelation.deleted_at.is_(None))
-            .order_by(MemoryRelation.updated_at.desc())
-        )
-        .scalars()
-        .all()
-    )
-    events = (
-        db.execute(
-            select(MemoryEvent).where(MemoryEvent.project_id == project_id_norm, MemoryEvent.deleted_at.is_(None)).order_by(MemoryEvent.updated_at.desc())
-        )
-        .scalars()
-        .all()
-    )
-    foreshadows = (
-        db.execute(
-            select(MemoryForeshadow)
-            .where(MemoryForeshadow.project_id == project_id_norm, MemoryForeshadow.deleted_at.is_(None))
-            .order_by(MemoryForeshadow.updated_at.desc())
-        )
-        .scalars()
-        .all()
-    )
-    evidence = (
-        db.execute(
-            select(MemoryEvidence)
-            .where(MemoryEvidence.project_id == project_id_norm, MemoryEvidence.deleted_at.is_(None))
-            .order_by(MemoryEvidence.created_at.desc())
-        )
-        .scalars()
-        .all()
-    )
-
     story_memories = (
         db.execute(select(StoryMemory).where(StoryMemory.project_id == project_id_norm).order_by(StoryMemory.updated_at.desc()))
         .scalars()
@@ -524,63 +479,6 @@ def export_project_bundle(db: Session, *, project_id: str) -> dict[str, Any]:
                     ],
                 }
                 for p in prompt_presets
-            ],
-        },
-        "structured_memory": {
-            "schema_version": "structured_memory_export_v1",
-            "entities": [
-                {
-                    "id": e.id,
-                    "entity_type": e.entity_type,
-                    "name": e.name,
-                    "summary_md": e.summary_md,
-                    "attributes_json": e.attributes_json,
-                }
-                for e in entities
-            ],
-            "relations": [
-                {
-                    "id": r.id,
-                    "from_entity_id": r.from_entity_id,
-                    "to_entity_id": r.to_entity_id,
-                    "relation_type": r.relation_type,
-                    "description_md": r.description_md,
-                    "attributes_json": r.attributes_json,
-                }
-                for r in relations
-            ],
-            "events": [
-                {
-                    "id": e.id,
-                    "chapter_id": e.chapter_id,
-                    "event_type": e.event_type,
-                    "title": e.title,
-                    "content_md": e.content_md,
-                    "attributes_json": e.attributes_json,
-                }
-                for e in events
-            ],
-            "foreshadows": [
-                {
-                    "id": f.id,
-                    "chapter_id": f.chapter_id,
-                    "resolved_at_chapter_id": f.resolved_at_chapter_id,
-                    "title": f.title,
-                    "content_md": f.content_md,
-                    "resolved": int(f.resolved),
-                    "attributes_json": f.attributes_json,
-                }
-                for f in foreshadows
-            ],
-            "evidence": [
-                {
-                    "id": ev.id,
-                    "source_type": ev.source_type,
-                    "source_id": ev.source_id,
-                    "quote_md": ev.quote_md,
-                    "attributes_json": ev.attributes_json,
-                }
-                for ev in evidence
             ],
         },
         "story_memory": {
@@ -876,116 +774,6 @@ def import_project_bundle(
             )
     report["created"]["prompt_presets"] = created_presets
     report["created"]["prompt_blocks"] = created_blocks
-
-    entity_id_map: dict[str, str] = {}
-    sm_in = bundle.get("structured_memory")
-    sm_obj = sm_in if isinstance(sm_in, dict) else {}
-    entities_list = sm_obj.get("entities")
-    for e in (entities_list if isinstance(entities_list, list) else []):
-        if not isinstance(e, dict):
-            continue
-        old_id = str(e.get("id") or "").strip()
-        new_entity_id = new_id()
-        entity_id_map[old_id] = new_entity_id
-        db.add(
-            MemoryEntity(
-                id=new_entity_id,
-                project_id=new_project_id,
-                entity_type=str(e.get("entity_type") or "generic")[:64] or "generic",
-                name=str(e.get("name") or "")[:255] or "Entity",
-                summary_md=str(e.get("summary_md") or "") or None,
-                attributes_json=str(e.get("attributes_json") or "") or None,
-            )
-        )
-
-    created_relations = 0
-    relations_list = sm_obj.get("relations")
-    for r in (relations_list if isinstance(relations_list, list) else []):
-        if not isinstance(r, dict):
-            continue
-        from_id = entity_id_map.get(str(r.get("from_entity_id") or "").strip())
-        to_id = entity_id_map.get(str(r.get("to_entity_id") or "").strip())
-        if not from_id or not to_id:
-            continue
-        created_relations += 1
-        db.add(
-            MemoryRelation(
-                id=new_id(),
-                project_id=new_project_id,
-                from_entity_id=from_id,
-                to_entity_id=to_id,
-                relation_type=str(r.get("relation_type") or "related_to")[:64] or "related_to",
-                description_md=str(r.get("description_md") or "") or None,
-                attributes_json=str(r.get("attributes_json") or "") or None,
-            )
-        )
-
-    created_events = 0
-    events_list = sm_obj.get("events")
-    for e in (events_list if isinstance(events_list, list) else []):
-        if not isinstance(e, dict):
-            continue
-        ch_old = str(e.get("chapter_id") or "").strip() or None
-        created_events += 1
-        db.add(
-            MemoryEvent(
-                id=new_id(),
-                project_id=new_project_id,
-                chapter_id=chapter_id_map.get(ch_old) if ch_old else None,
-                event_type=str(e.get("event_type") or "event")[:64] or "event",
-                title=str(e.get("title") or "")[:255] or None,
-                content_md=str(e.get("content_md") or ""),
-                attributes_json=str(e.get("attributes_json") or "") or None,
-            )
-        )
-
-    created_foreshadows = 0
-    foreshadows_list = sm_obj.get("foreshadows")
-    for f in (foreshadows_list if isinstance(foreshadows_list, list) else []):
-        if not isinstance(f, dict):
-            continue
-        ch_old = str(f.get("chapter_id") or "").strip() or None
-        resolved_old = str(f.get("resolved_at_chapter_id") or "").strip() or None
-        created_foreshadows += 1
-        db.add(
-            MemoryForeshadow(
-                id=new_id(),
-                project_id=new_project_id,
-                chapter_id=chapter_id_map.get(ch_old) if ch_old else None,
-                resolved_at_chapter_id=chapter_id_map.get(resolved_old) if resolved_old else None,
-                title=str(f.get("title") or "")[:255] or None,
-                content_md=str(f.get("content_md") or ""),
-                resolved=int(f.get("resolved") or 0),
-                attributes_json=str(f.get("attributes_json") or "") or None,
-            )
-        )
-
-    created_evidence = 0
-    evidence_list = sm_obj.get("evidence")
-    for ev in (evidence_list if isinstance(evidence_list, list) else []):
-        if not isinstance(ev, dict):
-            continue
-        source_type = str(ev.get("source_type") or "unknown")[:32] or "unknown"
-        source_id = str(ev.get("source_id") or "").strip() or None
-        if source_type == "chapter" and source_id:
-            source_id = chapter_id_map.get(source_id) or source_id
-        created_evidence += 1
-        db.add(
-            MemoryEvidence(
-                id=new_id(),
-                project_id=new_project_id,
-                source_type=source_type,
-                source_id=source_id,
-                quote_md=str(ev.get("quote_md") or ""),
-                attributes_json=str(ev.get("attributes_json") or "") or None,
-            )
-        )
-
-    report["created"]["memory_entities"] = len(entity_id_map)
-    report["created"]["memory_relations"] = created_relations
-    report["created"]["memory_events"] = created_events
-    report["created"]["memory_foreshadows"] = created_foreshadows
-    report["created"]["memory_evidence"] = created_evidence
 
     sm2_in = bundle.get("story_memory")
     sm2_obj = sm2_in if isinstance(sm2_in, dict) else {}

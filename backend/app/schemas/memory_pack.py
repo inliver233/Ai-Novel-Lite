@@ -8,7 +8,7 @@ MemoryContextSection = Literal[
     "worldbook",
     "story_memory",
     "semantic_history",
-    "structured",
+    "structured",  # deprecated: always disabled; kept for backward compat
     "vector_rag",
 ]
 

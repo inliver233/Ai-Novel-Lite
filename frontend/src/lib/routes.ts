@@ -15,7 +15,6 @@ const ROUTE_META: RouteMeta[] = [
   { suffix: "/outline", title: UI_COPY.nav.outline, layout: "paper" },
   { suffix: "/wizard", title: UI_COPY.nav.wizard, layout: "tool" },
   { suffix: "/writing", title: UI_COPY.nav.writing, layout: "tool" },
-  { suffix: "/structured-memory", title: UI_COPY.nav.structuredMemory, layout: "tool" },
   { suffix: "/chapter-analysis", title: UI_COPY.nav.chapterAnalysis, layout: "tool" },
   { suffix: "/preview", title: UI_COPY.nav.preview, layout: "paper" },
   { suffix: "/export", title: UI_COPY.nav.export, layout: "paper" },
