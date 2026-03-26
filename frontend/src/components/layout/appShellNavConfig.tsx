@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   BookOpen,
-  BookOpenText,
   BookText,
   Database,
   FileDown,
@@ -115,14 +114,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.foreshadows,
     ariaLabel: "伏笔 (nav_foreshadows)",
     to: (projectId) => `/projects/${projectId}/foreshadows`,
-  },
-  {
-    id: "reader",
-    group: "view",
-    icon: BookOpenText,
-    label: UI_COPY.nav.reader,
-    ariaLabel: "阅读 (nav_reader)",
-    to: (projectId) => `/projects/${projectId}/reader`,
   },
   {
     id: "export",

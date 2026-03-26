@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { BookOpen, ChevronLeft, Edit3, List, StickyNote } from "lucide-react";
+import { BookOpen, ChevronLeft, Edit3, List } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams } from "react-router-dom";
@@ -83,10 +83,6 @@ export function PreviewPage() {
     navigate(`/projects/${projectId}/writing?chapterId=${encodeURIComponent(chapterId)}`);
   };
 
-  const openReader = (chapterId: string) => {
-    if (!projectId) return;
-    navigate(`/projects/${projectId}/reader?chapterId=${encodeURIComponent(chapterId)}`);
-  };
 
   const openChapter = useCallback((chapterId: string) => {
     setActiveId(chapterId);
@@ -227,10 +223,6 @@ export function PreviewPage() {
 
         {activeChapterSummary ? (
           <div className="flex flex-wrap items-center gap-2">
-            <button className="btn btn-secondary" onClick={() => openReader(activeChapterSummary.id)} type="button">
-              <StickyNote size={16} />
-              阅读标注
-            </button>
             <button className="btn btn-secondary" onClick={() => openEditor(activeChapterSummary.id)} type="button">
               <Edit3 size={16} />
               编辑

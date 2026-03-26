@@ -26,7 +26,6 @@ export const UI_COPY = {
     numericTables: "数值表格（NumericTables）",
     chapterAnalysis: "剧情记忆",
     preview: "预览",
-    reader: "阅读",
     export: "导出",
 
     worldBook: "世界书",
