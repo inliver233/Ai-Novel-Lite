@@ -11,8 +11,6 @@ const PROMPT_TASKS = [
   "plan_chapter",
   "post_edit",
   "content_optimize",
-  "chapter_analyze",
-  "chapter_rewrite",
 ] as const;
 
 const PREVIEW_VALUES = {
