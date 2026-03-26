@@ -183,7 +183,7 @@ def download_debug_bundle(
     modules = injection_cfg.get("modules") if isinstance(injection_cfg.get("modules"), dict) else {}
     normalized_query_text = str(injection_cfg.get("normalized_query_text") or injection_cfg.get("query_text") or "").strip()
 
-    sources: list[VectorSource] = ["worldbook", "outline", "chapter"]
+    sources: list[VectorSource] = ["outline", "chapter"]
     settings_row = db.get(ProjectSettings, str(row.project_id))
     embedding = vector_embedding_overrides(settings_row)
     rerank = _vector_rerank_config(settings_row)

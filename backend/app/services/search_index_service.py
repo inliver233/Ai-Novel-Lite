@@ -20,7 +20,6 @@ from app.models.outline import Outline
 from app.models.project_source_document import ProjectSourceDocument
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
-from app.models.worldbook_entry import WorldBookEntry
 from app.services.project_task_event_service import emit_and_enqueue_project_task, reset_project_task_to_queued
 
 logger = logging.getLogger("ainovel")
@@ -215,40 +214,6 @@ def build_project_search_docs(*, db: Session, project_id: str) -> list[SearchDoc
                 content=content,
                 url_path=f"/projects/{pid}/writing?chapterId={str(c.id)}",
                 locator_json=json.dumps({"chapter_id": str(c.id)}, ensure_ascii=False),
-            )
-        )
-
-    worldbook = (
-        db.execute(select(WorldBookEntry).where(WorldBookEntry.project_id == pid).order_by(WorldBookEntry.updated_at.desc()))
-        .scalars()
-        .all()
-    )
-    for w in worldbook:
-        title = _trim(w.title)
-        content = _trim(w.content_md)
-        kw_text = ""
-        kw_raw = _trim(getattr(w, "keywords_json", None))
-        if kw_raw:
-            try:
-                kw_obj = json.loads(kw_raw)
-            except Exception:
-                kw_obj = None
-            if isinstance(kw_obj, list):
-                kws = [_trim(str(x)) for x in kw_obj if _trim(str(x))]
-                kw_text = "\n".join(kws[:50]).strip()
-            else:
-                kw_text = kw_raw
-
-        if not (title or content or kw_text):
-            continue
-        out.append(
-            SearchDocInput(
-                source_type="worldbook_entry",
-                source_id=str(w.id),
-                title=title or "世界书条目",
-                content="\n\n".join([x for x in [title, content, kw_text] if x]).strip(),
-                url_path=f"/projects/{pid}/worldbook",
-                locator_json=json.dumps({"worldbook_entry_id": str(w.id)}, ensure_ascii=False),
             )
         )
 

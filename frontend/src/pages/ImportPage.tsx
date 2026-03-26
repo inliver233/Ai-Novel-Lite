@@ -12,7 +12,6 @@ type ImportDocumentDetail = {
   document: ImportDocument;
   content_preview: string;
   vector_ingest_result: unknown;
-  worldbook_proposal: unknown;
   story_memory_proposal: unknown;
 };
 
@@ -64,7 +63,6 @@ export function ImportPage() {
   const [chunksLoading, setChunksLoading] = useState(false);
   const [chunks, setChunks] = useState<ImportChunk[]>([]);
 
-  const [applyWorldbookLoading, setApplyWorldbookLoading] = useState(false);
   const [applyStoryMemoryLoading, setApplyStoryMemoryLoading] = useState(false);
 
   const [pollPaused, setPollPaused] = useState(false);
@@ -121,10 +119,9 @@ export function ImportPage() {
     };
 
     return {
-      worldbook: summarize(detail?.worldbook_proposal, ["entries", "worldbook_entries", "items"]),
       storyMemory: summarize(detail?.story_memory_proposal, ["memories", "items", "records"]),
     };
-  }, [detail?.story_memory_proposal, detail?.worldbook_proposal]);
+  }, [detail?.story_memory_proposal]);
 
   const pollStatus = String(selectedDoc?.status ?? detail?.document.status ?? "")
     .trim()
@@ -297,28 +294,6 @@ export function ImportPage() {
     }
   }, [creating, file, loadList, projectId, selectDocAndLoad, toast]);
 
-  const applyWorldbook = useCallback(async () => {
-    if (!projectId) return;
-    if (!detail) return;
-    if (applyWorldbookLoading) return;
-    setApplyWorldbookLoading(true);
-    try {
-      const res = await apiJson(`/api/projects/${projectId}/worldbook_entries/import_all`, {
-        method: "POST",
-        body: JSON.stringify(detail.worldbook_proposal ?? {}),
-      });
-      toast.toastSuccess("已应用 WorldBook 提案", res.request_id);
-    } catch (e) {
-      const err =
-        e instanceof ApiError
-          ? e
-          : new ApiError({ code: "UNKNOWN", message: String(e), requestId: "unknown", status: 0 });
-      toast.toastError(`${err.message} (${err.code})`, err.requestId);
-    } finally {
-      setApplyWorldbookLoading(false);
-    }
-  }, [applyWorldbookLoading, detail, projectId, toast]);
-
   const applyStoryMemory = useCallback(async () => {
     if (!projectId) return;
     if (!detail) return;
@@ -382,10 +357,6 @@ export function ImportPage() {
         <div className="grid gap-2">
           <div>流程：上传 txt/md → 后端切分 chunk →（可选）写入向量 KB → 生成提案（proposal）。</div>
           <ul className="grid list-disc gap-1 pl-5 text-xs text-subtext">
-            <li>
-              世界书（worldbook）：会生成 WorldBookEntry
-              的候选条目；应用后可在「世界书」页查看，也可在写作时用于上下文注入。
-            </li>
             <li>故事记忆（story_memory）：会生成 StoryMemory 的候选条目；应用后可在记忆预览/检索中命中。</li>
             <li>向量 KB（vector_kb / kb）：用于 RAG 语义检索（可在「RAG」页管理）。</li>
             <li>Chunk（chunk）：系统切分后的文本片段（用于检索与溯源）。</li>
@@ -569,14 +540,6 @@ export function ImportPage() {
                 <div className="grid gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
-                      className="btn btn-primary"
-                      disabled={applyWorldbookLoading || Boolean(proposalDisabledReason)}
-                      onClick={() => void applyWorldbook()}
-                      type="button"
-                    >
-                      {applyWorldbookLoading ? "应用中…" : "应用到 WorldBook"}
-                    </button>
-                    <button
                       className="btn btn-secondary"
                       disabled={applyStoryMemoryLoading || Boolean(proposalDisabledReason)}
                       onClick={() => void applyStoryMemory()}
@@ -587,17 +550,7 @@ export function ImportPage() {
                   </div>
                   <div className={proposalDisabledReason ? "text-xs text-warning" : "text-xs text-subtext"}>
                     {proposalDisabledReason ??
-                      "导入已完成，可将提案写入 WorldBook 或 story_memory；写入后可在对应页面继续编辑与检索。"}
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="text-xs text-subtext">WorldBook 提案预览</div>
-                  <div className="rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
-                    <div>{proposalPreview.worldbook.summary}</div>
-                    {proposalPreview.worldbook.sampleTitles.length ? (
-                      <div className="mt-1 text-subtext">示例：{proposalPreview.worldbook.sampleTitles.join("、")}</div>
-                    ) : null}
+                      "导入已完成，可将提案写入 story_memory；写入后可在对应页面继续编辑与检索。"}
                   </div>
                 </div>
 
@@ -613,11 +566,6 @@ export function ImportPage() {
                   </div>
                 </div>
 
-                <DebugDetails title="WorldBook 提案 (JSON)">
-                  <pre className="overflow-auto whitespace-pre-wrap text-xs text-subtext">
-                    {safeStringify(detail.worldbook_proposal)}
-                  </pre>
-                </DebugDetails>
                 <DebugDetails title="story_memory 提案 (JSON)">
                   <pre className="overflow-auto whitespace-pre-wrap text-xs text-subtext">
                     {safeStringify(detail.story_memory_proposal)}

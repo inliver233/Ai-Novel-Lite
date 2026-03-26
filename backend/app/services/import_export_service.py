@@ -24,7 +24,6 @@ from app.models.project_settings import ProjectSettings
 from app.models.prompt_block import PromptBlock
 from app.models.prompt_preset import PromptPreset
 from app.models.story_memory import StoryMemory
-from app.models.worldbook_entry import WorldBookEntry
 from app.services.vector_embedding_overrides import vector_embedding_overrides
 from app.services.vector_rag_service import VectorChunk, ingest_chunks, purge_project_vectors
 
@@ -77,26 +76,6 @@ def _extract_keywords(text: str, *, limit: int) -> list[str]:
         out.append(token[:64])
     return out
 
-
-def _build_worldbook_proposal(*, filename: str, content_text: str) -> dict[str, Any]:
-    title = _base_filename(filename)[:255]
-    summary = (content_text or "").strip()
-    if len(summary) > 5000:
-        summary = summary[:5000].rstrip() + "…"
-    keywords = _extract_keywords(f"{filename}\n{content_text}", limit=12)
-
-    entry = {
-        "title": title,
-        "content_md": f"## 导入摘要\n\n{summary}".strip(),
-        "enabled": True,
-        "constant": False,
-        "keywords": keywords,
-        "exclude_recursion": False,
-        "prevent_recursion": False,
-        "char_limit": 12000,
-        "priority": "important",
-    }
-    return {"schema_version": "worldbook_export_all_v1", "entries": [entry]}
 
 
 def _build_story_memory_proposal(*, filename: str, content_text: str) -> dict[str, Any]:
@@ -188,9 +167,7 @@ def run_import_task(task_id: str) -> None:
         doc.progress = 35
         doc.progress_message = f"已切分 {len(chunks)} 个 chunk"
 
-        worldbook_proposal = _build_worldbook_proposal(filename=filename, content_text=content_text)
         story_memory_proposal = _build_story_memory_proposal(filename=filename, content_text=content_text)
-        doc.worldbook_proposal_json = json.dumps(worldbook_proposal, ensure_ascii=False)
         doc.story_memory_proposal_json = json.dumps(story_memory_proposal, ensure_ascii=False)
 
         embedding = vector_embedding_overrides(db.get(ProjectSettings, project_id))
@@ -315,12 +292,6 @@ def export_project_bundle(db: Session, *, project_id: str) -> dict[str, Any]:
         .all()
     )
 
-    worldbook_entries = (
-        db.execute(select(WorldBookEntry).where(WorldBookEntry.project_id == project_id_norm).order_by(WorldBookEntry.updated_at.desc()))
-        .scalars()
-        .all()
-    )
-
     prompt_presets = (
         db.execute(select(PromptPreset).where(PromptPreset.project_id == project_id_norm).order_by(PromptPreset.updated_at.desc()))
         .scalars()
@@ -430,23 +401,6 @@ def export_project_bundle(db: Session, *, project_id: str) -> dict[str, Any]:
             for ch in chapters
         ],
         "characters": [{"id": c.id, "name": c.name, "role": c.role, "profile": c.profile, "notes": c.notes} for c in characters],
-        "worldbook": {
-            "schema_version": "worldbook_export_all_v1",
-            "entries": [
-                {
-                    "title": e.title,
-                    "content_md": e.content_md,
-                    "enabled": bool(e.enabled),
-                    "constant": bool(e.constant),
-                    "keywords": _safe_json_list(e.keywords_json),
-                    "exclude_recursion": bool(e.exclude_recursion),
-                    "prevent_recursion": bool(e.prevent_recursion),
-                    "char_limit": int(e.char_limit),
-                    "priority": str(e.priority or "important"),
-                }
-                for e in worldbook_entries
-            ],
-        },
         "prompt_presets": {
             "schema_version": "prompt_presets_export_all_v1",
             "presets": [
@@ -526,7 +480,6 @@ def export_project_bundle(db: Session, *, project_id: str) -> dict[str, Any]:
                     "content_type": d.content_type,
                     "content_text": d.content_text,
                     "kb_id": d.kb_id,
-                    "worldbook_proposal_json": d.worldbook_proposal_json,
                     "story_memory_proposal_json": d.story_memory_proposal_json,
                 }
                 for d in source_docs
@@ -693,32 +646,6 @@ def import_project_bundle(
         )
     report["created"]["characters"] = created_chars
 
-    worldbook_in = bundle.get("worldbook")
-    worldbook_obj = worldbook_in if isinstance(worldbook_in, dict) else {}
-    entries_in = worldbook_obj.get("entries")
-    entries_list = entries_in if isinstance(entries_in, list) else []
-    created_entries = 0
-    for e in entries_list:
-        if not isinstance(e, dict):
-            continue
-        created_entries += 1
-        db.add(
-            WorldBookEntry(
-                id=new_id(),
-                project_id=new_project_id,
-                title=str(e.get("title") or "")[:255] or "WorldBook",
-                content_md=str(e.get("content_md") or ""),
-                enabled=bool(e.get("enabled", True)),
-                constant=bool(e.get("constant", False)),
-                keywords_json=json.dumps(e.get("keywords") or [], ensure_ascii=False),
-                exclude_recursion=bool(e.get("exclude_recursion", False)),
-                prevent_recursion=bool(e.get("prevent_recursion", False)),
-                char_limit=int(e.get("char_limit") or 12000),
-                priority=str(e.get("priority") or "important")[:32],
-            )
-        )
-    report["created"]["worldbook_entries"] = created_entries
-
     presets_in = bundle.get("prompt_presets")
     presets_obj = presets_in if isinstance(presets_in, dict) else {}
     presets_list = presets_obj.get("presets")
@@ -855,7 +782,6 @@ def import_project_bundle(
                 chunk_count=0,
                 kb_id=kb_id[:64] if kb_id else None,
                 vector_ingest_result_json=None,
-                worldbook_proposal_json=str(d.get("worldbook_proposal_json") or "") or None,
                 story_memory_proposal_json=str(d.get("story_memory_proposal_json") or "") or None,
                 error_message=None,
             )
@@ -878,7 +804,7 @@ def import_project_bundle(
 
         db2 = SessionLocal()
         try:
-            chunks = build_project_chunks(db=db2, project_id=new_project_id, sources=["worldbook", "outline", "chapter"])
+            chunks = build_project_chunks(db=db2, project_id=new_project_id, sources=["outline", "chapter"])
             embedding = vector_embedding_overrides(db2.get(ProjectSettings, new_project_id))
             selected_kbs = [str(k.get("kb_id") or "").strip() for k in kbs_list if isinstance(k, dict)] or ["default"]
         finally:

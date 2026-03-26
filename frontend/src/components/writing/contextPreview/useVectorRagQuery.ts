@@ -38,13 +38,12 @@ export function useVectorRagQuery(params: { open: boolean; projectId?: string; t
 
   const [vectorQueryText, setVectorQueryText] = useState("");
   const [vectorSources, setVectorSources] = useState<Record<VectorSource, boolean>>({
-    worldbook: true,
     outline: true,
     chapter: true,
   });
   const selectedVectorSources = useMemo(() => {
     const out: VectorSource[] = [];
-    for (const src of ["worldbook", "outline", "chapter"] as const) {
+    for (const src of ["outline", "chapter"] as const) {
       if (vectorSources[src]) out.push(src);
     }
     return out;

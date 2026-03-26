@@ -7,7 +7,6 @@ export type SettingsForm = {
   style_guide: string;
   constraints: string;
   context_optimizer_enabled: boolean;
-  auto_update_worldbook_enabled: boolean;
   auto_update_characters_enabled: boolean;
   auto_update_story_memory_enabled: boolean;
   auto_update_vector_enabled: boolean;
@@ -91,7 +90,6 @@ export function createDefaultSettingsForm(): SettingsForm {
     style_guide: "",
     constraints: "",
     context_optimizer_enabled: false,
-    auto_update_worldbook_enabled: true,
     auto_update_characters_enabled: true,
     auto_update_story_memory_enabled: true,
     auto_update_vector_enabled: true,
@@ -139,7 +137,6 @@ export function mapLoadedSettingsToForms(loaded: SettingsLoaded): LoadedSettings
       style_guide: settings.style_guide ?? "",
       constraints: settings.constraints ?? "",
       context_optimizer_enabled: Boolean(settings.context_optimizer_enabled),
-      auto_update_worldbook_enabled: Boolean(settings.auto_update_worldbook_enabled ?? true),
       auto_update_characters_enabled: Boolean(settings.auto_update_characters_enabled ?? true),
       auto_update_story_memory_enabled: Boolean(settings.auto_update_story_memory_enabled ?? true),
       auto_update_vector_enabled: Boolean(settings.auto_update_vector_enabled ?? true),

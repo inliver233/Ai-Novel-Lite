@@ -148,7 +148,6 @@ export function useSettingsPageState(): SettingsPageState {
 
   const autoUpdateAllEnabled = useMemo(
     () =>
-      settingsForm.auto_update_worldbook_enabled &&
       settingsForm.auto_update_characters_enabled &&
       settingsForm.auto_update_story_memory_enabled &&
       settingsForm.auto_update_vector_enabled &&
@@ -158,7 +157,6 @@ export function useSettingsPageState(): SettingsPageState {
 
   const autoUpdateAnyEnabled = useMemo(
     () =>
-      settingsForm.auto_update_worldbook_enabled ||
       settingsForm.auto_update_characters_enabled ||
       settingsForm.auto_update_story_memory_enabled ||
       settingsForm.auto_update_vector_enabled ||
@@ -175,7 +173,6 @@ export function useSettingsPageState(): SettingsPageState {
   const setAllAutoUpdates = useCallback((enabled: boolean) => {
     setSettingsForm((v) => ({
       ...v,
-      auto_update_worldbook_enabled: enabled,
       auto_update_characters_enabled: enabled,
       auto_update_story_memory_enabled: enabled,
       auto_update_vector_enabled: enabled,
@@ -417,7 +414,6 @@ export function useSettingsPageState(): SettingsPageState {
       settingsForm.style_guide !== baselineSettings.style_guide ||
       settingsForm.constraints !== baselineSettings.constraints ||
       settingsForm.context_optimizer_enabled !== baselineSettings.context_optimizer_enabled ||
-      settingsForm.auto_update_worldbook_enabled !== baselineSettings.auto_update_worldbook_enabled ||
       settingsForm.auto_update_characters_enabled !== baselineSettings.auto_update_characters_enabled ||
       settingsForm.auto_update_story_memory_enabled !== baselineSettings.auto_update_story_memory_enabled ||
       settingsForm.auto_update_vector_enabled !== baselineSettings.auto_update_vector_enabled ||
@@ -547,7 +543,6 @@ export function useSettingsPageState(): SettingsPageState {
         nextSettingsForm.style_guide !== baselineSettings.style_guide ||
         nextSettingsForm.constraints !== baselineSettings.constraints ||
         nextSettingsForm.context_optimizer_enabled !== baselineSettings.context_optimizer_enabled ||
-        nextSettingsForm.auto_update_worldbook_enabled !== baselineSettings.auto_update_worldbook_enabled ||
         nextSettingsForm.auto_update_characters_enabled !== baselineSettings.auto_update_characters_enabled ||
         nextSettingsForm.auto_update_story_memory_enabled !== baselineSettings.auto_update_story_memory_enabled ||
         nextSettingsForm.auto_update_vector_enabled !== baselineSettings.auto_update_vector_enabled ||
@@ -618,7 +613,6 @@ export function useSettingsPageState(): SettingsPageState {
                   style_guide: nextSettingsForm.style_guide,
                   constraints: nextSettingsForm.constraints,
                   context_optimizer_enabled: Boolean(nextSettingsForm.context_optimizer_enabled),
-                  auto_update_worldbook_enabled: Boolean(nextSettingsForm.auto_update_worldbook_enabled),
                   auto_update_characters_enabled: Boolean(nextSettingsForm.auto_update_characters_enabled),
                   auto_update_story_memory_enabled: Boolean(nextSettingsForm.auto_update_story_memory_enabled),
                   auto_update_vector_enabled: Boolean(nextSettingsForm.auto_update_vector_enabled),

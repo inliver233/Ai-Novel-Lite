@@ -14,7 +14,6 @@ from app.models.llm_profile import LLMProfile
 from app.models.outline import Outline
 from app.models.project import Project
 from app.models.project_membership import ProjectMembership
-from app.models.worldbook_entry import WorldBookEntry
 
 LOCAL_USER_ID = "local-user"
 
@@ -151,21 +150,6 @@ def require_generation_run_editor(db: Session, *, run_id: str, user_id: str) -> 
     return run
 
 
-def require_worldbook_entry_viewer(db: Session, *, entry_id: str, user_id: str) -> WorldBookEntry:
-    entry = db.get(WorldBookEntry, entry_id)
-    if entry is None:
-        raise AppError.not_found()
-    require_project_viewer(db, project_id=entry.project_id, user_id=user_id)
-    return entry
-
-
-def require_worldbook_entry_editor(db: Session, *, entry_id: str, user_id: str) -> WorldBookEntry:
-    entry = db.get(WorldBookEntry, entry_id)
-    if entry is None:
-        raise AppError.not_found()
-    require_project_editor(db, project_id=entry.project_id, user_id=user_id)
-    return entry
-
 
 # Backward-compatible alias (owner-only).
 def require_owned_project(db: Session, *, project_id: str, user_id: str) -> Project:
@@ -188,5 +172,3 @@ def require_owned_generation_run(db: Session, *, run_id: str, user_id: str) -> G
     return require_generation_run_editor(db, run_id=run_id, user_id=user_id)
 
 
-def require_owned_worldbook_entry(db: Session, *, entry_id: str, user_id: str) -> WorldBookEntry:
-    return require_worldbook_entry_editor(db, entry_id=entry_id, user_id=user_id)

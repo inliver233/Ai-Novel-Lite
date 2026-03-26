@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createProjectTaskStore, type ProjectTaskListQuery } from "./projectTaskStore";
 import type { ProjectTaskRuntime } from "./projectTaskRuntime";
-import type { ProjectTask } from "./worldbookApi";
+import type { ProjectTask } from "../types";
 
 function makeTask(overrides: Partial<ProjectTask> = {}): ProjectTask {
   return {

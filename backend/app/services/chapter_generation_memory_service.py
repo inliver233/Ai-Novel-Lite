@@ -12,7 +12,6 @@ from app.services.memory_retrieval_service import build_memory_retrieval_log_jso
 
 def resolve_memory_modules(raw_modules: dict[str, bool]) -> dict[str, bool]:
     return {
-        "worldbook": bool(raw_modules.get("worldbook", True)),
         "story_memory": bool(raw_modules.get("story_memory", True)),
         "semantic_history": bool(raw_modules.get("semantic_history", False)),
         "tables": bool(raw_modules.get("tables", True)),

@@ -157,78 +157,6 @@ def _optimize_structured_memory(text: str) -> tuple[str, dict[str, Any]]:
     return text, {"changed": False, "reason": "no_change"}
 
 
-_WB_HEADER_RE = re.compile(
-    r"^【世界书条目：(?P<title>.*?)\s*\|\s*(?P<reason>.*?)\s*\|\s*priority:(?P<priority>.*?)】$"
-)
-
-
-def _priority_rank(value: str) -> int:
-    v = str(value or "").strip().lower()
-    if v == "must":
-        return 3
-    if v == "important":
-        return 2
-    if v == "optional":
-        return 1
-    return 0
-
-
-def _optimize_worldbook(text: str) -> tuple[str, dict[str, Any]]:
-    tag = "WORLD_BOOK"
-    inner = _extract_tag_inner(text, tag)
-    if inner is None:
-        return text, {"changed": False, "reason": "tag_not_found"}
-
-    entries_raw = [p.strip() for p in _RE_TABLE_SEP.split(inner) if p and p.strip()]
-    if not entries_raw:
-        return text, {"changed": False, "reason": "empty"}
-
-    rows: list[list[str]] = []
-    seen: set[str] = set()
-    parsed = 0
-    for part in entries_raw:
-        lines = [ln.rstrip() for ln in part.splitlines() if ln is not None]
-        if not lines:
-            continue
-        header = lines[0].strip()
-        content = "\n".join([ln for ln in lines[1:] if str(ln or "").strip()]).strip()
-        m = _WB_HEADER_RE.match(header)
-        if not m:
-            title = header[:80] or "Untitled"
-            reason = "unknown"
-            priority = "important"
-        else:
-            parsed += 1
-            title = str(m.group("title") or "").strip() or "Untitled"
-            reason = str(m.group("reason") or "").strip() or "unknown"
-            priority = str(m.group("priority") or "").strip() or "important"
-
-        key = title.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        rows.append([title, reason, priority, content])
-
-    rows.sort(key=lambda r: (-_priority_rank(str(r[2])), str(r[0]).lower(), str(r[1]).lower()))
-    table = _build_md_table(["Title", "Reason", "Priority", "Content"], rows)
-    if not table:
-        return text, {"changed": False, "reason": "no_rows"}
-
-    new_text = _wrap_tag(tag, table)
-    if not new_text or new_text == text:
-        return text, {"changed": False, "reason": "no_change"}
-
-    return (
-        new_text,
-        {
-            "changed": True,
-            "entries_in": len(entries_raw),
-            "entries_parsed": parsed,
-            "rows_out": len(rows),
-        },
-    )
-
-
 @dataclass(frozen=True, slots=True)
 class ContextOptimizer:
     enabled: bool
@@ -253,8 +181,6 @@ class ContextOptimizer:
 
             if identifier == "sys.memory.structured":
                 next_text, details = _optimize_structured_memory(text_after)
-            elif identifier == "sys.memory.worldbook":
-                next_text, details = _optimize_worldbook(text_after)
 
             if next_text != text_after:
                 s["text_after"] = next_text

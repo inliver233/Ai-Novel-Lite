@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 MemoryContextSection = Literal[
-    "worldbook",
+    "worldbook",  # removed: always disabled; kept for backward compat
     "story_memory",
     "semantic_history",
     "structured",  # deprecated: always disabled; kept for backward compat

@@ -1,6 +1,6 @@
 import { ApiError, apiJson } from "./apiClient";
 import { getProjectTaskRuntime, type ProjectTaskRuntime } from "./projectTaskRuntime";
-import type { ProjectTask } from "./worldbookApi";
+import type { ProjectTask } from "../types";
 
 export type ProjectTaskResourceSnapshot<T> = Readonly<{
   data: T | null;

@@ -17,7 +17,6 @@
     "sys.story.smart_context.story_skeleton",
     "sys.story.smart_context.recent_full",
     "doc.chapter.notes",
-    "sys.memory.worldbook",
     "sys.memory.story_memory",
     "sys.memory.structured",
     "sys.memory.vector_rag"
@@ -215,26 +214,6 @@
       "forbid_overrides": false,
       "budget": {
         "priority": "must",
-        "maxTokens": 1800
-      },
-      "cache": null
-    },
-    {
-      "identifier": "sys.memory.worldbook",
-      "name": "记忆：世界书（可选）",
-      "role": "system",
-      "enabled": true,
-      "template_file": "templates/sys.memory.worldbook.md",
-      "marker_key": "memory.worldbook.text_md",
-      "injection_position": "relative",
-      "injection_depth": null,
-      "injection_order": 101,
-      "triggers": [
-        "chapter_generate"
-      ],
-      "forbid_overrides": false,
-      "budget": {
-        "priority": "optional",
         "maxTokens": 1800
       },
       "cache": null

@@ -1,6 +1,6 @@
 import type { BatchGenerationTask, BatchGenerationTaskItem } from "../components/writing/types";
 import { apiJson } from "./apiClient";
-import type { ProjectTask } from "./worldbookApi";
+import type { ProjectTask } from "../types";
 
 export type RuntimePayloadRecord = Record<string, unknown>;
 

@@ -26,7 +26,6 @@ type SearchQueryResponse = {
 const SOURCE_OPTIONS: Array<{ key: string; label: string }> = [
   { key: "chapter", label: UI_COPY.search.sourceLabels.chapter },
   { key: "outline", label: UI_COPY.search.sourceLabels.outline },
-  { key: "worldbook_entry", label: UI_COPY.search.sourceLabels.worldbookEntry },
   { key: "character", label: UI_COPY.search.sourceLabels.character },
   { key: "story_memory", label: UI_COPY.search.sourceLabels.storyMemory },
   { key: "source_document", label: UI_COPY.search.sourceLabels.sourceDocument },
@@ -120,8 +119,6 @@ export function SearchPage() {
         return UI_COPY.search.sourceLabels.chapter;
       case "outline":
         return UI_COPY.search.sourceLabels.outline;
-      case "worldbook_entry":
-        return UI_COPY.search.sourceLabels.worldbookEntry;
       case "character":
         return UI_COPY.search.sourceLabels.character;
       case "story_memory":
@@ -144,7 +141,6 @@ export function SearchPage() {
     return (
       it.source_type === "chapter" ||
       it.source_type === "outline" ||
-      it.source_type === "worldbook_entry" ||
       it.source_type === "character" ||
       it.source_type === "story_memory" ||
       it.source_type === "source_document" ||
@@ -158,7 +154,7 @@ export function SearchPage() {
   const jump = useCallback(
     (it: SearchItem) => {
       if (!projectId) return;
-      if (it.source_type !== "worldbook_entry") {
+      {
         const raw = String(it.jump_url || "").trim();
         if (raw && raw.startsWith("/")) {
           navigate(raw);
@@ -171,13 +167,6 @@ export function SearchPage() {
       }
       if (it.source_type === "outline") {
         navigate(`/projects/${projectId}/outline`);
-        return;
-      }
-      if (it.source_type === "worldbook_entry") {
-        const params = new URLSearchParams();
-        const search = String(it.title || query.trim()).trim();
-        if (search) params.set("search", search);
-        navigate(`/projects/${projectId}/worldbook${params.toString() ? `?${params.toString()}` : ""}`);
         return;
       }
       if (it.source_type === "character") {

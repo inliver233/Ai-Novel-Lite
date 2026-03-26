@@ -73,7 +73,6 @@ const DEFAULT_GEN_FORM: GenerateForm = {
   memory_injection_enabled: true,
   memory_query_text: "",
   memory_modules: {
-    worldbook: true,
     story_memory: true,
     semantic_history: false,
     vector_rag: true,

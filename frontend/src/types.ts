@@ -27,7 +27,6 @@ export interface ProjectSettings {
   constraints: string;
   context_optimizer_enabled: boolean;
 
-  auto_update_worldbook_enabled: boolean;
   auto_update_characters_enabled: boolean;
   auto_update_story_memory_enabled: boolean;
   auto_update_vector_enabled: boolean;
@@ -297,6 +296,21 @@ export interface LLMModelsResponse {
   models: LLMModelItem[];
   warning?: LLMModelsWarning | null;
 }
+
+export type ProjectTask = {
+  id: string;
+  project_id: string;
+  actor_user_id?: string | null;
+  kind: string;
+  status: string;
+  idempotency_key?: string | null;
+  error_type?: string | null;
+  error_message?: string | null;
+  timings?: Record<string, unknown>;
+  params?: unknown;
+  result?: unknown;
+  error?: unknown;
+};
 
 export interface ProjectSummaryItem {
   project: Project;

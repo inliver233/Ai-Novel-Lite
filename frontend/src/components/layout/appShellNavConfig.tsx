@@ -4,7 +4,6 @@ import {
   BookOpen,
   BookText,
   FileDown,
-  Globe,
   Palette,
   PenLine,
   Settings,
@@ -58,14 +57,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.characters,
     ariaLabel: "角色卡 (nav_characters)",
     to: (projectId) => `/projects/${projectId}/characters`,
-  },
-  {
-    id: "worldbook",
-    group: "workbench",
-    icon: Globe,
-    label: UI_COPY.nav.worldBook,
-    ariaLabel: "世界书 (nav_worldbook)",
-    to: (projectId) => `/projects/${projectId}/worldbook`,
   },
   {
     id: "chapterAnalysis",

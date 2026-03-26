@@ -16,13 +16,11 @@ from app.services.prompt_budget import estimate_tokens
 from app.services.vector_rerank_overrides import vector_rerank_overrides
 from app.services.vector_embedding_overrides import vector_embedding_overrides
 from app.services.vector_rag_service import query_project, vector_rag_status
-from app.services.worldbook_service import preview_worldbook_trigger
 
 
 _MEMORY_TEXT_MD_CHAR_LIMIT = 6000
 _TRUNCATION_MARK = "\n…(truncated)\n"
 _ALLOWED_SECTIONS = {
-    "worldbook",
     "story_memory",
     "semantic_history",
     "vector_rag",
@@ -168,11 +166,9 @@ def retrieve_memory_context_pack(
     enabled_map = section_enabled or {}
     budgets_raw = budget_overrides or {}
     budgets = {str(k): v for k, v in budgets_raw.items() if str(k) in _ALLOWED_SECTIONS}
-    worldbook_enabled = bool(enabled_map.get("worldbook", True))
     story_memory_enabled = bool(enabled_map.get("story_memory", True))
     semantic_history_enabled = bool(enabled_map.get("semantic_history", False))
     vector_rag_enabled = bool(enabled_map.get("vector_rag", True))
-    worldbook_budget = _clamp_char_limit(budgets.get("worldbook"), default=12000) if "worldbook" in budgets else 12000
     story_memory_budget = (
         _clamp_char_limit(budgets.get("story_memory"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
         if "story_memory" in budgets
@@ -188,37 +184,7 @@ def retrieve_memory_context_pack(
         if "vector_rag" in budgets
         else int(getattr(settings, "vector_final_char_limit", 6000) or 6000)
     )
-    if worldbook_enabled:
-        worldbook_preview = preview_worldbook_trigger(
-            db=db,
-            project_id=project_id,
-            query_text=query_text,
-            include_constant=True,
-            enable_recursion=True,
-            char_limit=int(worldbook_budget),
-        )
-        worldbook = {**worldbook_preview.model_dump(), "enabled": True, "disabled_reason": None}
-        if not isinstance(worldbook.get("text_md"), str):
-            worldbook["text_md"] = str(worldbook_preview.text_md or "")
-        triggered = worldbook.get("triggered")
-        if isinstance(triggered, list):
-            for t in triggered:
-                if not isinstance(t, dict):
-                    continue
-                reason = str(t.get("reason") or "").strip()
-                if reason == "constant":
-                    t["match_source"] = "constant"
-                    t["match_value"] = None
-                    continue
-                if ":" in reason:
-                    src, value = reason.split(":", 1)
-                    src = src.strip()
-                    value = value.strip()
-                    if src:
-                        t["match_source"] = src
-                        t["match_value"] = value or None
-    else:
-        worldbook = {"enabled": False, "disabled_reason": "disabled", "triggered": [], "text_md": "", "truncated": False}
+    worldbook: dict[str, Any] = {"enabled": False, "disabled_reason": "removed", "triggered": [], "text_md": "", "truncated": False}
 
     story_memory: dict[str, Any] = {"enabled": False, "disabled_reason": "empty", "items": [], "text_md": ""}
     if not story_memory_enabled:
@@ -452,28 +418,13 @@ def retrieve_memory_context_pack(
                 vector_rag["final"] = final
         vector_rag["text_md"] = text_md
 
-    worldbook_triggered = worldbook.get("triggered") if isinstance(worldbook, dict) else None
-    worldbook_triggered_list = worldbook_triggered if isinstance(worldbook_triggered, list) else []
-    worldbook_triggered_sample: list[dict[str, Any]] = []
-    for t in worldbook_triggered_list[:10]:
-        if not isinstance(t, dict):
-            continue
-        title = t.get("title")
-        reason = t.get("reason")
-        worldbook_triggered_sample.append({"title": title, "reason": reason})
-
     logs: list[dict[str, Any]] = [
         {
             "section": "worldbook",
-            "enabled": bool(worldbook.get("enabled")),
-            "disabled_reason": worldbook.get("disabled_reason"),
-            "note": "preview_worldbook_trigger",
-            "triggered_count": len(worldbook_triggered_list),
-            "triggered_sample": worldbook_triggered_sample,
-            "token_estimate": estimate_tokens(str(worldbook.get("text_md") or "")),
-            "truncated": bool(worldbook.get("truncated")) if "truncated" in worldbook else None,
-            "budget_char_limit": int(worldbook_budget),
-            "budget_source": "override" if "worldbook" in budgets else "default",
+            "enabled": False,
+            "disabled_reason": "removed",
+            "note": "worldbook feature removed",
+            "token_estimate": 0,
         },
         {
             "section": "story_memory",

@@ -141,7 +141,6 @@ def get_import(request: Request, db: DbDep, user_id: UserIdDep, project_id: str,
             "document": _doc_public(row),
             "content_preview": content_preview,
             "vector_ingest_result": _safe_json(row.vector_ingest_result_json, {}),
-            "worldbook_proposal": _safe_json(row.worldbook_proposal_json, {}),
             "story_memory_proposal": _safe_json(row.story_memory_proposal_json, {}),
         },
     )

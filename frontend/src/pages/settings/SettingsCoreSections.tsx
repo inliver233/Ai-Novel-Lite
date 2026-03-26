@@ -174,18 +174,6 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
           <label className="flex items-center gap-2 text-sm text-ink">
             <input
               className="checkbox"
-              checked={settingsForm.auto_update_worldbook_enabled}
-              onChange={(e) =>
-                setSettingsForm((value) => ({ ...value, auto_update_worldbook_enabled: e.target.checked }))
-              }
-              type="checkbox"
-            />
-            世界书：自动更新条目（worldbook_auto_update）
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
               checked={settingsForm.auto_update_characters_enabled}
               onChange={(e) =>
                 setSettingsForm((value) => ({ ...value, auto_update_characters_enabled: e.target.checked }))

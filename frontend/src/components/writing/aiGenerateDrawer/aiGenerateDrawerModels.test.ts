@@ -24,7 +24,6 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
     memory_injection_enabled: true,
     memory_query_text: "",
     memory_modules: {
-      worldbook: true,
       story_memory: true,
       semantic_history: false,
       vector_rag: true,
@@ -87,7 +86,7 @@ describe("aiGenerateDrawerModels", () => {
   });
 
   it("keeps mapped context and memory module groups deterministic", () => {
-    expect(AI_GENERATE_PRIMARY_MEMORY_MODULES.map((item) => item.key)).toEqual(["worldbook"]);
+    expect(AI_GENERATE_PRIMARY_MEMORY_MODULES.map((item) => item.key)).toEqual(["story_memory"]);
     expect(AI_GENERATE_ADVANCED_MEMORY_MODULES.map((item) => item.key)).toEqual([
       "story_memory",
       "semantic_history",

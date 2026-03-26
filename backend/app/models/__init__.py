@@ -30,7 +30,6 @@ from app.models.user_activity_stat import UserActivityStat
 from app.models.user_password import UserPassword
 from app.models.user_usage_stat import UserUsageStat
 from app.models.writing_style import WritingStyle
-from app.models.worldbook_entry import WorldBookEntry
 
 __all__ = [
     "BatchGenerationTask",
@@ -65,5 +64,4 @@ __all__ = [
     "UserPassword",
     "UserUsageStat",
     "WritingStyle",
-    "WorldBookEntry",
 ]

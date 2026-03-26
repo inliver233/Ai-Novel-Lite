@@ -23,7 +23,6 @@ from app.models.outline import Outline
 from app.models.project_settings import ProjectSettings
 from app.models.project_task import ProjectTask
 from app.models.story_memory import StoryMemory
-from app.models.worldbook_entry import WorldBookEntry
 from app.services.project_task_event_service import emit_and_enqueue_project_task, reset_project_task_to_queued
 from app.services.context_budget_observability import build_budget_observability
 from app.services.embedding_service import (
@@ -35,7 +34,7 @@ from app.services.rerank_service import rerank_candidates as rerank_candidates_w
 
 logger = logging.getLogger("ainovel")
 
-VectorSource = Literal["worldbook", "outline", "chapter", "story_memory"]
+VectorSource = Literal["outline", "chapter", "story_memory"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +44,7 @@ class VectorChunk:
     metadata: dict[str, Any]
 
 
-_ALL_SOURCES: list[VectorSource] = ["worldbook", "outline", "chapter", "story_memory"]
+_ALL_SOURCES: list[VectorSource] = ["outline", "chapter", "story_memory"]
 _PGVECTOR_TABLE = "vector_chunks"
 _PGVECTOR_READY_CACHE: tuple[bool, float] | None = None
 _PGVECTOR_READY_CACHE_TTL_SECONDS = 30.0
@@ -1197,36 +1196,6 @@ def build_project_chunks(*, db: Session, project_id: str, sources: list[VectorSo
 
     out: list[VectorChunk] = []
 
-    if "worldbook" in sources:
-        rows = (
-            db.execute(
-                select(WorldBookEntry)
-                .where(WorldBookEntry.project_id == project_id)
-                .where(WorldBookEntry.enabled == True)  # noqa: E712
-                .order_by(WorldBookEntry.updated_at.desc())
-            )
-            .scalars()
-            .all()
-        )
-        for e in rows:
-            title = (e.title or "").strip()
-            content = (e.content_md or "").strip()
-            text = f"{title}\n\n{content}".strip()
-            for idx, chunk in enumerate(_chunk_text(text, chunk_size=chunk_size, overlap=overlap)):
-                out.append(
-                    VectorChunk(
-                        id=f"worldbook:{e.id}:{idx}",
-                        text=chunk,
-                        metadata={
-                            "project_id": project_id,
-                            "source": "worldbook",
-                            "source_id": e.id,
-                            "title": title,
-                            "chunk_index": idx,
-                        },
-                    )
-                )
-
     if "outline" in sources:
         rows = (
             db.execute(select(Outline).where(Outline.project_id == project_id).order_by(Outline.updated_at.desc()))
@@ -1866,9 +1835,7 @@ def _format_final_text(chunks: list[dict[str, Any]], *, char_limit: int) -> tupl
         meta = c.get("metadata") if isinstance(c.get("metadata"), dict) else {}
         source = str(meta.get("source") or "")
         title = str(meta.get("title") or "").strip()
-        if source == "worldbook":
-            header = f"【世界书：{title or meta.get('source_id') or 'entry'}】"
-        elif source == "chapter":
+        if source == "chapter":
             n = meta.get("chapter_number")
             header = f"【章节 {n}：{title or meta.get('source_id') or 'chapter'}】"
         elif source == "outline":

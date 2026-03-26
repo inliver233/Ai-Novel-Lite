@@ -1,4 +1,4 @@
-export type VectorSource = "worldbook" | "outline" | "chapter";
+export type VectorSource = "outline" | "chapter";
 
 export type VectorCandidate = {
   id: string;
@@ -172,7 +172,7 @@ export function normalizeVectorResult(raw: unknown): VectorRagQueryResult | null
   const promptBlock = o.prompt_block as Record<string, unknown>;
 
   const sources = Array.isArray(filters.sources)
-    ? (filters.sources.filter((v) => v === "worldbook" || v === "outline" || v === "chapter") as VectorSource[])
+    ? (filters.sources.filter((v) => v === "outline" || v === "chapter") as VectorSource[])
     : [];
 
   const candidatesRaw = Array.isArray(o.candidates) ? o.candidates : [];

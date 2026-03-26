@@ -15,10 +15,9 @@ from app.services.output_parsers import (
     parse_tag_output,
 )
 from app.schemas.memory_update import MemoryUpdateOpV1
-from app.schemas.worldbook_auto_update import WorldbookAutoUpdateOpV1
 
 
-OutputContractType = Literal["markers", "json", "tags", "analysis_json", "memory_update_json", "worldbook_auto_update_json"]
+OutputContractType = Literal["markers", "json", "tags", "analysis_json", "memory_update_json"]
 
 
 def _normalize_memory_update_op_v1(item: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -227,92 +226,6 @@ class OutputContract:
                 warnings.append("output_truncated")
             return OutputParseResult(data=data, warnings=warnings, parse_error=None)
 
-        if self.type == "worldbook_auto_update_json":
-            warnings: list[str] = []
-            value, raw_json = extract_json_value(text)
-            if isinstance(value, list):
-                value = {"ops": value}
-            if not isinstance(value, dict):
-                parse_error: dict[str, Any] = {
-                    "code": "WORLDBOOK_AUTO_UPDATE_PARSE_ERROR",
-                    "message": "无法从模型输出解析 worldbook_auto_update JSON",
-                }
-                if likely_truncated_json(text):
-                    parse_error["hint"] = "输出疑似被截断（JSON 未闭合），可尝试增大 max_tokens 或减少输出长度"
-                data = {"title": "", "summary_md": "", "ops": [], "raw_output": text}
-                return OutputParseResult(data=data, warnings=warnings, parse_error=parse_error)
-
-            schema_version = value.get("schema_version")
-            schema_version_norm = schema_version.strip() if isinstance(schema_version, str) else ""
-            if not schema_version_norm:
-                warnings.append("schema_version_missing")
-            elif schema_version_norm != "worldbook_auto_update_v1":
-                warnings.append("schema_version_invalid")
-
-            title = value.get("title")
-            title_out = title.strip() if isinstance(title, str) else ""
-            summary_md = value.get("summary_md")
-            summary_out = summary_md.strip() if isinstance(summary_md, str) else ""
-
-            ops_raw = value.get("ops")
-            if ops_raw is None:
-                warnings.append("ops_missing")
-                ops_raw = []
-            if not isinstance(ops_raw, list):
-                data = {"title": title_out, "summary_md": summary_out, "ops": [], "raw_output": text}
-                if raw_json:
-                    data["raw_json"] = raw_json
-                return OutputParseResult(
-                    data=data,
-                    warnings=warnings,
-                    parse_error={"code": "WORLDBOOK_AUTO_UPDATE_PARSE_ERROR", "message": "ops 必须是数组"},
-                )
-            if not ops_raw:
-                warnings.append("ops_empty")
-                data = {"title": title_out, "summary_md": summary_out, "ops": [], "raw_output": text}
-                if raw_json:
-                    data["raw_json"] = raw_json
-                if finish_reason == "length":
-                    warnings.append("output_truncated")
-                return OutputParseResult(data=data, warnings=warnings, parse_error=None)
-
-            ops_out: list[dict[str, Any]] = []
-            for idx, item in enumerate(ops_raw):
-                if not isinstance(item, dict):
-                    return OutputParseResult(
-                        data={"title": title_out, "summary_md": summary_out, "ops": [], "raw_output": text},
-                        warnings=warnings,
-                        parse_error={
-                            "code": "WORLDBOOK_AUTO_UPDATE_PARSE_ERROR",
-                            "message": f"ops[{idx}] 必须是 object",
-                            "idx": idx,
-                        },
-                    )
-                try:
-                    op = WorldbookAutoUpdateOpV1.model_validate(item)
-                except Exception as exc:
-                    pydantic_errors = self._safe_pydantic_errors(exc)
-                    parse_error: dict[str, Any] = {
-                        "code": "WORLDBOOK_AUTO_UPDATE_PARSE_ERROR",
-                        "message": f"ops[{idx}] schema invalid:{type(exc).__name__}",
-                        "idx": idx,
-                    }
-                    if pydantic_errors is not None:
-                        parse_error["errors"] = pydantic_errors
-                    return OutputParseResult(
-                        data={"title": title_out, "summary_md": summary_out, "ops": [], "raw_output": text},
-                        warnings=warnings,
-                        parse_error=parse_error,
-                    )
-                ops_out.append(dict(op.model_dump()))
-
-            data: dict[str, Any] = {"title": title_out, "summary_md": summary_out, "ops": ops_out, "raw_output": text}
-            if raw_json:
-                data["raw_json"] = raw_json
-            if finish_reason == "length":
-                warnings.append("output_truncated")
-            return OutputParseResult(data=data, warnings=warnings, parse_error=None)
-
         if self.type == "tags":
             tag = (self.tag or "").strip()
             if not tag:
@@ -349,8 +262,6 @@ def contract_for_task(task: str) -> OutputContract:
         return OutputContract(type="tags", tag="content", output_key="content_md")
     if task == "chapter_rewrite":
         return OutputContract(type="tags", tag="rewrite", output_key="content_md")
-    if task == "worldbook_auto_update":
-        return OutputContract(type="worldbook_auto_update_json")
     return OutputContract(type="markers")
 
 

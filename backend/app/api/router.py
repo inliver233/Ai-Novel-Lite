@@ -28,7 +28,6 @@ from app.api.routes import (
     settings,
     story_memory,
     vector,
-    worldbook,
     writing_styles,
 )
 
@@ -58,6 +57,5 @@ api_router.include_router(outlines.router, tags=["outlines"])
 api_router.include_router(export.router, tags=["export"])
 api_router.include_router(import_export.router, tags=["import_export"])
 api_router.include_router(generation_runs.router, tags=["generation_runs"])
-api_router.include_router(worldbook.router, tags=["worldbook"])
 api_router.include_router(story_memory.router, tags=["story_memory"])
 api_router.include_router(writing_styles.router, tags=["writing_styles"])

@@ -178,122 +178,6 @@ def list_project_tasks(
     return {"items": items, "next_before": next_before}
 
 
-def schedule_worldbook_auto_update_task(
-    *,
-    db: Session | None = None,
-    project_id: str,
-    actor_user_id: str | None,
-    request_id: str | None,
-    chapter_id: str | None,
-    chapter_token: str | None,
-    reason: str,
-) -> str | None:
-    """
-    Fail-soft scheduler: ensure/enqueue a ProjectTask(kind=worldbook_auto_update).
-
-    Idempotency key is chapter-scoped when chapter_id is provided, so a chapter can be marked done and re-triggered
-    later (with a new token) without creating duplicate tasks for the same chapter version.
-    """
-
-    pid = str(project_id or "").strip()
-    if not pid:
-        return None
-
-    cid = str(chapter_id or "").strip() or None
-    token_norm = str(chapter_token or "").strip() or utc_now().isoformat().replace("+00:00", "Z")
-    reason_norm = str(reason or "").strip() or "dirty"
-
-    if cid:
-        idempotency_key = f"worldbook:chapter:{cid}:since:{token_norm}:v1"
-    else:
-        idempotency_key = f"worldbook:project:since:{token_norm}:v1"
-
-    owns_session = db is None
-    if db is None:
-        db = SessionLocal()
-    try:
-        task = (
-            db.execute(
-                select(ProjectTask).where(
-                    ProjectTask.project_id == pid,
-                    ProjectTask.idempotency_key == idempotency_key,
-                )
-            )
-            .scalars()
-            .first()
-        )
-
-        created_task = False
-        if task is None:
-            created_task = True
-            task = ProjectTask(
-                id=new_id(),
-                project_id=pid,
-                actor_user_id=actor_user_id,
-                kind="worldbook_auto_update",
-                status="queued",
-                idempotency_key=idempotency_key,
-                params_json=_compact_json_dumps(
-                    {
-                        "reason": reason_norm,
-                        "request_id": (str(request_id or "").strip() or None),
-                        "chapter_id": cid,
-                        "chapter_token": token_norm,
-                        "triggered_at": utc_now().isoformat().replace("+00:00", "Z"),
-                    }
-                ),
-                result_json=None,
-                error_json=None,
-            )
-            db.add(task)
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-                task = (
-                    db.execute(
-                        select(ProjectTask).where(
-                            ProjectTask.project_id == pid,
-                            ProjectTask.idempotency_key == idempotency_key,
-                        )
-                    )
-                    .scalars()
-                    .first()
-                )
-
-        if task is None:
-            return None
-
-        # Retry policy: allow re-scheduling the same idempotency_key when the previous attempt failed.
-        # This keeps "chapter done" and manual triggers idempotent while still allowing a one-click retry.
-        status_norm = str(getattr(task, "status", "") or "").strip().lower()
-        actor_norm = str(actor_user_id or "").strip() or None
-        if status_norm in {"queued", "failed"} and actor_norm and not (str(getattr(task, "actor_user_id", "") or "").strip()):
-            # If a user-triggered run provides actor_user_id, fill it for previously system-triggered tasks.
-            task.actor_user_id = actor_norm
-            db.commit()
-
-        event_type = "queued" if created_task else None
-        if status_norm == "failed":
-            reset_project_task_to_queued(task=task, increment_retry_count=True)
-            db.commit()
-            event_type = "retry"
-        elif status_norm in {"running", "succeeded"}:
-            # Avoid enqueue storms; worker will no-op anyway.
-            return str(task.id)
-
-        return _emit_and_enqueue_project_task(
-            db=db,
-            task=task,
-            request_id=request_id,
-            event_type=event_type,
-            source="scheduler",
-            payload={"reason": reason_norm, "request_id": request_id, "chapter_id": cid, "chapter_token": token_norm},
-        )
-    finally:
-        if owns_session:
-            db.close()
-
 
 def _task_params_reason(params_json: str | None) -> str:
     if not params_json:
@@ -407,7 +291,6 @@ def schedule_chapter_done_tasks(
     Schedules:
     - ProjectTask(kind=vector_rebuild)
     - ProjectTask(kind=search_rebuild)
-    - ProjectTask(kind=worldbook_auto_update)
     - ProjectTask(kind=characters_auto_update)
     - ProjectTask(kind=plot_auto_update)
 
@@ -422,7 +305,6 @@ def schedule_chapter_done_tasks(
     out: dict[str, str | None] = {
         "vector_rebuild": None,
         "search_rebuild": None,
-        "worldbook_auto_update": None,
         "characters_auto_update": None,
         "plot_auto_update": None,
     }
@@ -433,7 +315,6 @@ def schedule_chapter_done_tasks(
     from app.models.project_settings import ProjectSettings
 
     settings_row = db.get(ProjectSettings, pid)
-    auto_worldbook = bool(getattr(settings_row, "auto_update_worldbook_enabled", True)) if settings_row is not None else True
     auto_characters = bool(getattr(settings_row, "auto_update_characters_enabled", True)) if settings_row is not None else True
     auto_story_memory = bool(getattr(settings_row, "auto_update_story_memory_enabled", True)) if settings_row is not None else True
     auto_vector = bool(getattr(settings_row, "auto_update_vector_enabled", True)) if settings_row is not None else True
@@ -484,31 +365,6 @@ def schedule_chapter_done_tasks(
             error_type=type(exc).__name__,
             **exception_log_fields(exc),
         )
-
-    if auto_worldbook:
-        try:
-            out["worldbook_auto_update"] = schedule_worldbook_auto_update_task(
-                db=db,
-                project_id=pid,
-                actor_user_id=actor_user_id,
-                request_id=request_id,
-                chapter_id=cid,
-                chapter_token=token_norm,
-                reason=reason_norm,
-            )
-            if isinstance(db, Session):
-                _try_dedupe_queued_chapter_tasks(db=db, project_id=pid, keep_task_id=out.get("worldbook_auto_update"))
-        except Exception as exc:
-            log_event(
-                logger,
-                "warning",
-                event="CHAPTER_DONE_TASK_SCHEDULE_ERROR",
-                project_id=pid,
-                chapter_id=cid,
-                kind="worldbook_auto_update",
-                error_type=type(exc).__name__,
-                **exception_log_fields(exc),
-            )
 
     if auto_characters:
         try:
@@ -674,83 +530,6 @@ def run_project_task(*, task_id: str) -> str:
             from app.services.search_index_service import rebuild_project_search_index_async
 
             result = rebuild_project_search_index_async(project_id=project_id)
-        elif kind == "worldbook_auto_update":
-            params = _compact_json_loads(task.params_json) if task.params_json else None
-            params_dict = params if isinstance(params, dict) else {}
-            chapter_id = str(params_dict.get("chapter_id") or "").strip() or None
-            request_id2 = str(params_dict.get("request_id") or "").strip() or None
-            actor_user_id = str(getattr(task, "actor_user_id", "") or "").strip()
-            if not actor_user_id:
-                raise AppError(
-                    code="PROJECT_TASK_CONFIG_ERROR",
-                    message="worldbook_auto_update 缺少 actor_user_id（无法解析 API Key）",
-                    status_code=500,
-                    details={
-                        "task_kind": "worldbook_auto_update",
-                        "how_to_fix": [
-                            "通过 UI 触发任务时，确保已登录且具备 editor 权限",
-                            "如果是系统触发（无 user），请改为传入明确的 actor_user_id 或配置项目级 API Key",
-                        ],
-                    },
-                )
-
-            from app.services.worldbook_auto_update_service import worldbook_auto_update_v1
-
-            res = worldbook_auto_update_v1(
-                project_id=project_id,
-                actor_user_id=actor_user_id,
-                request_id=request_id2 or f"project_task:{task_id}",
-                chapter_id=chapter_id,
-            )
-            if not bool(res.get("ok")):
-                reason = str(res.get("reason") or "unknown").strip() or "unknown"
-                run_id = str(res.get("run_id") or "").strip() or None
-                error_type2 = str(res.get("error_type") or "").strip() or None
-                error_message2 = str(res.get("error_message") or "").strip() or None
-                parse_error = str(res.get("parse_error") or "").strip() or None
-                warnings = res.get("warnings") if isinstance(res.get("warnings"), list) else None
-                attempts = res.get("attempts") if isinstance(res.get("attempts"), list) else None
-                error_obj = res.get("error") if isinstance(res.get("error"), dict) else None
-
-                how_to_fix: list[str] = []
-                if reason == "api_key_missing":
-                    how_to_fix = [
-                        "在「模型配置/项目设置」中配置可用的 API Key（或检查请求头 X-LLM-API-Key）",
-                        "确认当前项目已绑定 LLM Profile / Preset（用于 worldbook_auto_update）",
-                    ]
-                elif reason == "llm_preset_missing":
-                    how_to_fix = ["先在项目中选择/绑定可用的 LLM Profile，并刷新页面后重试任务"]
-                elif reason == "llm_call_failed":
-                    how_to_fix = ["检查 base_url / 网络连通性（可用「模型配置 → 测试连接」验证）", "确认模型与参数兼容；必要时切换 provider/model 后重试"]
-                elif reason == "parse_error":
-                    how_to_fix = ["模型输出未满足 JSON 合同：可在任务详情中查看 run_id 并定位输出", "尝试更换模型/降低温度后重试"]
-                elif reason == "apply_failed":
-                    how_to_fix = ["数据库写入失败：请查看 error.details 或 backend.log；修复后重试任务"]
-
-                details: dict[str, Any] = {
-                    "task_kind": "worldbook_auto_update",
-                    "reason": reason,
-                    "run_id": run_id,
-                    "error_type": error_type2,
-                    "error_message": error_message2,
-                    "parse_error": parse_error,
-                    "warnings": warnings,
-                }
-                if attempts is not None:
-                    details["attempts"] = attempts
-                if error_obj is not None:
-                    details["error"] = error_obj
-                if how_to_fix:
-                    details["how_to_fix"] = how_to_fix
-
-                msg = f"worldbook_auto_update 失败：{reason}"
-                if run_id:
-                    msg += f" (run_id={run_id})"
-                if error_message2:
-                    msg += f" - {error_message2[:160]}"
-
-                raise AppError(code="WORLDBOOK_AUTO_UPDATE_FAILED", message=msg, status_code=500, details=details)
-            result = res
         elif kind == "characters_auto_update":
             params = _compact_json_loads(task.params_json) if task.params_json else None
             params_dict = params if isinstance(params, dict) else {}

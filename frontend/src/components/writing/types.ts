@@ -30,7 +30,6 @@ export type GenerateForm = {
   memory_injection_enabled: boolean;
   memory_query_text: string;
   memory_modules: {
-    worldbook: boolean;
     story_memory: boolean;
     semantic_history: boolean;
     vector_rag: boolean;
@@ -48,7 +47,6 @@ export type GenerateForm = {
 };
 
 export type MemoryContextPack = {
-  worldbook: Record<string, unknown>;
   story_memory: Record<string, unknown>;
   semantic_history: Record<string, unknown>;
   vector_rag: Record<string, unknown>;

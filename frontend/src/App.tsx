@@ -87,11 +87,6 @@ const ExportPage = lazy(async () => {
   return { default: mod.ExportPage };
 });
 
-const WorldBookPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/WorldBookPage"));
-  return { default: mod.WorldBookPage };
-});
-
 const StylesPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/StylesPage"));
   return { default: mod.StylesPage };
@@ -192,10 +187,6 @@ const router = createBrowserRouter([
               {
                 path: "export",
                 element: <ExportPage />,
-              },
-              {
-                path: "worldbook",
-                element: <WorldBookPage />,
               },
               {
                 path: "styles",

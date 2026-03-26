@@ -61,12 +61,6 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         description="memory_update JSON 变更提议",
     ),
     LLMTaskCatalogItem(
-        key="worldbook_auto_update",
-        label="世界书自动更新",
-        group="memory",
-        description="世界书后台自动更新任务",
-    ),
-    LLMTaskCatalogItem(
         key="characters_auto_update",
         label="角色卡自动更新",
         group="memory",

@@ -5,7 +5,6 @@ import { ApiError, apiJson } from "../../services/apiClient";
 import { Drawer } from "../ui/Drawer";
 import { useToast } from "../ui/toast";
 import type { MemoryContextPack } from "./types";
-import { WorldbookPreviewPanel } from "./contextPreview/WorldbookPreviewPanel";
 import { useVectorRagQuery } from "./contextPreview/useVectorRagQuery";
 import { downloadJson, writeClipboardText } from "./contextPreview/utils";
 import { formatWritingDisabledReason, WRITING_RUNTIME_COPY } from "./writingRuntimeCopy";
@@ -20,7 +19,6 @@ type Props = {
   genChapterPlan?: string;
   genMemoryQueryText?: string;
   genMemoryModules?: {
-    worldbook: boolean;
     story_memory: boolean;
     semantic_history?: boolean;
     vector_rag: boolean;
@@ -35,7 +33,6 @@ type MemoryContextPackLogItem = {
 };
 
 type MemorySectionEnabled = {
-  worldbook: boolean;
   story_memory: boolean;
   semantic_history: boolean;
   vector_rag: boolean;
@@ -58,27 +55,24 @@ type ContextOptimizerLog = {
 };
 
 type OptimizerCompare = {
-  baseline: { worldbook: string };
-  optimized: { worldbook: string };
+  baseline: Record<string, string>;
+  optimized: Record<string, string>;
   optimizerLog: ContextOptimizerLog | null;
 };
 
 const DEFAULT_PREVIEW_SECTIONS: MemorySectionEnabled = {
-  worldbook: true,
   story_memory: true,
   semantic_history: false,
   vector_rag: true,
 };
 
 const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
-  worldbook: "",
   story_memory: "",
   semantic_history: "",
   vector_rag: "",
 };
 
 const EMPTY_PACK: MemoryContextPack = {
-  worldbook: {},
   story_memory: {},
   semantic_history: {},
   vector_rag: {},
@@ -128,20 +122,6 @@ function normalizeContextOptimizerLog(renderLog: unknown): ContextOptimizerLog |
     saved_tokens_estimate: Number.isFinite(saved) ? saved : 0,
     blocks,
   };
-}
-
-function getPromptPreviewBlockText(preview: unknown, identifier: string): string {
-  if (!preview || typeof preview !== "object") return "";
-  const o = preview as Record<string, unknown>;
-  const blocks = Array.isArray(o.blocks) ? o.blocks : [];
-  for (const b of blocks) {
-    if (!b || typeof b !== "object") continue;
-    const it = b as Record<string, unknown>;
-    if (typeof it.identifier !== "string") continue;
-    if (it.identifier !== identifier) continue;
-    return typeof it.text === "string" ? it.text : "";
-  }
-  return "";
 }
 
 function formatContextOptimizerDetails(details: unknown): string | null {
@@ -245,7 +225,6 @@ export function ContextPreviewDrawer(props: Props) {
   const parsedBudgetOverrides = useMemo(() => {
     const out: Record<string, number> = {};
     for (const key of [
-      "worldbook",
       "story_memory",
       "semantic_history",
       "vector_rag",
@@ -343,7 +322,6 @@ export function ContextPreviewDrawer(props: Props) {
       return typeof o.text_md === "string" ? o.text_md.trim() : "";
     };
     return (
-      !getTextMd(effectivePack.worldbook) &&
       !getTextMd(effectivePack.story_memory) &&
       !getTextMd(effectivePack.semantic_history) &&
       !getTextMd(effectivePack.vector_rag)
@@ -408,17 +386,13 @@ export function ContextPreviewDrawer(props: Props) {
         },
       );
 
-      const baselinePreview = baselineRes.data?.preview;
-      const optimizedPreview = optimizedRes.data?.preview;
+      const _baselinePreview = baselineRes.data?.preview;
+      void _baselinePreview;
       const optimizerLog = normalizeContextOptimizerLog(optimizedRes.data?.render_log ?? null);
 
       setOptimizerCompare({
-        baseline: {
-          worldbook: getPromptPreviewBlockText(baselinePreview, "sys.memory.worldbook"),
-        },
-        optimized: {
-          worldbook: getPromptPreviewBlockText(optimizedPreview, "sys.memory.worldbook"),
-        },
+        baseline: {},
+        optimized: {},
         optimizerLog,
       });
     } catch (e) {
@@ -432,14 +406,6 @@ export function ContextPreviewDrawer(props: Props) {
       setOptimizerCompareLoading(false);
     }
   }, [effectivePack, memoryInjectionEnabled, projectId]);
-
-  const worldbookPreview = useMemo(() => {
-    const raw = (effectivePack.worldbook ?? {}) as Record<string, unknown>;
-    const triggered = Array.isArray(raw.triggered) ? raw.triggered : [];
-    const textMd = typeof raw.text_md === "string" ? raw.text_md : "";
-    const truncated = Boolean(raw.truncated);
-    return { triggered, textMd, truncated, raw };
-  }, [effectivePack.worldbook]);
 
   const fetchPreview = useCallback(
     async (params: { queryText: string; sections: MemorySectionEnabled; budgets: Record<string, number> }) => {
@@ -598,7 +564,7 @@ export function ContextPreviewDrawer(props: Props) {
       <div className="mt-4 rounded-atelier border border-border bg-surface p-3 text-[11px] text-subtext">
         <div className="text-xs text-ink">用途</div>
         <div className="mt-1">
-          用于预览“生成前可能注入的上下文”与调试信息（WorldBook / RAG / 结构化记忆等），帮助排查“为什么写成这样”。
+          用于预览”生成前可能注入的上下文”与调试信息（RAG / 记忆等），帮助排查”为什么写成这样”。
         </div>
         <div className="mt-2 text-xs text-ink">风险</div>
         <ul className="mt-1 list-disc pl-5">
@@ -668,7 +634,6 @@ export function ContextPreviewDrawer(props: Props) {
                 <div className="text-xs text-subtext">modules（section_enabled）</div>
                 {(
                   [
-                    ["worldbook", "世界书（worldbook）"],
                     ["story_memory", "剧情记忆（story_memory）"],
                     ["semantic_history", "语义历史（semantic_history）"],
                     ["vector_rag", "向量 RAG（vector_rag）"],
@@ -693,7 +658,6 @@ export function ContextPreviewDrawer(props: Props) {
                 <div className="mt-3 grid gap-2">
                   {(
                     [
-                      ["worldbook", "worldbook char_limit"],
                       ["story_memory", "story_memory char_limit"],
                       ["semantic_history", "semantic_history char_limit"],
                       ["vector_rag", "vector_rag char_limit"],
@@ -928,22 +892,11 @@ export function ContextPreviewDrawer(props: Props) {
                 {optimizerCompare ? (
                   <details className="rounded-atelier border border-border bg-surface p-3">
                     <summary className="ui-transition-fast cursor-pointer text-xs text-subtext hover:text-ink">
-                      diff（sys.memory.worldbook）
+                      context optimizer log
                     </summary>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <div>
-                        <div className="text-[11px] text-subtext">baseline</div>
-                        <pre className="mt-1 max-h-64 overflow-auto rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
-                          {optimizerCompare.baseline.worldbook || "（worldbook 为空）"}
-                        </pre>
-                      </div>
-                      <div>
-                        <div className="text-[11px] text-subtext">optimized</div>
-                        <pre className="mt-1 max-h-64 overflow-auto rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
-                          {optimizerCompare.optimized.worldbook || "（worldbook 为空）"}
-                        </pre>
-                      </div>
-                    </div>
+                    <pre className="mt-3 max-h-64 overflow-auto rounded-atelier border border-border bg-surface p-3 text-xs text-ink">
+                      {JSON.stringify(optimizerCompare.optimizerLog, null, 2)}
+                    </pre>
                   </details>
                 ) : null}
               </div>
@@ -1041,9 +994,6 @@ export function ContextPreviewDrawer(props: Props) {
           </div>
         ) : null}
 
-        {memoryInjectionEnabled ? (
-          <WorldbookPreviewPanel effectivePack={effectivePack} worldbookPreview={worldbookPreview} />
-        ) : null}
 
       </div>
     </Drawer>

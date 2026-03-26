@@ -84,7 +84,7 @@ class VectorIngestRequest(BaseModel):
     kb_id: str | None = Field(default=None, max_length=64)
     kb_ids: list[str] = Field(default_factory=list, max_length=200)
     sources: list[VectorSource] = Field(
-        default_factory=lambda: ["worldbook", "outline", "chapter", "story_memory"], max_length=10
+        default_factory=lambda: ["outline", "chapter", "story_memory"], max_length=10
     )
 
 
@@ -93,7 +93,7 @@ class VectorQueryRequest(BaseModel):
     kb_id: str | None = Field(default=None, max_length=64)
     kb_ids: list[str] = Field(default_factory=list, max_length=200)
     sources: list[VectorSource] = Field(
-        default_factory=lambda: ["worldbook", "outline", "chapter", "story_memory"], max_length=10
+        default_factory=lambda: ["outline", "chapter", "story_memory"], max_length=10
     )
     rerank_hybrid_alpha: float | None = Field(default=None, ge=0.0, le=1.0)
     super_sort: dict[str, Any] | None = Field(default=None)
@@ -102,7 +102,7 @@ class VectorQueryRequest(BaseModel):
 class VectorStatusRequest(BaseModel):
     kb_id: str | None = Field(default=None, max_length=64)
     sources: list[VectorSource] = Field(
-        default_factory=lambda: ["worldbook", "outline", "chapter", "story_memory"], max_length=10
+        default_factory=lambda: ["outline", "chapter", "story_memory"], max_length=10
     )
 
 
