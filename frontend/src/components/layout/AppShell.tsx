@@ -1,12 +1,11 @@
 import clsx from "clsx";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
-import { CircleHelp, LayoutDashboard, PanelLeftClose, PanelLeftOpen, UserCog } from "lucide-react";
+import { LayoutDashboard, PanelLeftClose, PanelLeftOpen, UserCog } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate, useOutlet, useParams } from "react-router-dom";
 
 import { ProjectSwitcher } from "../atelier/ProjectSwitcher";
 import { ThemeToggle } from "../atelier/ThemeToggle";
-import { Drawer } from "../ui/Drawer";
 import { useAuth } from "../../contexts/auth";
 import { PersistentOutletProvider } from "../../hooks/PersistentOutletProvider";
 import { resolveRouteMeta } from "../../lib/routes";
@@ -72,30 +71,6 @@ function SidebarLink(props: {
         </>
       )}
     </NavLink>
-  );
-}
-
-function SidebarButton(props: {
-  icon: React.ReactNode;
-  label: string;
-  ariaLabel?: string;
-  collapsed: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={clsx(
-        "ui-focus-ring ui-transition-fast group relative flex w-full items-center overflow-hidden rounded-atelier py-2 text-sm hover:bg-canvas motion-safe:active:scale-[0.99]",
-        props.collapsed ? "justify-center px-0" : "justify-start gap-3 px-3",
-      )}
-      aria-label={props.ariaLabel ?? props.label}
-      title={props.collapsed ? props.label : undefined}
-      onClick={props.onClick}
-      type="button"
-    >
-      <span className="relative z-10 shrink-0">{props.icon}</span>
-      {props.collapsed ? null : <span className="relative z-10 min-w-0 truncate">{props.label}</span>}
-    </button>
   );
 }
 
@@ -243,7 +218,6 @@ export function AppShell() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const [mobileNavOpenForPath, setMobileNavOpenForPath] = useState<string | null>(null);
-  const [helpOpen, setHelpOpen] = useState(false);
   const { projectId } = useParams();
   const location = useLocation();
   const reduceMotion = useReducedMotion();
@@ -261,8 +235,6 @@ export function AppShell() {
 
   const openMobileNav = () => setMobileNavOpenForPath(pathname);
   const closeMobileNav = () => setMobileNavOpenForPath(null);
-  const openHelp = () => setHelpOpen(true);
-  const closeHelp = () => setHelpOpen(false);
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -315,16 +287,6 @@ export function AppShell() {
                       ariaLabel="首页 (nav_home)"
                       to="/"
                       onClick={closeMobileNav}
-                    />
-                    <SidebarButton
-                      collapsed={false}
-                      icon={<CircleHelp size={18} />}
-                      label={UI_COPY.nav.help}
-                      ariaLabel="术语/帮助 (nav_help)"
-                      onClick={() => {
-                        closeMobileNav();
-                        openHelp();
-                      }}
                     />
                     <div className="my-2 h-px bg-border" />
                     {projectId ? (
@@ -402,13 +364,6 @@ export function AppShell() {
                 label={UI_COPY.nav.home}
                 ariaLabel="首页 (nav_home)"
                 to="/"
-              />
-              <SidebarButton
-                collapsed={collapsed}
-                icon={<CircleHelp size={18} />}
-                label={UI_COPY.nav.help}
-                ariaLabel="术语/帮助 (nav_help)"
-                onClick={openHelp}
               />
               <div className="my-2 h-px bg-border" />
               {projectId ? (
@@ -514,46 +469,6 @@ export function AppShell() {
           </div>
         </main>
       </div>
-
-      <Drawer
-        open={helpOpen}
-        onClose={closeHelp}
-        ariaLabel={UI_COPY.help.title}
-        panelClassName="h-full w-full max-w-xl border-l border-border bg-canvas p-6 shadow-sm"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="font-content text-2xl text-ink">{UI_COPY.help.title}</div>
-            <div className="mt-1 text-xs text-subtext">{UI_COPY.help.subtitle}</div>
-          </div>
-          <button className="btn btn-secondary" aria-label="关闭" onClick={closeHelp} type="button">
-            关闭
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-4">
-          <section className="grid gap-2">
-            <div className="text-sm font-semibold text-ink">{UI_COPY.help.termsTitle}</div>
-            <div className="grid gap-2">
-              {UI_COPY.help.terms.map((t) => (
-                <div key={t.label} className="rounded-atelier border border-border bg-surface p-3">
-                  <div className="text-sm text-ink">{t.label}</div>
-                  <div className="mt-1 text-xs text-subtext">{t.description}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="grid gap-2">
-            <div className="text-sm font-semibold text-ink">{UI_COPY.help.tipsTitle}</div>
-            <ul className="list-disc pl-5 text-xs text-subtext">
-              {UI_COPY.help.tips.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-          </section>
-        </div>
-      </Drawer>
     </div>
   );
 }

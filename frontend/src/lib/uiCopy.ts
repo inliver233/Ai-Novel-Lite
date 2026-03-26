@@ -31,7 +31,6 @@ export const UI_COPY = {
     promptTemplates: "提示词模板",
     dataImport: "导入",
     adminUsers: "用户管理",
-    help: "术语/帮助",
 
     navMenu: "导航菜单",
     openNav: "打开导航",
@@ -43,25 +42,6 @@ export const UI_COPY = {
   notFound: {
     title: "页面不存在",
     description: "我们找不到你要访问的地址。你可以尝试以下入口：",
-  },
-  help: {
-    title: "术语/帮助",
-    subtitle: "常用术语速查 + 页面说明模板（何时用 / 风险 / 示例）。",
-    termsTitle: "常用术语（速查）",
-    terms: [
-      { label: "提示词（prompt）", description: "给模型的指令文本；一般由“目标 + 约束 + 输入/输出格式”组成。" },
-      { label: "向量化（embedding）", description: "把文本变成向量以便检索；需配置模型/接口，可能有成本与耗时。" },
-      { label: "重排（rerank）", description: "对候选结果二次排序，提高命中质量；通常会增加一次额外计算。" },
-      { label: "检索增强生成（RAG）", description: "先检索相关片段，再把片段注入生成上下文；用于增强一致性与引用。" },
-      { label: "知识库（KB）", description: "RAG 的数据分组与权重配置单位；可按用途拆分并单独启用/排序。" },
-      { label: "请求 ID（request_id）", description: "后端为一次请求生成的定位标识；遇到报错/异常优先记录它。" },
-      { label: "JSON", description: "结构化数据格式；在高级调试/导入导出时常见。" },
-    ],
-    tipsTitle: "排障小贴士",
-    tips: [
-      "遇到报错：先记录 请求 ID（request_id）与复现步骤（点了什么/输入了什么）。",
-      "遇到“加载慢/不稳定”：先看是否需要重建索引/入库，以及是否有大量数据导致分页/渲染压力。",
-    ],
   },
   search: {
     title: "搜索引擎",

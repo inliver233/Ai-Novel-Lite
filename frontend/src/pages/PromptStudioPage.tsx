@@ -679,7 +679,7 @@ export function PromptStudioPage() {
 
         <div className="mt-3 grid gap-3">
           <div className="text-sm text-subtext">{UI_COPY.promptStudio.intro}</div>
-          <DebugDetails title={UI_COPY.help.title}>
+          <DebugDetails title="帮助">
             <div className="grid gap-2 text-xs text-subtext">
               <div>{UI_COPY.promptStudio.recommendedFlow}</div>
               <div>{UI_COPY.promptStudio.quickStart}</div>
