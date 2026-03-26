@@ -35,7 +35,6 @@ export const WRITING_PAGE_COPY = {
   applyRunSuccess: "已应用生成结果（别忘了保存）",
   applyRunEmpty: "生成记录为空，无法应用",
   autoUpdatesCreated: "已保存并创建无感更新任务",
-  memoryUpdateNeedsSaveFirst: "请先保存当前章节后再进行记忆更新。",
   promptPresetRequired: "请先在 Prompts 页保存 LLM 配置",
   saveAndGenerateLastChapter: "已保存，已是最后一章",
   streamFloatingTitle: "AI 流式生成中",
@@ -99,11 +98,7 @@ export function getWritingReadonlyCallout(): string {
 }
 
 export function getWritingStatusHint(): string {
-  return `提示：保存不等于定稿。仅状态为 ${DONE_LABEL} 的章节允许进行记忆更新（Memory Update）写入长期记忆；定稿章默认只读，修改请先切回 ${DRAFTING_LABEL}。`;
-}
-
-export function getWritingDoneOnlyWarning(): string {
-  return `仅状态为 ${DONE_LABEL} 的章节允许记忆更新；请先将章节标记为 ${DONE_LABEL}。`;
+  return `提示：保存不等于定稿。状态为 ${DONE_LABEL} 的章节默认只读；如需修改，请先切回 ${DRAFTING_LABEL}。`;
 }
 
 export function getWritingNextChapterReplaceTitle(chapterNumber: number): string {

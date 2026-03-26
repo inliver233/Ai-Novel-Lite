@@ -29,7 +29,6 @@ import { useOutlineSwitcher } from "./useOutlineSwitcher";
 import type { ChapterForm } from "./writingUtils";
 import { type ChapterAutoUpdatesTriggerResult } from "./writingPageModels";
 import {
-  getWritingDoneOnlyWarning,
   getWritingGenerateIndicatorLabel,
   getWritingNextChapterReplaceTitle,
   WRITING_PAGE_COPY,
@@ -75,7 +74,6 @@ export function useWritingPageState(): WritingPageState {
   const [postEditCompareOpen, setPostEditCompareOpen] = useState(false);
   const [contentOptimizeCompareOpen, setContentOptimizeCompareOpen] = useState(false);
   const [contextPreviewOpen, setContextPreviewOpen] = useState(false);
-  const [memoryUpdateOpen, setMemoryUpdateOpen] = useState(false);
   const [autoUpdatesTriggering, setAutoUpdatesTriggering] = useState(false);
 
   const writingQuery = useProjectData<WritingLoaded>(projectId, async (id) => {
@@ -320,18 +318,6 @@ export function useWritingPageState(): WritingPageState {
       onOpenBatch: batch.openModal,
       onOpenHistory: history.openDrawer,
       onOpenAiGenerate: () => setAiOpen(true),
-      onOpenMemoryUpdate: () => {
-        if (!activeChapter) return;
-        if (dirty) {
-          toast.toastWarning(WRITING_PAGE_COPY.memoryUpdateNeedsSaveFirst);
-          return;
-        }
-        if (activeChapter.status !== "done") {
-          toast.toastWarning(getWritingDoneOnlyWarning());
-          return;
-        }
-        setMemoryUpdateOpen(true);
-      },
       onOpenContextPreview: () => setContextPreviewOpen(true),
       onCreateChapter: chapterCrud.openCreate,
     },
@@ -472,11 +458,6 @@ export function useWritingPageState(): WritingPageState {
       genMemoryModules: genForm.memory_modules,
       onChangeMemoryInjectionEnabled: (enabled) =>
         setGenForm((prev) => ({ ...prev, memory_injection_enabled: Boolean(enabled) })),
-    },
-    memoryUpdateDrawerProps: {
-      open: memoryUpdateOpen,
-      onClose: () => setMemoryUpdateOpen(false),
-      chapterId: activeId ?? undefined,
     },
     generationHistoryDrawerProps: {
       open: history.open,

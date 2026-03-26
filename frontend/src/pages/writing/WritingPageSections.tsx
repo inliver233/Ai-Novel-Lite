@@ -11,7 +11,6 @@ import { ContentOptimizeCompareDrawer } from "../../components/writing/ContentOp
 import { ContextPreviewDrawer } from "../../components/writing/ContextPreviewDrawer";
 import { CreateChapterDialog } from "../../components/writing/CreateChapterDialog";
 import { GenerationHistoryDrawer } from "../../components/writing/GenerationHistoryDrawer";
-import { MemoryUpdateDrawer } from "../../components/writing/MemoryUpdateDrawer";
 import { PostEditCompareDrawer } from "../../components/writing/PostEditCompareDrawer";
 import { PromptInspectorDrawer } from "../../components/writing/PromptInspectorDrawer";
 import { WritingToolbar } from "../../components/writing/WritingToolbar";
@@ -309,7 +308,6 @@ export type WritingPageOverlaysProps = {
   contentOptimizeCompareDrawerProps: ComponentProps<typeof ContentOptimizeCompareDrawer>;
   promptInspectorDrawerProps: ComponentProps<typeof PromptInspectorDrawer>;
   contextPreviewDrawerProps: ComponentProps<typeof ContextPreviewDrawer>;
-  memoryUpdateDrawerProps: ComponentProps<typeof MemoryUpdateDrawer>;
   generationHistoryDrawerProps: ComponentProps<typeof GenerationHistoryDrawer>;
 };
 
@@ -323,7 +321,6 @@ export function WritingPageOverlays(props: WritingPageOverlaysProps) {
       <ContentOptimizeCompareDrawer {...props.contentOptimizeCompareDrawerProps} />
       <PromptInspectorDrawer {...props.promptInspectorDrawerProps} />
       <ContextPreviewDrawer {...props.contextPreviewDrawerProps} />
-      <MemoryUpdateDrawer {...props.memoryUpdateDrawerProps} />
       <GenerationHistoryDrawer {...props.generationHistoryDrawerProps} />
     </>
   );
