@@ -142,6 +142,7 @@ export function LlmPresetPanel(props: Props) {
 
       <div className="mt-4" ref={modelSelectorRef}>
         <ModelSelectorCard
+          actionBlockedReason={mainAccessState.actionReason}
           form={props.llmForm}
           modelList={props.mainModelList}
           modelListHelpText={mainModelListHelpText}

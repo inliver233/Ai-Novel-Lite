@@ -1,9 +1,5 @@
 import type { LLMProvider } from "../../../types";
-import {
-  describeModelListState,
-  deriveLlmModuleAccessState,
-  type LlmModuleAccessState,
-} from "../llmConnectionState";
+import { describeModelListState, deriveLlmModuleAccessState, type LlmModuleAccessState } from "../llmConnectionState";
 import type { TaskOverrideSectionProps } from "./cardTypes";
 
 const PROVIDER_OPTIONS: Array<{ value: LLMProvider; label: string }> = [
@@ -70,7 +66,9 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
       ) : (
         <div className="mt-4 grid gap-4">
           {props.taskModules.map((task) => {
-            const boundProfile = task.llm_profile_id ? props.profiles.find((profile) => profile.id === task.llm_profile_id) ?? null : null;
+            const boundProfile = task.llm_profile_id
+              ? (props.profiles.find((profile) => profile.id === task.llm_profile_id) ?? null)
+              : null;
             const taskAccessState = deriveLlmModuleAccessState({
               scope: "task",
               moduleProvider: task.form.provider,
@@ -85,6 +83,14 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
             const taskUiLocked = taskBusy || testing;
             const isCompatibleProvider =
               task.form.provider === "openai_compatible" || task.form.provider === "openai_responses_compatible";
+            const showPenaltyInputs = task.form.provider === "openai" || task.form.provider === "openai_compatible";
+            const showReasoningEffort =
+              task.form.provider === "openai" ||
+              task.form.provider === "openai_compatible" ||
+              task.form.provider === "openai_responses" ||
+              task.form.provider === "openai_responses_compatible";
+            const isAnthropicProvider = task.form.provider === "anthropic";
+            const isGeminiProvider = task.form.provider === "gemini";
             const draftApiKey = props.taskApiKeyDrafts[task.task_key] ?? "";
             const datalistId = `task-${task.task_key}-models`;
 
@@ -206,119 +212,329 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                   )}
                 </div>
 
-                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <label className="grid gap-1">
-                    <span className="text-xs text-subtext">服务商（provider）</span>
-                    <select
-                      className="select"
-                      disabled={taskUiLocked}
-                      value={task.form.provider}
-                      onChange={(event) =>
-                        props.onTaskFormChange(task.task_key, (previous) => ({
-                          ...previous,
-                          provider: event.currentTarget.value as LLMProvider,
-                          max_tokens: "",
-                          text_verbosity: "",
-                          reasoning_effort: "",
-                          anthropic_thinking_enabled: false,
-                          anthropic_thinking_budget_tokens: "",
-                          gemini_thinking_budget: "",
-                          gemini_include_thoughts: false,
-                        }))
-                      }
-                    >
-                      {PROVIDER_OPTIONS.map((option) => (
-                        <option key={`${task.task_key}-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <div className="mt-3 grid gap-3">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-8">
+                    <label className="grid gap-1 xl:col-span-1">
+                      <span className="text-xs text-subtext">服务商（provider）</span>
+                      <select
+                        className="select"
+                        disabled={taskUiLocked}
+                        value={task.form.provider}
+                        onChange={(event) =>
+                          props.onTaskFormChange(task.task_key, (previous) => ({
+                            ...previous,
+                            provider: event.currentTarget.value as LLMProvider,
+                            max_tokens: "",
+                            text_verbosity: "",
+                            reasoning_effort: "",
+                            anthropic_thinking_enabled: false,
+                            anthropic_thinking_budget_tokens: "",
+                            gemini_thinking_budget: "",
+                            gemini_include_thoughts: false,
+                          }))
+                        }
+                      >
+                        {PROVIDER_OPTIONS.map((option) => (
+                          <option key={`${task.task_key}-${option.value}`} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-                  <label className="grid gap-1">
-                    <span className="text-xs text-subtext">模型（model）</span>
-                    <input
-                      className="input"
-                      disabled={taskUiLocked}
-                      list={datalistId}
-                      value={task.form.model}
-                      onChange={(event) =>
-                        props.onTaskFormChange(task.task_key, (previous) => ({ ...previous, model: event.currentTarget.value }))
-                      }
-                    />
-                    <datalist id={datalistId}>
-                      {task.modelList.options.map((option) => (
-                        <option key={`${task.task_key}-${option.id}`} value={option.id}>
-                          {option.display_name}
-                        </option>
-                      ))}
-                    </datalist>
-                    <div className="text-[11px] text-subtext">{taskModelListHelpText}</div>
-                  </label>
+                    <label className="grid gap-1 xl:col-span-1">
+                      <span className="text-xs text-subtext">模型（model）</span>
+                      <input
+                        className="input"
+                        disabled={taskUiLocked}
+                        list={datalistId}
+                        value={task.form.model}
+                        onChange={(event) =>
+                          props.onTaskFormChange(task.task_key, (previous) => ({
+                            ...previous,
+                            model: event.currentTarget.value,
+                          }))
+                        }
+                      />
+                      <datalist id={datalistId}>
+                        {task.modelList.options.map((option) => (
+                          <option key={`${task.task_key}-${option.id}`} value={option.id}>
+                            {option.display_name}
+                          </option>
+                        ))}
+                      </datalist>
+                      <div className="text-[11px] text-subtext">{taskModelListHelpText}</div>
+                    </label>
 
-                  <label className="grid gap-1 md:col-span-2 xl:col-span-1">
-                    <span className="text-xs text-subtext">temperature</span>
-                    <input
-                      className="input"
-                      disabled={taskUiLocked}
-                      type="text"
-                      value={task.form.temperature}
-                      onChange={(event) =>
-                        props.onTaskFormChange(task.task_key, (previous) => ({
-                          ...previous,
-                          temperature: event.currentTarget.value,
-                        }))
-                      }
-                    />
-                  </label>
+                    <label className="grid gap-1 md:col-span-2 xl:col-span-2">
+                      <span className="text-xs text-subtext">接口地址（base_url）</span>
+                      <input
+                        className="input"
+                        disabled={taskUiLocked}
+                        placeholder={isCompatibleProvider ? "https://your-gateway.example.com/v1" : undefined}
+                        value={task.form.base_url}
+                        onChange={(event) =>
+                          props.onTaskFormChange(task.task_key, (previous) => ({
+                            ...previous,
+                            base_url: event.currentTarget.value,
+                          }))
+                        }
+                      />
+                    </label>
 
-                  <label className="grid gap-1 md:col-span-2 xl:col-span-3">
-                    <span className="text-xs text-subtext">接口地址（base_url）</span>
-                    <input
-                      className="input"
-                      disabled={taskUiLocked}
-                      placeholder={isCompatibleProvider ? "https://your-gateway.example.com/v1" : undefined}
-                      value={task.form.base_url}
-                      onChange={(event) =>
-                        props.onTaskFormChange(task.task_key, (previous) => ({
-                          ...previous,
-                          base_url: event.currentTarget.value,
-                        }))
-                      }
-                    />
-                  </label>
+                    <label className="grid gap-1 xl:col-span-1">
+                      <span className="text-xs text-subtext">temperature</span>
+                      <input
+                        className="input"
+                        disabled={taskUiLocked}
+                        type="text"
+                        value={task.form.temperature}
+                        onChange={(event) =>
+                          props.onTaskFormChange(task.task_key, (previous) => ({
+                            ...previous,
+                            temperature: event.currentTarget.value,
+                          }))
+                        }
+                      />
+                    </label>
 
-                  <label className="grid gap-1">
-                    <span className="text-xs text-subtext">max_tokens / max_output_tokens</span>
-                    <input
-                      className="input"
-                      disabled={taskUiLocked}
-                      type="text"
-                      value={task.form.max_tokens}
-                      onChange={(event) =>
-                        props.onTaskFormChange(task.task_key, (previous) => ({
-                          ...previous,
-                          max_tokens: event.currentTarget.value,
-                        }))
-                      }
-                    />
-                  </label>
+                    <label className="grid gap-1 xl:col-span-2">
+                      <span className="text-xs text-subtext">max_tokens / max_output_tokens</span>
+                      <input
+                        className="input"
+                        disabled={taskUiLocked}
+                        type="text"
+                        value={task.form.max_tokens}
+                        onChange={(event) =>
+                          props.onTaskFormChange(task.task_key, (previous) => ({
+                            ...previous,
+                            max_tokens: event.currentTarget.value,
+                          }))
+                        }
+                      />
+                    </label>
 
-                  <label className="grid gap-1">
-                    <span className="text-xs text-subtext">timeout_seconds</span>
-                    <input
-                      className="input"
-                      disabled={taskUiLocked}
-                      type="text"
-                      value={task.form.timeout_seconds}
-                      onChange={(event) =>
-                        props.onTaskFormChange(task.task_key, (previous) => ({
-                          ...previous,
-                          timeout_seconds: event.currentTarget.value,
-                        }))
-                      }
-                    />
-                  </label>
+                    <label className="grid gap-1 xl:col-span-1">
+                      <span className="text-xs text-subtext">timeout_seconds</span>
+                      <input
+                        className="input"
+                        disabled={taskUiLocked}
+                        type="text"
+                        value={task.form.timeout_seconds}
+                        onChange={(event) =>
+                          props.onTaskFormChange(task.task_key, (previous) => ({
+                            ...previous,
+                            timeout_seconds: event.currentTarget.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <details className="rounded-atelier border border-border/60 bg-canvas/40 p-3">
+                    <summary className="ui-transition-fast cursor-pointer select-none text-xs text-subtext hover:text-ink">
+                      更多参数
+                    </summary>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      <label className="grid gap-1">
+                        <span className="text-xs text-subtext">top_p</span>
+                        <input
+                          className="input"
+                          disabled={taskUiLocked}
+                          type="text"
+                          value={task.form.top_p}
+                          onChange={(event) =>
+                            props.onTaskFormChange(task.task_key, (previous) => ({
+                              ...previous,
+                              top_p: event.currentTarget.value,
+                            }))
+                          }
+                        />
+                      </label>
+
+                      {showPenaltyInputs ? (
+                        <>
+                          <label className="grid gap-1">
+                            <span className="text-xs text-subtext">presence_penalty</span>
+                            <input
+                              className="input"
+                              disabled={taskUiLocked}
+                              type="text"
+                              value={task.form.presence_penalty}
+                              onChange={(event) =>
+                                props.onTaskFormChange(task.task_key, (previous) => ({
+                                  ...previous,
+                                  presence_penalty: event.currentTarget.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label className="grid gap-1">
+                            <span className="text-xs text-subtext">frequency_penalty</span>
+                            <input
+                              className="input"
+                              disabled={taskUiLocked}
+                              type="text"
+                              value={task.form.frequency_penalty}
+                              onChange={(event) =>
+                                props.onTaskFormChange(task.task_key, (previous) => ({
+                                  ...previous,
+                                  frequency_penalty: event.currentTarget.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        </>
+                      ) : (
+                        <label className="grid gap-1">
+                          <span className="text-xs text-subtext">top_k</span>
+                          <input
+                            className="input"
+                            disabled={taskUiLocked}
+                            type="text"
+                            value={task.form.top_k}
+                            onChange={(event) =>
+                              props.onTaskFormChange(task.task_key, (previous) => ({
+                                ...previous,
+                                top_k: event.currentTarget.value,
+                              }))
+                            }
+                          />
+                        </label>
+                      )}
+
+                      <label className="grid gap-1">
+                        <span className="text-xs text-subtext">stop（逗号分隔）</span>
+                        <input
+                          className="input"
+                          disabled={taskUiLocked}
+                          value={task.form.stop}
+                          onChange={(event) =>
+                            props.onTaskFormChange(task.task_key, (previous) => ({
+                              ...previous,
+                              stop: event.currentTarget.value,
+                            }))
+                          }
+                        />
+                      </label>
+
+                      {showReasoningEffort ? (
+                        <label className="grid gap-1">
+                          <span className="text-xs text-subtext">reasoning_effort</span>
+                          <select
+                            className="select"
+                            disabled={taskUiLocked}
+                            value={task.form.reasoning_effort}
+                            onChange={(event) =>
+                              props.onTaskFormChange(task.task_key, (previous) => ({
+                                ...previous,
+                                reasoning_effort: event.currentTarget.value,
+                              }))
+                            }
+                          >
+                            <option value="">默认</option>
+                            <option value="minimal">minimal</option>
+                            <option value="low">low</option>
+                            <option value="medium">medium</option>
+                            <option value="high">high</option>
+                          </select>
+                        </label>
+                      ) : null}
+
+                      {isAnthropicProvider ? (
+                        <>
+                          <label className="flex items-center gap-2 md:col-span-2 xl:col-span-1">
+                            <input
+                              checked={task.form.anthropic_thinking_enabled}
+                              disabled={taskUiLocked}
+                              type="checkbox"
+                              onChange={(event) =>
+                                props.onTaskFormChange(task.task_key, (previous) => ({
+                                  ...previous,
+                                  anthropic_thinking_enabled: event.currentTarget.checked,
+                                }))
+                              }
+                            />
+                            <span className="text-sm text-ink">启用 thinking</span>
+                          </label>
+
+                          <label className="grid gap-1">
+                            <span className="text-xs text-subtext">thinking.budget_tokens</span>
+                            <input
+                              className="input"
+                              disabled={taskUiLocked || !task.form.anthropic_thinking_enabled}
+                              type="text"
+                              value={task.form.anthropic_thinking_budget_tokens}
+                              onChange={(event) =>
+                                props.onTaskFormChange(task.task_key, (previous) => ({
+                                  ...previous,
+                                  anthropic_thinking_budget_tokens: event.currentTarget.value,
+                                }))
+                              }
+                            />
+                            {!task.form.anthropic_thinking_enabled ? (
+                              <div className="text-[11px] text-subtext">启用后可设置思考预算</div>
+                            ) : null}
+                          </label>
+                        </>
+                      ) : null}
+
+                      {isGeminiProvider ? (
+                        <>
+                          <label className="grid gap-1">
+                            <span className="text-xs text-subtext">thinkingConfig.thinkingBudget</span>
+                            <input
+                              className="input"
+                              disabled={taskUiLocked}
+                              type="text"
+                              value={task.form.gemini_thinking_budget}
+                              onChange={(event) =>
+                                props.onTaskFormChange(task.task_key, (previous) => ({
+                                  ...previous,
+                                  gemini_thinking_budget: event.currentTarget.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label className="flex items-center gap-2 md:col-span-2 xl:col-span-1">
+                            <input
+                              checked={task.form.gemini_include_thoughts}
+                              disabled={taskUiLocked}
+                              type="checkbox"
+                              onChange={(event) =>
+                                props.onTaskFormChange(task.task_key, (previous) => ({
+                                  ...previous,
+                                  gemini_include_thoughts: event.currentTarget.checked,
+                                }))
+                              }
+                            />
+                            <span className="text-sm text-ink">thinkingConfig.includeThoughts</span>
+                          </label>
+                        </>
+                      ) : null}
+
+                      <label className="grid gap-1 md:col-span-2 xl:col-span-3">
+                        <span className="text-xs text-subtext">extra（JSON，高级扩展）</span>
+                        <textarea
+                          className="textarea atelier-mono"
+                          disabled={taskUiLocked}
+                          rows={3}
+                          value={task.form.extra}
+                          onChange={(event) =>
+                            props.onTaskFormChange(task.task_key, (previous) => ({
+                              ...previous,
+                              extra: event.currentTarget.value,
+                            }))
+                          }
+                        />
+                        <div className="text-[11px] text-subtext">
+                          保留少量 JSON 扩展参数；优先使用上面的结构化控件。
+                        </div>
+                      </label>
+                    </div>
+                  </details>
                 </div>
               </div>
             );

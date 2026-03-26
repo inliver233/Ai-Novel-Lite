@@ -70,8 +70,9 @@ export function ModelSelectorCard(props: ModelSelectorCardProps) {
             <span className="text-xs text-subtext">模型（model）</span>
             <button
               className="btn btn-secondary px-3 py-2 text-xs"
-              disabled={props.modelList.loading}
+              disabled={props.modelList.loading || Boolean(props.actionBlockedReason)}
               onClick={props.onReloadModels}
+              title={props.actionBlockedReason ?? undefined}
               type="button"
             >
               {props.modelList.loading ? "拉取中..." : "拉取模型列表"}

@@ -52,6 +52,7 @@ export type ModelSelectorCardProps = {
   setForm: LlmFormSetter;
   modelList: LlmModelListState;
   modelListHelpText: string;
+  actionBlockedReason?: string | null;
   onReloadModels: () => void;
   saving: boolean;
   moduleId: string;
