@@ -8,7 +8,6 @@ MemoryContextSection = Literal[
     "worldbook",
     "story_memory",
     "semantic_history",
-    "foreshadow_open_loops",
     "structured",
     "vector_rag",
 ]
@@ -39,7 +38,6 @@ class MemoryContextPackOut(BaseModel):
     worldbook: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     story_memory: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     semantic_history: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
-    foreshadow_open_loops: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     structured: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     vector_rag: MemoryContextSectionOut = Field(default_factory=MemoryContextSectionOut)
     logs: list[MemoryContextLogItemOut] = Field(default_factory=list)

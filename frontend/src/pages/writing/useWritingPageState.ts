@@ -86,7 +86,6 @@ export function useWritingPageState(): WritingPageState {
   const [contentOptimizeCompareOpen, setContentOptimizeCompareOpen] = useState(false);
   const [contextPreviewOpen, setContextPreviewOpen] = useState(false);
   const [memoryUpdateOpen, setMemoryUpdateOpen] = useState(false);
-  const [foreshadowOpen, setForeshadowOpen] = useState(false);
   const [autoUpdatesTriggering, setAutoUpdatesTriggering] = useState(false);
 
   const writingQuery = useProjectData<WritingLoaded>(projectId, async (id) => {
@@ -390,7 +389,6 @@ export function useWritingPageState(): WritingPageState {
         if (!projectId) return;
         navigate(buildWritingTaskCenterHref(projectId, activeId));
       },
-      onOpenForeshadow: () => setForeshadowOpen(true),
       onOpenContextPreview: () => setContextPreviewOpen(true),
       onCreateChapter: chapterCrud.openCreate,
     },
@@ -562,12 +560,6 @@ export function useWritingPageState(): WritingPageState {
       onClose: () => setMemoryUpdateOpen(false),
       projectId,
       chapterId: activeId ?? undefined,
-    },
-    foreshadowDrawerProps: {
-      open: foreshadowOpen,
-      onClose: () => setForeshadowOpen(false),
-      projectId,
-      activeChapterId: activeId ?? undefined,
     },
     generationHistoryDrawerProps: {
       open: history.open,

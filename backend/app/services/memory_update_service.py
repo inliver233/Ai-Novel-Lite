@@ -25,7 +25,6 @@ from app.models.structured_memory import (
     MemoryEntity,
     MemoryEvidence,
     MemoryEvent,
-    MemoryForeshadow,
     MemoryRelation,
 )
 from app.schemas.memory_update import AFTER_MODEL_BY_TABLE, MemoryUpdateV1Request
@@ -39,7 +38,6 @@ _MODEL_BY_TABLE: dict[str, type] = {
     "entities": MemoryEntity,
     "relations": MemoryRelation,
     "events": MemoryEvent,
-    "foreshadows": MemoryForeshadow,
     "evidence": MemoryEvidence,
 }
 
@@ -119,17 +117,6 @@ def _row_payload(target_table: str, row: Any) -> dict[str, Any]:
             "event_type": str(row.event_type or "event"),
             "title": row.title,
             "content_md": str(row.content_md or ""),
-            "attributes": _parse_attributes_json(row.attributes_json),
-            "deleted_at": _iso(row.deleted_at),
-        }
-    if target_table == "foreshadows":
-        return {
-            "id": str(row.id),
-            "chapter_id": row.chapter_id,
-            "resolved_at_chapter_id": row.resolved_at_chapter_id,
-            "title": row.title,
-            "content_md": str(row.content_md or ""),
-            "resolved": int(row.resolved or 0),
             "attributes": _parse_attributes_json(row.attributes_json),
             "deleted_at": _iso(row.deleted_at),
         }
@@ -522,7 +509,7 @@ def propose_chapter_memory_change_set(
                 raise AppError.validation(details={"item_index": idx, "reason": "unsupported_target_table"})
             after_obj = model_cls.model_validate(op.after or {})
             after_dict = dict(after_obj.model_dump())
-            if target_table in {"events", "foreshadows"} and not (after_dict.get("chapter_id") or "").strip():
+            if target_table == "events" and not (after_dict.get("chapter_id") or "").strip():
                 after_dict["chapter_id"] = chapter_id
 
             # restore-on-create: resolve by unique key when caller omits target_id
@@ -692,22 +679,6 @@ def _apply_upsert(
         row.event_type = str(after.get("event_type") or "event")  # type: ignore[attr-defined]
         row.title = after.get("title")  # type: ignore[attr-defined]
         row.content_md = str(after.get("content_md") or "")  # type: ignore[attr-defined]
-        attrs = after.get("attributes")
-        if isinstance(attrs, dict):
-            row.attributes_json = _compact_json_dumps(attrs)  # type: ignore[attr-defined]
-        elif isinstance(attrs, str):
-            row.attributes_json = attrs  # type: ignore[attr-defined]
-        else:
-            row.attributes_json = None  # type: ignore[attr-defined]
-        row.deleted_at = None  # type: ignore[attr-defined]
-        return row
-
-    if target_table == "foreshadows":
-        row.chapter_id = after.get("chapter_id")  # type: ignore[attr-defined]
-        row.resolved_at_chapter_id = after.get("resolved_at_chapter_id")  # type: ignore[attr-defined]
-        row.title = after.get("title")  # type: ignore[attr-defined]
-        row.content_md = str(after.get("content_md") or "")  # type: ignore[attr-defined]
-        row.resolved = int(after.get("resolved") or 0)  # type: ignore[attr-defined]
         attrs = after.get("attributes")
         if isinstance(attrs, dict):
             row.attributes_json = _compact_json_dumps(attrs)  # type: ignore[attr-defined]

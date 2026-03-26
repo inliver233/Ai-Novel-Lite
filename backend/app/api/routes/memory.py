@@ -9,18 +9,13 @@ from app.api.routes.memory_route_helpers import (
 )
 from app.api.routes.memory_route_models import (
     MemoryAutoProposeRequest,
-    StoryMemoryForeshadowResolveRequest,
     StoryMemoryImportV1Request,
 )
 from app.api.routes.memory_route_story_helpers import (
-    _build_story_memory_open_loops_payload,
     _import_story_memories_payload,
-    _resolve_story_memory_foreshadow_payload,
 )
 from app.api.routes.memory_route_story_mappers import (
-    _build_story_memory_foreshadow_payload,
     _build_story_memory_import_row,
-    _build_story_memory_open_loop_item,
 )
 from app.api.routes.memory_route_structured_helpers import (
     _build_structured_memory_payload,
@@ -106,52 +101,8 @@ def import_all_story_memories(
         row_builder=_build_story_memory_import_row,
     )
     return ok_payload(request_id=request_id, data=data)
-@router.get("/projects/{project_id}/story_memories/foreshadows/open_loops")
-def list_story_memory_foreshadow_open_loops(
-    request: Request,
-    db: DbDep,
-    user_id: UserIdDep,
-    project_id: str,
-    limit: int = Query(default=50, ge=1, le=200),
-    q: str | None = Query(default=None, max_length=200),
-    order: str = Query(default="timeline_desc", max_length=32),
-) -> dict:
-    request_id = request.state.request_id
-    require_project_viewer(db, project_id=project_id, user_id=user_id)
-
-    data = _build_story_memory_open_loops_payload(
-        db,
-        project_id=project_id,
-        limit=limit,
-        q=q,
-        order=order,
-        row_mapper=_build_story_memory_open_loop_item,
-    )
-    return ok_payload(request_id=request_id, data=data)
 
 
-@router.post("/projects/{project_id}/story_memories/foreshadows/{story_memory_id}/resolve")
-def resolve_story_memory_foreshadow(
-    request: Request,
-    db: DbDep,
-    user_id: UserIdDep,
-    project_id: str,
-    story_memory_id: str,
-    body: StoryMemoryForeshadowResolveRequest,
-) -> dict:
-    request_id = request.state.request_id
-    require_project_editor(db, project_id=project_id, user_id=user_id)
-
-    data = _resolve_story_memory_foreshadow_payload(
-        db,
-        project_id=project_id,
-        story_memory_id=story_memory_id,
-        resolved_at_chapter_id=body.resolved_at_chapter_id,
-        actor_user_id=user_id,
-        request_id=request_id,
-        payload_builder=_build_story_memory_foreshadow_payload,
-    )
-    return ok_payload(request_id=request_id, data=data)
 @router.get("/projects/{project_id}/memory/structured")
 def list_structured_memory(
     request: Request,

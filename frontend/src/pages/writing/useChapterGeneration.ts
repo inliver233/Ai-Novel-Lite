@@ -76,7 +76,6 @@ const DEFAULT_GEN_FORM: GenerateForm = {
     worldbook: true,
     story_memory: true,
     semantic_history: false,
-    foreshadow_open_loops: false,
     structured: true,
     vector_rag: true,
   },

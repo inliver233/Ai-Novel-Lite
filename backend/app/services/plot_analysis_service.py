@@ -347,38 +347,6 @@ def extract_story_memory_seeds(
                 }
             )
 
-    foreshadows = analysis.get("foreshadows")
-    if isinstance(foreshadows, list):
-        for item in foreshadows:
-            if not isinstance(item, dict):
-                continue
-            excerpt = str(item.get("excerpt") or "").strip()
-            note = str(item.get("note") or "").strip()
-            content = note or excerpt
-            if not content:
-                continue
-            foreshadow_state = 1
-            kind = str(item.get("type") or "").strip().lower()
-            if kind in {"resolved", "resolve", "resolved_at"}:
-                foreshadow_state = 2
-            pos, length = _find_position(content_md, excerpt)
-            seeds.append(
-                {
-                    "memory_type": "foreshadow",
-                    "title": excerpt[:80].strip() or None,
-                    "content": content,
-                    "full_context_md": None,
-                    "importance_score": _importance_from_item(item, 0.8),
-                    "tags": ["foreshadow"],
-                    "story_timeline": timeline,
-                    "text_position": pos,
-                    "text_length": length,
-                    "is_foreshadow": foreshadow_state,
-                    "foreshadow_resolved_at_chapter_id": None,
-                    "metadata": None,
-                }
-            )
-
     character_states = analysis.get("character_states")
     if isinstance(character_states, list):
         for item in character_states:

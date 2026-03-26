@@ -18,7 +18,6 @@ export const AI_GENERATE_PRIMARY_MEMORY_MODULES: ReadonlyArray<{ key: MemoryModu
 export const AI_GENERATE_ADVANCED_MEMORY_MODULES: ReadonlyArray<{ key: MemoryModuleKey; label: string }> = [
   { key: "story_memory", label: "剧情记忆（story_memory）" },
   { key: "semantic_history", label: "语义历史（semantic_history）" },
-  { key: "foreshadow_open_loops", label: "未回收伏笔（foreshadow_open_loops）" },
   { key: "structured", label: "结构化记忆（structured）" },
   { key: "vector_rag", label: "向量 RAG（vector_rag）" },
 ];

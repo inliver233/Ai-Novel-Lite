@@ -17,7 +17,6 @@ export function WritingToolbar(props: {
   onOpenContextPreview: () => void;
   onOpenMemoryUpdate: () => void;
   onOpenTaskCenter: () => void;
-  onOpenForeshadow: () => void;
   onCreateChapter: () => void;
 }) {
   return (
@@ -81,9 +80,6 @@ export function WritingToolbar(props: {
 
         <span className="mx-1 hidden h-4 w-px bg-border sm:block" aria-hidden />
         <span className="text-[11px] text-subtext">工具</span>
-        <button className="btn btn-secondary" onClick={props.onOpenForeshadow} type="button">
-          伏笔面板
-        </button>
         <button className="btn btn-secondary" onClick={props.onOpenContextPreview} type="button">
           {UI_COPY.writing.contextPreview}
         </button>

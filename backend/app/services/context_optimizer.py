@@ -137,26 +137,6 @@ def _optimize_structured_memory(text: str) -> tuple[str, dict[str, Any]]:
                 rows.append([name, content])
             rows.sort(key=lambda r: str(r[0]).lower())
             table = _build_md_table(["Title", "Content"], rows)
-        elif title.lower() == "foreshadows":
-            seen: set[tuple[bool, str]] = set()
-            for it in raw_items:
-                resolved = False
-                rest = it
-                if rest.startswith("[resolved]"):
-                    resolved = True
-                    rest = rest[len("[resolved]") :].strip()
-                name, sep, content = rest.partition(":")
-                name = name.strip()
-                content = content.strip() if sep else ""
-                if not name:
-                    continue
-                key = (resolved, name.lower())
-                if key in seen:
-                    continue
-                seen.add(key)
-                rows.append(["yes" if resolved else "no", name, content])
-            rows.sort(key=lambda r: (r[0] != "yes", str(r[1]).lower()))
-            table = _build_md_table(["Resolved", "Title", "Content"], rows)
         else:
             table = ""
 

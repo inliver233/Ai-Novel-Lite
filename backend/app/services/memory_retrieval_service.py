@@ -11,7 +11,7 @@ from app.core.secrets import redact_api_keys
 from app.models.chapter import Chapter
 from app.models.project_settings import ProjectSettings
 from app.models.story_memory import StoryMemory
-from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryForeshadow, MemoryRelation
+from app.models.structured_memory import MemoryEntity, MemoryEvent, MemoryRelation
 from app.schemas.memory_pack import MemoryContextPackOut
 from app.services.prompt_budget import estimate_tokens
 from app.services.vector_rerank_overrides import vector_rerank_overrides
@@ -26,7 +26,6 @@ _ALLOWED_SECTIONS = {
     "worldbook",
     "story_memory",
     "semantic_history",
-    "foreshadow_open_loops",
     "structured",
     "vector_rag",
 }
@@ -137,17 +136,6 @@ def _format_semantic_history_text_md(
     return _wrap_and_truncate_block(tag="SemanticHistory", inner="\n\n".join(parts), char_limit=char_limit)
 
 
-def _format_foreshadow_open_loops_text_md(*, foreshadows: list[StoryMemory], char_limit: int) -> tuple[str, bool]:
-    parts: list[str] = []
-    for m in foreshadows:
-        title = str(m.title or "").strip() or "Untitled"
-        content = str(m.content or "").strip()
-        if len(content) > 800:
-            content = content[:800].rstrip() + "…"
-        parts.append(f"### {title}\n{content}".rstrip())
-    return _wrap_and_truncate_block(tag="ForeshadowOpenLoops", inner="\n\n".join(parts), char_limit=char_limit)
-
-
 def _extract_query_tokens(query_text: str, *, limit: int) -> list[str]:
     q = (query_text or "").strip()
     if not q:
@@ -172,7 +160,6 @@ def _format_structured_text_md(
     entities: list[MemoryEntity],
     relations: list[dict[str, Any]],
     events: list[MemoryEvent],
-    foreshadows: list[MemoryForeshadow],
     char_limit: int,
 ) -> tuple[str, bool]:
     sections: list[str] = []
@@ -211,17 +198,6 @@ def _format_structured_text_md(
             lines.append(f"- {title}{f': {content}' if content else ''}".rstrip())
         if lines:
             sections.append("## Events\n" + "\n".join(lines))
-    if foreshadows:
-        lines = []
-        for f in foreshadows:
-            title = str(f.title or "").strip() or "Untitled"
-            content = str(f.content_md or "").strip()
-            if len(content) > 320:
-                content = content[:320].rstrip() + "…"
-            resolved = bool(getattr(f, "resolved", 0))
-            lines.append(f"- {'[resolved] ' if resolved else ''}{title}{f': {content}' if content else ''}".rstrip())
-        if lines:
-            sections.append("## Foreshadows\n" + "\n".join(lines))
 
     return _wrap_and_truncate_block(tag="StructuredMemory", inner="\n\n".join(sections), char_limit=char_limit)
 
@@ -244,7 +220,6 @@ def retrieve_memory_context_pack(
     worldbook_enabled = bool(enabled_map.get("worldbook", True))
     story_memory_enabled = bool(enabled_map.get("story_memory", True))
     semantic_history_enabled = bool(enabled_map.get("semantic_history", False))
-    foreshadow_open_loops_enabled = bool(enabled_map.get("foreshadow_open_loops", False))
     structured_enabled = bool(enabled_map.get("structured", True))
     vector_rag_enabled = bool(enabled_map.get("vector_rag", True))
     worldbook_budget = _clamp_char_limit(budgets.get("worldbook"), default=12000) if "worldbook" in budgets else 12000
@@ -256,11 +231,6 @@ def retrieve_memory_context_pack(
     semantic_history_budget = (
         _clamp_char_limit(budgets.get("semantic_history"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
         if "semantic_history" in budgets
-        else _MEMORY_TEXT_MD_CHAR_LIMIT
-    )
-    foreshadow_open_loops_budget = (
-        _clamp_char_limit(budgets.get("foreshadow_open_loops"), default=_MEMORY_TEXT_MD_CHAR_LIMIT)
-        if "foreshadow_open_loops" in budgets
         else _MEMORY_TEXT_MD_CHAR_LIMIT
     )
     structured_budget = (
@@ -495,66 +465,6 @@ def retrieve_memory_context_pack(
                 }
                 semantic_history["text_chars"] = len(str(text_md or ""))
 
-    foreshadow_open_loops: dict[str, Any] = {"enabled": False, "disabled_reason": "empty", "items": [], "text_md": ""}
-    if not foreshadow_open_loops_enabled:
-        foreshadow_open_loops = {"enabled": False, "disabled_reason": "disabled", "items": [], "text_md": ""}
-    else:
-        try:
-            limit_plus_one = 41
-            rows = (
-                db.execute(
-                    select(StoryMemory)
-                    .where(StoryMemory.project_id == project_id)
-                    .where(StoryMemory.is_foreshadow == 1)  # noqa: E712
-                    .where(StoryMemory.foreshadow_resolved_at_chapter_id.is_(None))
-                    .order_by(StoryMemory.story_timeline.desc(), StoryMemory.importance_score.desc(), StoryMemory.updated_at.desc())
-                    .limit(limit_plus_one)
-                )
-                .scalars()
-                .all()
-            )
-            truncated = len(rows) > (limit_plus_one - 1)
-            rows = rows[: limit_plus_one - 1]
-
-            items: list[dict[str, Any]] = []
-            for m in rows[:20]:
-                content = str(m.content or "").strip()
-                preview = (content[:200].rstrip() + "…") if len(content) > 200 else content
-                items.append(
-                    {
-                        "id": m.id,
-                        "chapter_id": m.chapter_id,
-                        "memory_type": m.memory_type,
-                        "title": m.title,
-                        "importance_score": float(m.importance_score or 0.0),
-                        "story_timeline": int(m.story_timeline or 0),
-                        "content_preview": preview,
-                    }
-                )
-
-            text_md, text_truncated = _format_foreshadow_open_loops_text_md(
-                foreshadows=rows[:12],
-                char_limit=int(foreshadow_open_loops_budget),
-            )
-            enabled = bool(rows)
-            foreshadow_open_loops = {
-                "enabled": enabled,
-                "disabled_reason": None if enabled else "empty",
-                "open_count": len(rows),
-                "items": items,
-                "truncated": bool(truncated or text_truncated),
-                "text_md": text_md,
-            }
-            foreshadow_open_loops["text_chars"] = len(str(text_md or ""))
-        except Exception:
-            foreshadow_open_loops = {
-                "enabled": False,
-                "disabled_reason": "error",
-                "items": [],
-                "text_md": "",
-                "error": "foreshadow_open_loops_query_failed",
-            }
-
     structured: dict[str, Any] = {"enabled": False, "disabled_reason": "empty", "counts": {}, "text_md": ""}
     if not structured_enabled:
         structured = {"enabled": False, "disabled_reason": "disabled", "counts": {}, "text_md": ""}
@@ -563,19 +473,16 @@ def retrieve_memory_context_pack(
             entities_stmt = select(MemoryEntity).where(MemoryEntity.project_id == project_id)
             relations_stmt = select(MemoryRelation).where(MemoryRelation.project_id == project_id)
             events_stmt = select(MemoryEvent).where(MemoryEvent.project_id == project_id)
-            foreshadows_stmt = select(MemoryForeshadow).where(MemoryForeshadow.project_id == project_id)
 
             if not include_deleted:
                 entities_stmt = entities_stmt.where(MemoryEntity.deleted_at.is_(None))
                 relations_stmt = relations_stmt.where(MemoryRelation.deleted_at.is_(None))
                 events_stmt = events_stmt.where(MemoryEvent.deleted_at.is_(None))
-                foreshadows_stmt = foreshadows_stmt.where(MemoryForeshadow.deleted_at.is_(None))
 
             entities = db.execute(entities_stmt.order_by(MemoryEntity.updated_at.desc()).limit(21)).scalars().all()
             relations = db.execute(relations_stmt.order_by(MemoryRelation.updated_at.desc()).limit(41)).scalars().all()
             events = db.execute(events_stmt.order_by(MemoryEvent.updated_at.desc()).limit(21)).scalars().all()
-            foreshadows = db.execute(foreshadows_stmt.order_by(MemoryForeshadow.updated_at.desc()).limit(21)).scalars().all()
-            enabled = bool(entities or relations or events or foreshadows)
+            enabled = bool(entities or relations or events)
 
             rel_entity_ids: set[str] = set()
             for r in relations[:40]:
@@ -610,7 +517,6 @@ def retrieve_memory_context_pack(
                 entities=entities[:20],
                 relations=relations_preview,
                 events=events[:20],
-                foreshadows=foreshadows[:20],
                 char_limit=int(structured_budget),
             )
             structured = {
@@ -621,13 +527,11 @@ def retrieve_memory_context_pack(
                     "entities": len(entities[:20]),
                     "relations": len(relations[:40]),
                     "events": len(events[:20]),
-                    "foreshadows": len(foreshadows[:20]),
                 },
                 "truncated": bool(
                     len(entities) > 20
                     or len(relations) > 40
                     or len(events) > 20
-                    or len(foreshadows) > 20
                     or text_truncated
                 ),
                 "text_md": text_md,
@@ -727,22 +631,10 @@ def retrieve_memory_context_pack(
             "budget_source": "override" if "semantic_history" in budgets else "default",
         },
         {
-            "section": "foreshadow_open_loops",
-            "enabled": bool(foreshadow_open_loops.get("enabled")),
-            "disabled_reason": foreshadow_open_loops.get("disabled_reason"),
-            "note": "story_memories (is_foreshadow=1 AND resolved_at IS NULL)",
-            "open_count": int(foreshadow_open_loops.get("open_count") or 0),
-            "text_chars": int(foreshadow_open_loops.get("text_chars") or len(str(foreshadow_open_loops.get("text_md") or ""))),
-            "token_estimate": estimate_tokens(str(foreshadow_open_loops.get("text_md") or "")),
-            "truncated": bool(foreshadow_open_loops.get("truncated")) if "truncated" in foreshadow_open_loops else None,
-            "budget_char_limit": int(foreshadow_open_loops_budget),
-            "budget_source": "override" if "foreshadow_open_loops" in budgets else "default",
-        },
-        {
             "section": "structured",
             "enabled": bool(structured.get("enabled")),
             "disabled_reason": structured.get("disabled_reason"),
-            "note": "entities/relations/events/foreshadows summary",
+            "note": "entities/relations/events summary",
             "token_estimate": estimate_tokens(str(structured.get("text_md") or "")),
             "truncated": bool(structured.get("truncated")) if "truncated" in structured else None,
             "budget_char_limit": int(structured_budget),
@@ -779,7 +671,6 @@ def retrieve_memory_context_pack(
                 "worldbook": worldbook,
                 "story_memory": story_memory,
                 "semantic_history": semantic_history,
-                "foreshadow_open_loops": foreshadow_open_loops,
                 "structured": structured,
                 "vector_rag": vector_rag,
                 "logs": logs,

@@ -13,7 +13,6 @@ export type StoryMemory = {
   story_timeline: number;
   text_position: number;
   text_length: number;
-  is_foreshadow: boolean;
   resolved_at_chapter_id?: string | null;
   done: boolean;
   created_at?: string | null;
@@ -33,7 +32,6 @@ export async function createStoryMemory(
     story_timeline?: number;
     text_position?: number;
     text_length?: number;
-    is_foreshadow?: boolean;
   },
 ): Promise<StoryMemory> {
   const res = await apiJson<{ story_memory: StoryMemory }>(`/api/projects/${projectId}/story_memories`, {
@@ -57,7 +55,6 @@ export async function updateStoryMemory(
     story_timeline: number;
     text_position: number;
     text_length: number;
-    is_foreshadow: boolean;
   }>,
 ): Promise<StoryMemory> {
   const res = await apiJson<{ story_memory: StoryMemory }>(

@@ -23,7 +23,6 @@ type Props = {
     worldbook: boolean;
     story_memory: boolean;
     semantic_history?: boolean;
-    foreshadow_open_loops?: boolean;
     structured: boolean;
     vector_rag: boolean;
   };
@@ -40,7 +39,6 @@ type MemorySectionEnabled = {
   worldbook: boolean;
   story_memory: boolean;
   semantic_history: boolean;
-  foreshadow_open_loops: boolean;
   structured: boolean;
   vector_rag: boolean;
 };
@@ -71,7 +69,6 @@ const DEFAULT_PREVIEW_SECTIONS: MemorySectionEnabled = {
   worldbook: true,
   story_memory: true,
   semantic_history: false,
-  foreshadow_open_loops: false,
   structured: true,
   vector_rag: true,
 };
@@ -80,7 +77,6 @@ const DEFAULT_BUDGET_INPUTS: Record<string, string> = {
   worldbook: "",
   story_memory: "",
   semantic_history: "",
-  foreshadow_open_loops: "",
   structured: "",
   vector_rag: "",
 };
@@ -89,7 +85,6 @@ const EMPTY_PACK: MemoryContextPack = {
   worldbook: {},
   story_memory: {},
   semantic_history: {},
-  foreshadow_open_loops: {},
   structured: {},
   vector_rag: {},
   logs: [],
@@ -258,7 +253,6 @@ export function ContextPreviewDrawer(props: Props) {
       "worldbook",
       "story_memory",
       "semantic_history",
-      "foreshadow_open_loops",
       "structured",
       "vector_rag",
     ] as const) {
@@ -358,7 +352,6 @@ export function ContextPreviewDrawer(props: Props) {
       !getTextMd(effectivePack.worldbook) &&
       !getTextMd(effectivePack.story_memory) &&
       !getTextMd(effectivePack.semantic_history) &&
-      !getTextMd(effectivePack.foreshadow_open_loops) &&
       !getTextMd(effectivePack.structured) &&
       !getTextMd(effectivePack.vector_rag)
     );
@@ -687,7 +680,6 @@ export function ContextPreviewDrawer(props: Props) {
                     ["worldbook", "世界书（worldbook）"],
                     ["story_memory", "剧情记忆（story_memory）"],
                     ["semantic_history", "语义历史（semantic_history）"],
-                    ["foreshadow_open_loops", "未回收伏笔（foreshadow_open_loops）"],
                     ["structured", "结构化记忆（structured）"],
                     ["vector_rag", "向量 RAG（vector_rag）"],
                   ] as const
@@ -714,7 +706,6 @@ export function ContextPreviewDrawer(props: Props) {
                       ["worldbook", "worldbook char_limit"],
                       ["story_memory", "story_memory char_limit"],
                       ["semantic_history", "semantic_history char_limit"],
-                      ["foreshadow_open_loops", "foreshadow_open_loops char_limit"],
                       ["structured", "structured char_limit"],
                       ["vector_rag", "vector_rag char_limit"],
                     ] as const
@@ -979,7 +970,7 @@ export function ContextPreviewDrawer(props: Props) {
           <div className="panel p-4">
             <div className="text-sm text-ink">Memory text_md</div>
             {(
-              ["story_memory", "semantic_history", "foreshadow_open_loops", "structured"] as const
+              ["story_memory", "semantic_history", "structured"] as const
             ).map((key) => {
               const raw = (effectivePack[key] ?? {}) as Record<string, unknown>;
               const textMd = typeof raw.text_md === "string" ? raw.text_md : "";
@@ -1017,9 +1008,9 @@ export function ContextPreviewDrawer(props: Props) {
 
         {memoryInjectionEnabled ? (
           <div className="panel p-4">
-            <div className="text-sm text-ink">Items（semantic_history / foreshadow_open_loops）</div>
+            <div className="text-sm text-ink">Items（semantic_history）</div>
             <div className="mt-3 grid gap-3">
-              {(["semantic_history", "foreshadow_open_loops"] as const).map((key) => {
+              {(["semantic_history"] as const).map((key) => {
                 const raw = (effectivePack[key] ?? {}) as Record<string, unknown>;
                 const enabled = Boolean(raw.enabled);
                 const disabledReason = typeof raw.disabled_reason === "string" ? raw.disabled_reason : null;

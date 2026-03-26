@@ -4,11 +4,7 @@ import { resolveRouteMeta } from "./routes";
 import { UI_COPY } from "./uiCopy";
 
 describe("resolveRouteMeta", () => {
-  it("resolves foreshadows/import/prompt-templates route titles", () => {
-    expect(resolveRouteMeta("/projects/demo/foreshadows")).toEqual({
-      title: UI_COPY.nav.foreshadows,
-      layout: "tool",
-    });
+  it("resolves import/prompt-templates route titles", () => {
     expect(resolveRouteMeta("/projects/demo/import")).toEqual({
       title: UI_COPY.nav.dataImport,
       layout: "tool",

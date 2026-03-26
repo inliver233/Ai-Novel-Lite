@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 MemoryUpdateSchemaVersion = Literal["memory_update_v1"]
-MemoryTargetTable = Literal["entities", "relations", "events", "foreshadows", "evidence"]
+MemoryTargetTable = Literal["entities", "relations", "events", "evidence"]
 MemoryOpType = Literal["upsert", "delete"]
 
 MAX_OPS_V1 = 50
@@ -72,20 +72,6 @@ class EventAfter(_AfterBase):
         return _validate_attributes_size(v)
 
 
-class ForeshadowAfter(_AfterBase):
-    chapter_id: str | None = Field(default=None, max_length=36)
-    resolved_at_chapter_id: str | None = Field(default=None, max_length=36)
-    title: str | None = Field(default=None, max_length=255)
-    content_md: str = Field(default="", max_length=MAX_MD_CHARS)
-    resolved: int = Field(default=0, ge=0, le=1)
-    attributes: dict[str, Any] | None = None
-
-    @field_validator("attributes")
-    @classmethod
-    def _validate_attributes(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
-        return _validate_attributes_size(v)
-
-
 class EvidenceAfter(_AfterBase):
     source_type: str = Field(default="unknown", max_length=32)
     source_id: str | None = Field(default=None, max_length=64)
@@ -102,7 +88,6 @@ AFTER_MODEL_BY_TABLE: dict[str, type[_AfterBase]] = {
     "entities": EntityAfter,
     "relations": RelationAfter,
     "events": EventAfter,
-    "foreshadows": ForeshadowAfter,
     "evidence": EvidenceAfter,
 }
 
