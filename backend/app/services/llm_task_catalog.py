@@ -43,18 +43,6 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         description="大纲生成与填充缺失章节",
     ),
     LLMTaskCatalogItem(
-        key="chapter_analyze",
-        label="章节分析",
-        group="analysis",
-        description="章节分析结构化输出",
-    ),
-    LLMTaskCatalogItem(
-        key="chapter_rewrite",
-        label="章节重写",
-        group="analysis",
-        description="章节重写与修订",
-    ),
-    LLMTaskCatalogItem(
         key="memory_update",
         label="记忆更新提议",
         group="memory",
@@ -65,12 +53,6 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         label="角色卡自动更新",
         group="memory",
         description="角色卡后台自动更新任务",
-    ),
-    LLMTaskCatalogItem(
-        key="plot_auto_update",
-        label="剧情记忆自动更新",
-        group="memory",
-        description="剧情记忆后台自动更新任务",
     ),
 )
 

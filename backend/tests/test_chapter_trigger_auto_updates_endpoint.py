@@ -103,7 +103,7 @@ class TestChapterTriggerAutoUpdatesEndpoint(unittest.TestCase):
         client = TestClient(self.app)
         with patch("app.db.session.SessionLocal", self.SessionLocal), patch(
             "app.services.task_queue.get_task_queue", return_value=_DummyQueue()
-        ), patch("app.services.plot_analysis_service.get_task_queue", return_value=_DummyQueue()), patch(
+        ), patch(
             "app.services.characters_auto_update_service.get_task_queue", return_value=_DummyQueue()
         ):
             resp1 = client.post(

@@ -36,16 +36,6 @@ PROMPT_TASK_CATALOG: tuple[PromptTaskCatalogItem, ...] = (
         ui_copy_key="contentOptimize",
         e2e_specs=("test/specs/api/prompt-task-reachability.contract.spec.ts",),
     ),
-    PromptTaskCatalogItem(
-        key="chapter_analyze",
-        ui_copy_key="chapterAnalyze",
-        e2e_specs=("test/specs/api/prompt-task-reachability.contract.spec.ts",),
-    ),
-    PromptTaskCatalogItem(
-        key="chapter_rewrite",
-        ui_copy_key="chapterRewrite",
-        e2e_specs=("test/specs/api/prompt-task-reachability.contract.spec.ts",),
-    ),
 )
 
 PROMPT_TASK_KEYS: tuple[str, ...] = tuple(item.key for item in PROMPT_TASK_CATALOG)

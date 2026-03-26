@@ -238,24 +238,6 @@ def ensure_default_chapter_preset(db: Session, *, project_id: str, activate: boo
     )
 
 
-def ensure_default_chapter_analyze_preset(db: Session, *, project_id: str, activate: bool = False) -> PromptPreset:
-    return _ensure_default_preset_from_resource(
-        db,
-        project_id=project_id,
-        resource_key="chapter_analyze_v1",
-        activate=activate,
-    )
-
-
-def ensure_default_chapter_rewrite_preset(db: Session, *, project_id: str, activate: bool = False) -> PromptPreset:
-    return _ensure_default_preset_from_resource(
-        db,
-        project_id=project_id,
-        resource_key="chapter_rewrite_v1",
-        activate=activate,
-    )
-
-
 def resolve_resource_key_for_preset(db: Session, *, preset: PromptPreset) -> str | None:
     if preset.resource_key:
         return str(preset.resource_key)
@@ -364,10 +346,6 @@ def get_active_preset_for_task(db: Session, *, project_id: str, task: str, allow
             return ensure_default_outline_preset(db, project_id=project_id, activate=True)
         if task == "chapter_generate":
             return ensure_default_chapter_preset(db, project_id=project_id, activate=True)
-        if task == "chapter_analyze":
-            return ensure_default_chapter_analyze_preset(db, project_id=project_id, activate=True)
-        if task == "chapter_rewrite":
-            return ensure_default_chapter_rewrite_preset(db, project_id=project_id, activate=True)
 
     if not allow_autocreate:
         raise AppError.validation(message=f"No PromptPreset is configured for task={task}; initialize or activate one in Prompt Studio first")
@@ -890,4 +868,3 @@ def render_preset_for_task(
     }
 
     return system, user, messages, sorted(all_missing), rendered_blocks, preset.id, render_log
-

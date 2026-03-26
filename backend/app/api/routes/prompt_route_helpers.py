@@ -13,9 +13,7 @@ from app.models.prompt_block import PromptBlock
 from app.models.prompt_preset import PromptPreset
 from app.services.prompt_preset_resources import list_available_preset_resources, load_preset_resource
 from app.services.prompt_presets import (
-    ensure_default_chapter_analyze_preset,
     ensure_default_chapter_preset,
-    ensure_default_chapter_rewrite_preset,
     ensure_default_content_optimize_preset,
     ensure_default_outline_preset,
     ensure_default_plan_preset,
@@ -30,8 +28,6 @@ _PROMPT_BASELINE_ENSURERS: tuple[tuple[Any, dict[str, object]], ...] = (
     (ensure_default_content_optimize_preset, {}),
     (ensure_default_outline_preset, {"activate": False}),
     (ensure_default_chapter_preset, {"activate": False}),
-    (ensure_default_chapter_analyze_preset, {"activate": False}),
-    (ensure_default_chapter_rewrite_preset, {"activate": False}),
 )
 
 

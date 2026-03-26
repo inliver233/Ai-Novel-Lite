@@ -9,7 +9,6 @@ from app.services.output_parsers import (
     extract_json_value,
     build_outline_fix_json_prompt,
     likely_truncated_json,
-    parse_chapter_analysis_output,
     parse_chapter_output,
     parse_outline_output,
     parse_tag_output,
@@ -17,7 +16,7 @@ from app.services.output_parsers import (
 from app.schemas.memory_update import MemoryUpdateOpV1
 
 
-OutputContractType = Literal["markers", "json", "tags", "analysis_json", "memory_update_json"]
+OutputContractType = Literal["markers", "json", "tags", "memory_update_json"]
 
 
 def _normalize_memory_update_op_v1(item: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -139,19 +138,6 @@ class OutputContract:
                     )
             return OutputParseResult(data=data, warnings=warnings, parse_error=parse_error)
 
-        if self.type == "analysis_json":
-            data, warnings, parse_error = parse_chapter_analysis_output(text)
-            if finish_reason == "length":
-                warnings = list(warnings)
-                warnings.append("output_truncated")
-                if parse_error is not None:
-                    parse_error = dict(parse_error)
-                    parse_error.setdefault(
-                        "hint",
-                        "输出疑似被截断（finish_reason=length），可尝试增大 max_tokens 或减少分析输出长度",
-                    )
-            return OutputParseResult(data=data, warnings=warnings, parse_error=parse_error)
-
         if self.type == "memory_update_json":
             warnings: list[str] = []
             value, raw_json = extract_json_value(text)
@@ -248,8 +234,6 @@ def contract_for_task(task: str) -> OutputContract:
     task = (task or "").strip()
     if task == "outline_generate":
         return OutputContract(type="json")
-    if task == "chapter_analyze":
-        return OutputContract(type="analysis_json")
     if task == "chapter_generate":
         return OutputContract(type="markers")
     if task == "memory_update":
@@ -260,8 +244,6 @@ def contract_for_task(task: str) -> OutputContract:
         return OutputContract(type="tags", tag="rewrite", output_key="content_md")
     if task == "content_optimize":
         return OutputContract(type="tags", tag="content", output_key="content_md")
-    if task == "chapter_rewrite":
-        return OutputContract(type="tags", tag="rewrite", output_key="content_md")
     return OutputContract(type="markers")
 
 
