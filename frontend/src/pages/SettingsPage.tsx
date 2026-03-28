@@ -3,9 +3,6 @@ import { UnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 import { copyText } from "../lib/copyText";
 
 import { SettingsCoreSections } from "./settings/SettingsCoreSections";
-import { SettingsFeatureDefaultsSection } from "./settings/SettingsFeatureDefaultsSection";
-import { SettingsQueryPreprocessingSection } from "./settings/SettingsQueryPreprocessingSection";
-import { SettingsVectorRagSection } from "./settings/SettingsVectorRagSection";
 import { useSettingsPageState } from "./settings/useSettingsPageState";
 
 function SettingsPageSkeleton() {
@@ -45,30 +42,6 @@ function SettingsPageSkeleton() {
           <div className="skeleton h-28 w-full" />
           <div className="skeleton h-28 w-full" />
           <div className="skeleton h-28 w-full" />
-        </div>
-      </section>
-
-      <section className="panel p-6">
-        <div className="grid gap-2">
-          <div className="skeleton h-6 w-48" />
-          <div className="skeleton h-4 w-full max-w-2xl" />
-          <div className="skeleton h-4 w-full max-w-xl" />
-        </div>
-      </section>
-
-      <section className="panel p-6">
-        <div className="grid gap-2">
-          <div className="skeleton h-6 w-56" />
-          <div className="skeleton h-4 w-full max-w-2xl" />
-          <div className="skeleton h-4 w-full max-w-xl" />
-        </div>
-      </section>
-
-      <section className="panel p-6">
-        <div className="grid gap-2">
-          <div className="skeleton h-6 w-56" />
-          <div className="skeleton h-4 w-full max-w-2xl" />
-          <div className="skeleton h-4 w-full max-w-xl" />
         </div>
       </section>
 
@@ -131,11 +104,8 @@ export function SettingsPage() {
     <div className="grid gap-6 pb-24">
       {state.dirty && state.outletActive ? <UnsavedChangesGuard when={state.dirty} /> : null}
       <SettingsCoreSections {...state.coreSectionsProps} />
-      <SettingsVectorRagSection {...state.vectorRagSectionProps} />
-      <SettingsQueryPreprocessingSection {...state.queryPreprocessingSectionProps} />
       <div className="text-xs text-subtext">快捷键：Ctrl/Cmd + S 保存</div>
       <WizardNextBar {...state.wizardBarProps} />
-      <SettingsFeatureDefaultsSection {...state.featureDefaultsSectionProps} />
     </div>
   );
 }

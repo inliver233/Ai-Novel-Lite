@@ -1,10 +1,9 @@
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 import { humanizeMemberRole } from "../../lib/humanize";
-import type { Project, ProjectSettings } from "../../types";
+import type { Project } from "../../types";
 
 import type { ProjectForm, ProjectMembershipItem, SettingsForm } from "./models";
-import { SETTINGS_COPY } from "./settingsCopy";
 
 type SettingsCoreSectionsProps = {
   projectForm: ProjectForm;
@@ -13,13 +12,9 @@ type SettingsCoreSectionsProps = {
   setSettingsForm: Dispatch<SetStateAction<SettingsForm>>;
   dirty: boolean;
   saving: boolean;
-  autoUpdateMasterRef: RefObject<HTMLInputElement | null>;
-  autoUpdateAllEnabled: boolean;
-  onSetAllAutoUpdates: (enabled: boolean) => void;
   onGoToCharacters: () => void;
   onSave: () => void;
   baselineProject: Project;
-  baselineSettings: ProjectSettings;
   canManageMemberships: boolean;
   currentUserId: string;
   membershipsLoading: boolean;
@@ -43,13 +38,9 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
     setSettingsForm,
     dirty,
     saving,
-    autoUpdateMasterRef,
-    autoUpdateAllEnabled,
-    onSetAllAutoUpdates,
     onGoToCharacters,
     onSave,
     baselineProject,
-    baselineSettings,
     canManageMemberships,
     currentUserId,
     membershipsLoading,
@@ -152,117 +143,6 @@ export function SettingsCoreSections(props: SettingsCoreSectionsProps) {
           </label>
         </div>
       </section>
-
-      <section className="panel p-6">
-        <div className="grid gap-1">
-          <div className="font-content text-xl">自动更新（推荐）</div>
-          <div className="text-xs text-subtext">章节定稿（done）后自动触发后台更新任务；普通用户建议保持开启。</div>
-        </div>
-
-        <div className="mt-4 grid gap-2">
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              ref={autoUpdateMasterRef}
-              className="checkbox"
-              checked={autoUpdateAllEnabled}
-              onChange={(e) => onSetAllAutoUpdates(e.target.checked)}
-              type="checkbox"
-            />
-            一键开关：自动更新（章节定稿后触发）
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
-              checked={settingsForm.auto_update_characters_enabled}
-              onChange={(e) =>
-                setSettingsForm((value) => ({ ...value, auto_update_characters_enabled: e.target.checked }))
-              }
-              type="checkbox"
-            />
-            角色卡：自动更新（characters_auto_update）
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
-              checked={settingsForm.auto_update_story_memory_enabled}
-              onChange={(e) =>
-                setSettingsForm((value) => ({ ...value, auto_update_story_memory_enabled: e.target.checked }))
-              }
-              type="checkbox"
-            />
-            剧情记忆：自动分析并写入（plot_auto_update）
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
-              checked={settingsForm.auto_update_vector_enabled}
-              onChange={(e) => setSettingsForm((value) => ({ ...value, auto_update_vector_enabled: e.target.checked }))}
-              type="checkbox"
-            />
-            向量索引：自动重建（vector_rebuild）
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              className="checkbox"
-              checked={settingsForm.auto_update_search_enabled}
-              onChange={(e) => setSettingsForm((value) => ({ ...value, auto_update_search_enabled: e.target.checked }))}
-              type="checkbox"
-            />
-            搜索索引：自动重建（search_rebuild）
-          </label>
-
-        </div>
-
-        <div className="mt-2 text-xs text-subtext">
-          提示：关闭后不会在「章节定稿」时自动排队；仍可在对应页面手动触发相关操作。
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            className="btn btn-secondary btn-sm"
-            disabled={saving}
-            onClick={() => onSetAllAutoUpdates(true)}
-            type="button"
-          >
-            全部开启（推荐）
-          </button>
-        </div>
-      </section>
-
-      <details className="panel" aria-label="上下文优化（Context Optimizer）">
-        <summary className="ui-focus-ring ui-transition-fast cursor-pointer select-none p-6">
-          <div className="grid gap-1">
-            <div className="font-content text-xl text-ink">上下文优化（Context Optimizer）</div>
-            <div className="text-xs text-subtext">
-              对注入上下文做去重、排序、表格化合并，用于节省 tokens 并提升可读性（默认关闭）。
-            </div>
-            <div className="text-xs text-subtext">
-              {SETTINGS_COPY.contextOptimizer.status(baselineSettings.context_optimizer_enabled)}
-            </div>
-          </div>
-        </summary>
-
-        <div className="px-6 pb-6 pt-0">
-          <div className="mt-4 grid gap-2">
-            <label className="flex items-center gap-2 text-sm text-ink">
-              <input
-                className="checkbox"
-                checked={settingsForm.context_optimizer_enabled}
-                onChange={(e) =>
-                  setSettingsForm((value) => ({ ...value, context_optimizer_enabled: e.target.checked }))
-                }
-                type="checkbox"
-              />
-              启用 ContextOptimizer（影响 Prompt 预览与生成）
-            </label>
-            <div className="text-[11px] text-subtext">提示：写作页「上下文预览」会显示优化摘要与 diff。</div>
-          </div>
-        </div>
-      </details>
 
       <details className="panel" aria-label="协作成员（Project Memberships）">
         <summary className="ui-focus-ring ui-transition-fast cursor-pointer select-none p-6">

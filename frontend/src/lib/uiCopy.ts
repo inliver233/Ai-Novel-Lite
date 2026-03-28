@@ -185,19 +185,4 @@ export const UI_COPY = {
       contentOptimize: "正文优化（content_optimize，P0）",
     },
   },
-  featureDefaults: {
-    ariaLabel: "默认行为（Feature Defaults）",
-    title: "默认行为（默认开启）",
-    subtitle: "普通用户默认开启记忆注入与后台自动更新；高级用户可按需关闭以节省成本/提升速度。",
-    memoryInjectionLabel: "写作默认开启记忆注入（Memory Injection）",
-    memoryInjectionHint:
-      "关闭后：章节生成/上下文预览默认不注入记忆模块；仍可在写作页临时开启（建议用于成本控制/排障）。",
-    reset: "恢复默认（开启）",
-    resetHint: "仅对当前浏览器生效（localStorage；可随时切换）。",
-    toastEnabled: "已开启：写作默认记忆注入",
-    toastDisabled: "已关闭：写作默认记忆注入",
-    toastReset: "已恢复默认：写作默认记忆注入（开启）",
-    autoUpdateHint:
-      "后台自动更新（向量/搜索/角色/剧情记忆）默认开启：章节定稿或内容变更后会静默调度任务；如需排障，请结合请求 ID 与当前页面提示定位。",
-  },
 } as const;
