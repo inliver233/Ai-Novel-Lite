@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import type { LLMProfile, LLMProvider, LLMTaskCatalogItem } from "../../../types";
-import type { LlmModuleAccessState } from "../llmConnectionState";
+import type { VectorRagForm } from "../../../pages/prompts/models";
 import type { LlmForm, LlmModelListState } from "../types";
 
 export type CardProfile = LLMProfile & { provider: LLMProvider };
@@ -29,54 +29,6 @@ export type LlmModuleCapabilities = {
   context_window_limit: number | null;
 } | null;
 
-export type ConnectionCardProps = {
-  profiles: LLMProfile[];
-  selectedProfileId: string | null;
-  onSelectProfile: (profileId: string | null) => void;
-  profileName: string;
-  onChangeProfileName: (value: string) => void;
-  profileBusy: boolean;
-  onCreateProfile: () => void;
-  onUpdateProfile: () => void;
-  onDeleteProfile: () => void;
-  apiKey: string;
-  onChangeApiKey: (value: string) => void;
-  onSaveApiKey: () => void;
-  onClearApiKey: () => void;
-  mainAccessState: LlmModuleAccessState;
-  selectedProfile: LLMProfile | null;
-};
-
-export type ModelSelectorCardProps = {
-  form: LlmForm;
-  setForm: LlmFormSetter;
-  modelList: LlmModelListState;
-  modelListHelpText: string;
-  actionBlockedReason?: string | null;
-  onReloadModels: () => void;
-  saving: boolean;
-  moduleId: string;
-};
-
-export type ParameterTunerCardProps = {
-  form: LlmForm;
-  setForm: LlmFormSetter;
-  capabilities: LlmModuleCapabilities;
-  saving: boolean;
-};
-
-export type ThinkingConfigCardProps = {
-  form: LlmForm;
-  setForm: LlmFormSetter;
-  saving: boolean;
-};
-
-export type AdvancedConfigCardProps = {
-  form: LlmForm;
-  setForm: LlmFormSetter;
-  saving: boolean;
-};
-
 export type TaskOverrideSectionProps = {
   taskModules: TaskModuleView[];
   profiles: LLMProfile[];
@@ -98,4 +50,74 @@ export type TaskOverrideSectionProps = {
   onDeleteTask: (taskKey: string) => void;
   onReloadTaskModels: (taskKey: string) => void;
   llmForm: LlmForm;
+};
+
+// --- New types for redesigned model config page ---
+
+export type MainConfigBlockProps = {
+  // Profile quick-switch
+  profiles: LLMProfile[];
+  selectedProfileId: string | null;
+  onSelectProfile: (profileId: string | null) => void;
+  onSaveProfile: () => void;
+  onCreateProfile: () => void;
+  profileBusy: boolean;
+
+  // Connection test
+  testing: boolean;
+  onTestConnection: () => void;
+
+  // Form state
+  llmForm: LlmForm;
+  setLlmForm: LlmFormSetter;
+  saving: boolean;
+  presetDirty: boolean;
+  onSave: () => void;
+
+  // API Key
+  apiKey: string;
+  onChangeApiKey: (value: string) => void;
+
+  // Model fetching
+  mainModelList: LlmModelListState;
+  onReloadMainModels: () => void;
+  onInlineFetchModels?: (baseUrl: string, apiKey: string) => void;
+
+  // Capabilities
+  capabilities: LlmModuleCapabilities;
+};
+
+export type RagConfigBlockProps = {
+  activeTab: 'embedding' | 'rerank';
+  onTabChange: (tab: 'embedding' | 'rerank') => void;
+
+  vectorForm: VectorRagForm;
+  setVectorForm: Dispatch<SetStateAction<VectorRagForm>>;
+
+  // Embed fields
+  vectorApiKeyDraft: string;
+  setVectorApiKeyDraft: Dispatch<SetStateAction<string>>;
+
+  // Rerank fields
+  rerankApiKeyDraft: string;
+  setRerankApiKeyDraft: Dispatch<SetStateAction<string>>;
+  vectorRerankTopKDraft: string;
+  setVectorRerankTopKDraft: Dispatch<SetStateAction<string>>;
+  vectorRerankTimeoutDraft: string;
+  setVectorRerankTimeoutDraft: Dispatch<SetStateAction<string>>;
+  vectorRerankHybridAlphaDraft: string;
+  setVectorRerankHybridAlphaDraft: Dispatch<SetStateAction<string>>;
+
+  // State
+  savingVector: boolean;
+  vectorRagDirty: boolean;
+  vectorApiKeyDirty: boolean;
+  rerankApiKeyDirty: boolean;
+
+  // Actions
+  onSave: () => void;
+  onRunEmbeddingDryRun: () => void;
+  onRunRerankDryRun: () => void;
+  embeddingDryRunLoading: boolean;
+  rerankDryRunLoading: boolean;
 };
