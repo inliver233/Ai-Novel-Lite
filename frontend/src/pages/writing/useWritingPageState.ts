@@ -73,7 +73,6 @@ export function useWritingPageState(): WritingPageState {
   const [promptInspectorOpen, setPromptInspectorOpen] = useState(false);
   const [postEditCompareOpen, setPostEditCompareOpen] = useState(false);
   const [contentOptimizeCompareOpen, setContentOptimizeCompareOpen] = useState(false);
-  const [contextPreviewOpen, setContextPreviewOpen] = useState(false);
   const [autoUpdatesTriggering, setAutoUpdatesTriggering] = useState(false);
 
   const writingQuery = useProjectData<WritingLoaded>(projectId, async (id) => {
@@ -318,7 +317,6 @@ export function useWritingPageState(): WritingPageState {
       onOpenBatch: batch.openModal,
       onOpenHistory: history.openDrawer,
       onOpenAiGenerate: () => setAiOpen(true),
-      onOpenContextPreview: () => setContextPreviewOpen(true),
       onCreateChapter: chapterCrud.openCreate,
     },
     chapterListProps: {
@@ -446,18 +444,6 @@ export function useWritingPageState(): WritingPageState {
       genForm,
       setGenForm,
       onGenerate: generate,
-    },
-    contextPreviewDrawerProps: {
-      open: contextPreviewOpen,
-      onClose: () => setContextPreviewOpen(false),
-      projectId,
-      memoryInjectionEnabled: genForm.memory_injection_enabled,
-      genInstruction: genForm.instruction,
-      genChapterPlan: activeChapter?.plan ?? "",
-      genMemoryQueryText: genForm.memory_query_text,
-      genMemoryModules: genForm.memory_modules,
-      onChangeMemoryInjectionEnabled: (enabled) =>
-        setGenForm((prev) => ({ ...prev, memory_injection_enabled: Boolean(enabled) })),
     },
     generationHistoryDrawerProps: {
       open: history.open,

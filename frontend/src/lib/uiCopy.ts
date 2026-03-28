@@ -129,18 +129,10 @@ export const UI_COPY = {
     linuxdoCheckFailedPrefix: "无法检查 LinuxDo 配置：",
   },
   writing: {
-    contextPreview: "上下文预览",
-    contextPreviewTitle: "上下文预览",
-    contextPreviewSubtitle: "MemoryContextPack / logs",
-    contextPreviewRefresh: "刷新",
-    contextPreviewClose: "关闭",
-    contextPreviewLoadFailedTitle: "加载失败",
-    contextPreviewMissingProjectId: "缺少 projectId",
     memoryInjectionToggle: "记忆注入",
     memoryInjectionHint:
-      "启用后：生成时会把记忆等模块的结果注入到提示词；上下文预览也会显示触发条目与最终注入文本。",
-    memoryInjectionDisabledPreview: "记忆注入已关闭。开启后可查看触发条目与 text_md。",
-    contextPreviewRawPack: "raw MemoryContextPack",
+      "启用后：生成时会把记忆等模块的结果注入到提示词。",
+    memoryInjectionDisabledPreview: "记忆注入已关闭。",
     memoryPackEmpty: "当前为空包（Phase 0 占位）。",
   },
   promptStudio: {

@@ -46,13 +46,6 @@ export type GenerateForm = {
   };
 };
 
-export type MemoryContextPack = {
-  story_memory: Record<string, unknown>;
-  semantic_history: Record<string, unknown>;
-  vector_rag: Record<string, unknown>;
-  logs: unknown[];
-};
-
 export type GenerationRun = {
   id: string;
   project_id: string;

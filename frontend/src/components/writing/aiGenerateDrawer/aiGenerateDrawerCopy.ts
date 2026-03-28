@@ -22,7 +22,7 @@ export const AI_GENERATE_DRAWER_COPY = {
     queryLabel: "记忆查询关键词（可选）",
     queryHint: "留空将自动使用“用户指令 + 章节计划”。",
     modulesLabel: "注入模块",
-    modulesHint: "会影响本次生成提示词，并同步到「上下文预览」。",
+    modulesHint: "会影响本次生成提示词。",
     advancedModulesTitle: "更多模块（高级）",
   },
   contextSection: {
