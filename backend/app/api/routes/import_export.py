@@ -190,19 +190,15 @@ def list_import_chunks(
 
 
 @router.post("/projects/{project_id}/imports/{document_id}/retry")
-def retry_import(request: Request, user_id: UserIdDep, project_id: str, document_id: str) -> dict:
+def retry_import(request: Request, db: DbDep, user_id: UserIdDep, project_id: str, document_id: str) -> dict:
     request_id = request.state.request_id
 
-    db = SessionLocal()
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        cleanup = retry_import_task(project_id=project_id, document_id=document_id)
-        row = db.get(ProjectSourceDocument, str(document_id or "").strip())
-        if row is None or str(row.project_id) != str(project_id):
-            raise AppError.not_found()
-        doc_public = _doc_public(row)
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    cleanup = retry_import_task(project_id=project_id, document_id=document_id)
+    row = db.get(ProjectSourceDocument, str(document_id or "").strip())
+    if row is None or str(row.project_id) != str(project_id):
+        raise AppError.not_found()
+    doc_public = _doc_public(row)
 
     job_id: str | None = None
     enqueue_error: str | None = None
@@ -213,8 +209,7 @@ def retry_import(request: Request, user_id: UserIdDep, project_id: str, document
 
     if enqueue_error:
         # Best-effort write back failure.
-        db2 = SessionLocal()
-        try:
+        with SessionLocal() as db2:
             row2 = db2.get(ProjectSourceDocument, str(document_id or "").strip())
             if row2 is not None:
                 row2.status = "failed"
@@ -222,8 +217,6 @@ def retry_import(request: Request, user_id: UserIdDep, project_id: str, document
                 row2.error_message = f"enqueue_failed:{enqueue_error}"
                 db2.commit()
                 doc_public = _doc_public(row2)
-        finally:
-            db2.close()
 
     return ok_payload(
         request_id=request_id,

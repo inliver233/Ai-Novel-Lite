@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
-from app.api.deps import UserIdDep, require_project_editor, require_project_owner, require_project_viewer
+from app.api.deps import DbDep, UserIdDep, require_project_editor, require_project_owner, require_project_viewer
 from app.core.errors import AppError, ok_payload
 from app.core.secrets import redact_api_keys
 from app.db.session import SessionLocal
@@ -138,21 +138,14 @@ class VectorKbReorderRequest(BaseModel):
 
 
 @router.post("/projects/{project_id}/vector/status")
-def get_vector_status(request: Request, user_id: UserIdDep, project_id: str, body: VectorStatusRequest) -> dict:
+def get_vector_status(request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorStatusRequest) -> dict:
     request_id = request.state.request_id
 
-    db = SessionLocal()
-    embedding: dict[str, str | None] = {}
-    rerank: dict[str, object] = {}
-    index_state: dict[str, object] = {"dirty": False, "last_build_at": None}
-    try:
-        require_project_viewer(db, project_id=project_id, user_id=user_id)
-        settings_row = db.get(ProjectSettings, project_id)
-        embedding = vector_embedding_overrides(settings_row)
-        rerank = _vector_rerank_config(settings_row)
-        index_state = _index_state(settings_row)
-    finally:
-        db.close()
+    require_project_viewer(db, project_id=project_id, user_id=user_id)
+    settings_row = db.get(ProjectSettings, project_id)
+    embedding = vector_embedding_overrides(settings_row)
+    rerank = _vector_rerank_config(settings_row)
+    index_state = _index_state(settings_row)
 
     result = vector_rag_status(project_id=project_id, sources=body.sources, embedding=embedding, rerank=rerank)
     result["index"] = index_state
@@ -160,20 +153,17 @@ def get_vector_status(request: Request, user_id: UserIdDep, project_id: str, bod
 
 
 @router.post("/projects/{project_id}/vector/embeddings/dry-run")
-def dry_run_vector_embeddings(request: Request, user_id: UserIdDep, project_id: str, body: VectorEmbeddingDryRunRequest) -> dict:
+def dry_run_vector_embeddings(
+    request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorEmbeddingDryRunRequest
+) -> dict:
     request_id = request.state.request_id
     text = str(body.text or "").strip()
     if not text:
         raise AppError.validation("text 不能为空")
 
-    db = SessionLocal()
-    embedding: dict[str, str | None] = {}
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        settings_row = db.get(ProjectSettings, project_id)
-        embedding = vector_embedding_overrides(settings_row)
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    settings_row = db.get(ProjectSettings, project_id)
+    embedding = vector_embedding_overrides(settings_row)
 
     cfg = resolve_embedding_config(embedding)
 
@@ -204,7 +194,9 @@ def dry_run_vector_embeddings(request: Request, user_id: UserIdDep, project_id: 
 
 
 @router.post("/projects/{project_id}/vector/rerank/dry-run")
-def dry_run_vector_rerank(request: Request, user_id: UserIdDep, project_id: str, body: VectorRerankDryRunRequest) -> dict:
+def dry_run_vector_rerank(
+    request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorRerankDryRunRequest
+) -> dict:
     request_id = request.state.request_id
     query_text = str(body.query_text or "").strip()
     if not query_text:
@@ -220,14 +212,9 @@ def dry_run_vector_rerank(request: Request, user_id: UserIdDep, project_id: str,
     if not docs:
         raise AppError.validation("documents 不能为空")
 
-    db = SessionLocal()
-    rerank: dict[str, object] = {}
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        settings_row = db.get(ProjectSettings, project_id)
-        rerank = _vector_rerank_config(settings_row)
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    settings_row = db.get(ProjectSettings, project_id)
+    rerank = _vector_rerank_config(settings_row)
 
     rerank_runtime: dict[str, Any] = dict(rerank or {})
     if body.method is not None:
@@ -296,7 +283,7 @@ def dry_run_vector_rerank(request: Request, user_id: UserIdDep, project_id: str,
 
 
 @router.post("/projects/{project_id}/vector/ingest")
-def ingest_vector_index(request: Request, user_id: UserIdDep, project_id: str, body: VectorIngestRequest) -> dict:
+def ingest_vector_index(request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorIngestRequest) -> dict:
     request_id = request.state.request_id
 
     kb_id = str(body.kb_id or "").strip() or None
@@ -311,17 +298,12 @@ def ingest_vector_index(request: Request, user_id: UserIdDep, project_id: str, b
     if not kb_ids_unique:
         kb_ids_unique = [kb_id] if kb_id else ["default"]
 
-    db = SessionLocal()
-    embedding: dict[str, str | None] = {}
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        chunks = build_project_chunks(db=db, project_id=project_id, sources=body.sources)
-        embedding = vector_embedding_overrides(db.get(ProjectSettings, project_id))
-        ensure_default_vector_kb(db, project_id=project_id)
-        for kid in kb_ids_unique:
-            get_vector_kb(db, project_id=project_id, kb_id=kid)
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    chunks = build_project_chunks(db=db, project_id=project_id, sources=body.sources)
+    embedding = vector_embedding_overrides(db.get(ProjectSettings, project_id))
+    ensure_default_vector_kb(db, project_id=project_id)
+    for kid in kb_ids_unique:
+        get_vector_kb(db, project_id=project_id, kb_id=kid)
 
     per_kb: dict[str, dict] = {}
     for kid in kb_ids_unique:
@@ -348,7 +330,9 @@ def ingest_vector_index(request: Request, user_id: UserIdDep, project_id: str, b
 
 
 @router.post("/projects/{project_id}/vector/rebuild")
-def rebuild_vector_index(request: Request, user_id: UserIdDep, project_id: str, body: VectorIngestRequest) -> dict:
+def rebuild_vector_index(
+    request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorIngestRequest
+) -> dict:
     request_id = request.state.request_id
 
     kb_id = str(body.kb_id or "").strip() or None
@@ -363,17 +347,12 @@ def rebuild_vector_index(request: Request, user_id: UserIdDep, project_id: str, 
     if not kb_ids_unique:
         kb_ids_unique = [kb_id] if kb_id else ["default"]
 
-    db = SessionLocal()
-    embedding: dict[str, str | None] = {}
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        chunks = build_project_chunks(db=db, project_id=project_id, sources=body.sources)
-        embedding = vector_embedding_overrides(db.get(ProjectSettings, project_id))
-        ensure_default_vector_kb(db, project_id=project_id)
-        for kid in kb_ids_unique:
-            get_vector_kb(db, project_id=project_id, kb_id=kid)
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    chunks = build_project_chunks(db=db, project_id=project_id, sources=body.sources)
+    embedding = vector_embedding_overrides(db.get(ProjectSettings, project_id))
+    ensure_default_vector_kb(db, project_id=project_id)
+    for kid in kb_ids_unique:
+        get_vector_kb(db, project_id=project_id, kb_id=kid)
 
     per_kb: dict[str, dict] = {}
     for kid in kb_ids_unique:
@@ -398,33 +377,26 @@ def rebuild_vector_index(request: Request, user_id: UserIdDep, project_id: str, 
     }
 
     if bool(enabled) and not bool(skipped):
-        db2 = SessionLocal()
-        try:
+        with SessionLocal() as db2:
             settings_row = _ensure_settings_row(db2, project_id=project_id)
             settings_row.vector_index_dirty = False
             settings_row.last_vector_build_at = utc_now()
             db2.commit()
-        finally:
-            db2.close()
     return ok_payload(request_id=request_id, data={"result": result})
 
 
 @router.post("/projects/{project_id}/vector/purge")
-def purge_vector_index(request: Request, user_id: UserIdDep, project_id: str) -> dict:
+def purge_vector_index(request: Request, db: DbDep, user_id: UserIdDep, project_id: str) -> dict:
     request_id = request.state.request_id
 
-    db = SessionLocal()
-    try:
-        require_project_owner(db, project_id=project_id, user_id=user_id)
-    finally:
-        db.close()
+    require_project_owner(db, project_id=project_id, user_id=user_id)
 
     result = purge_project_vectors(project_id=project_id)
     return ok_payload(request_id=request_id, data={"result": result})
 
 
 @router.post("/projects/{project_id}/vector/query")
-def query_vector_index(request: Request, user_id: UserIdDep, project_id: str, body: VectorQueryRequest) -> dict:
+def query_vector_index(request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorQueryRequest) -> dict:
     request_id = request.state.request_id
 
     kb_id = str(body.kb_id or "").strip() or None
@@ -438,22 +410,14 @@ def query_vector_index(request: Request, user_id: UserIdDep, project_id: str, bo
         kb_ids_unique.append(kid)
     requested_kb_ids = kb_ids_unique if kb_ids_unique else ([kb_id] if kb_id else None)
 
-    db = SessionLocal()
-    embedding: dict[str, str | None] = {}
-    rerank: dict[str, object] = {}
-    qp_cfg = None
-    selected_kbs: list[KnowledgeBase] = []
-    try:
-        require_project_viewer(db, project_id=project_id, user_id=user_id)
-        settings_row = db.get(ProjectSettings, project_id)
-        embedding = vector_embedding_overrides(settings_row)
-        rerank = _vector_rerank_config(settings_row)
-        selected_kbs = resolve_vector_query_kbs(db, project_id=project_id, requested_kb_ids=requested_kb_ids)
-        qp_cfg = parse_query_preprocessing_config(
-            (settings_row.query_preprocessing_json or "").strip() if settings_row is not None else None
-        )
-    finally:
-        db.close()
+    require_project_viewer(db, project_id=project_id, user_id=user_id)
+    settings_row = db.get(ProjectSettings, project_id)
+    embedding = vector_embedding_overrides(settings_row)
+    rerank = _vector_rerank_config(settings_row)
+    selected_kbs = resolve_vector_query_kbs(db, project_id=project_id, requested_kb_ids=requested_kb_ids)
+    qp_cfg = parse_query_preprocessing_config(
+        (settings_row.query_preprocessing_json or "").strip() if settings_row is not None else None
+    )
 
     selected_kb_ids = [r.kb_id for r in selected_kbs]
     kb_weights = {r.kb_id: float(r.weight) for r in selected_kbs}
@@ -490,88 +454,74 @@ def query_vector_index(request: Request, user_id: UserIdDep, project_id: str, bo
 
 
 @router.get("/projects/{project_id}/vector/kbs")
-def list_vector_knowledge_bases(request: Request, user_id: UserIdDep, project_id: str) -> dict:
+def list_vector_knowledge_bases(request: Request, db: DbDep, user_id: UserIdDep, project_id: str) -> dict:
     request_id = request.state.request_id
 
-    db = SessionLocal()
-    try:
-        require_project_viewer(db, project_id=project_id, user_id=user_id)
-        rows = list_vector_kbs(db, project_id=project_id)
-        return ok_payload(request_id=request_id, data={"kbs": [_kb_public(r) for r in rows]})
-    finally:
-        db.close()
+    require_project_viewer(db, project_id=project_id, user_id=user_id)
+    rows = list_vector_kbs(db, project_id=project_id)
+    return ok_payload(request_id=request_id, data={"kbs": [_kb_public(r) for r in rows]})
 
 
 @router.post("/projects/{project_id}/vector/kbs")
-def create_vector_knowledge_base(request: Request, user_id: UserIdDep, project_id: str, body: VectorKbCreateRequest) -> dict:
+def create_vector_knowledge_base(
+    request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorKbCreateRequest
+) -> dict:
     request_id = request.state.request_id
 
-    db = SessionLocal()
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        row = create_vector_kb(
-            db,
-            project_id=project_id,
-            name=body.name,
-            kb_id=body.kb_id,
-            enabled=body.enabled,
-            weight=body.weight,
-            priority_group=body.priority_group,
-        )
-        return ok_payload(request_id=request_id, data={"kb": _kb_public(row)})
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    row = create_vector_kb(
+        db,
+        project_id=project_id,
+        name=body.name,
+        kb_id=body.kb_id,
+        enabled=body.enabled,
+        weight=body.weight,
+        priority_group=body.priority_group,
+    )
+    return ok_payload(request_id=request_id, data={"kb": _kb_public(row)})
 
 
 @router.put("/projects/{project_id}/vector/kbs/{kb_id}")
-def update_vector_knowledge_base(request: Request, user_id: UserIdDep, project_id: str, kb_id: str, body: VectorKbUpdateRequest) -> dict:
+def update_vector_knowledge_base(
+    request: Request, db: DbDep, user_id: UserIdDep, project_id: str, kb_id: str, body: VectorKbUpdateRequest
+) -> dict:
     request_id = request.state.request_id
     kb = str(kb_id or "").strip()
     if not kb:
         raise AppError.validation("kb_id 不能为空")
 
-    db = SessionLocal()
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        row = update_vector_kb(
-            db,
-            project_id=project_id,
-            kb_id=kb,
-            name=body.name,
-            enabled=body.enabled,
-            weight=body.weight,
-            priority_group=body.priority_group,
-        )
-        return ok_payload(request_id=request_id, data={"kb": _kb_public(row)})
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    row = update_vector_kb(
+        db,
+        project_id=project_id,
+        kb_id=kb,
+        name=body.name,
+        enabled=body.enabled,
+        weight=body.weight,
+        priority_group=body.priority_group,
+    )
+    return ok_payload(request_id=request_id, data={"kb": _kb_public(row)})
 
 
 @router.post("/projects/{project_id}/vector/kbs/reorder")
-def reorder_vector_knowledge_bases(request: Request, user_id: UserIdDep, project_id: str, body: VectorKbReorderRequest) -> dict:
+def reorder_vector_knowledge_bases(
+    request: Request, db: DbDep, user_id: UserIdDep, project_id: str, body: VectorKbReorderRequest
+) -> dict:
     request_id = request.state.request_id
 
-    db = SessionLocal()
-    try:
-        require_project_editor(db, project_id=project_id, user_id=user_id)
-        rows = reorder_vector_kbs(db, project_id=project_id, ordered_kb_ids=body.kb_ids)
-        return ok_payload(request_id=request_id, data={"kbs": [_kb_public(r) for r in rows]})
-    finally:
-        db.close()
+    require_project_editor(db, project_id=project_id, user_id=user_id)
+    rows = reorder_vector_kbs(db, project_id=project_id, ordered_kb_ids=body.kb_ids)
+    return ok_payload(request_id=request_id, data={"kbs": [_kb_public(r) for r in rows]})
 
 
 @router.delete("/projects/{project_id}/vector/kbs/{kb_id}")
-def delete_vector_knowledge_base(request: Request, user_id: UserIdDep, project_id: str, kb_id: str) -> dict:
+def delete_vector_knowledge_base(request: Request, db: DbDep, user_id: UserIdDep, project_id: str, kb_id: str) -> dict:
     request_id = request.state.request_id
     kb = str(kb_id or "").strip()
     if not kb:
         raise AppError.validation("kb_id 不能为空")
 
-    db = SessionLocal()
-    try:
-        require_project_owner(db, project_id=project_id, user_id=user_id)
-        purge_out = purge_project_vectors(project_id=project_id, kb_id=kb)
-        delete_vector_kb(db, project_id=project_id, kb_id=kb)
-        return ok_payload(request_id=request_id, data={"deleted": True, "vector_purge": purge_out})
-    finally:
-        db.close()
+    require_project_owner(db, project_id=project_id, user_id=user_id)
+    purge_out = purge_project_vectors(project_id=project_id, kb_id=kb)
+    delete_vector_kb(db, project_id=project_id, kb_id=kb)
+    return ok_payload(request_id=request_id, data={"deleted": True, "vector_purge": purge_out})
