@@ -11,8 +11,8 @@ test("ui: prompts test connection works and stays local", async ({ page, request
   await expect(page.getByRole("heading", { name: "模型配置", exact: true })).toBeVisible();
 
   // Should already be bound to the mock openai-compatible profile from bootstrap.
-  await expect(page.locator('select[name="provider"]')).toHaveValue("openai_compatible");
-  await expect(page.locator('input[name="base_url"]')).toHaveValue(state.mockLlmBaseUrl);
+  await expect(page.locator('select[name="main-module_provider"]')).toHaveValue("openai_compatible");
+  await expect(page.locator('input[name="main-module_base_url"]')).toHaveValue(state.mockLlmBaseUrl);
 
   const testResp = page.waitForResponse(
     (resp) => resp.request().method() === "POST" && resp.url().endsWith("/api/llm/test"),

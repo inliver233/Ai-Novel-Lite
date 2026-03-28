@@ -42,7 +42,7 @@ test("ui: blocker warning not emitted across dirty navigation", async ({ page, r
   await expect(leave2).toBeHidden();
 
   await expect(page.getByRole("heading", { name: "模型配置", exact: true })).toBeVisible();
-  await page.locator('input[name="model"]').fill(`e2e-model-${Date.now()}`);
+  await page.locator('input[name="main-module_model"]').fill(`e2e-model-${Date.now()}`);
 
   // Router warnings are emitted synchronously, but leave a tick for any deferred logs.
   await page.waitForTimeout(200);
