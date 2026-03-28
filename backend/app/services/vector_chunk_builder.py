@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.utils import new_id
 from app.models.chapter import Chapter
 from app.models.outline import Outline
 from app.models.story_memory import StoryMemory
-from app.services.vector_rag_service import VectorChunk, VectorSource, _ALL_SOURCES, _safe_json_loads
+from app.services.vector_build import VectorChunk, VectorSource, _ALL_SOURCES, _safe_json_loads
 
 
 def _chunk_text(text: str, *, chunk_size: int, overlap: int) -> list[str]:
@@ -128,4 +125,3 @@ def build_project_chunks(*, db: Session, project_id: str, sources: list[VectorSo
                 )
 
     return out
-
