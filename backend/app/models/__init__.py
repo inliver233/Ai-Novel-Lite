@@ -16,7 +16,6 @@ from app.models.project_source_document import ProjectSourceDocument, ProjectSou
 from app.models.project_default_style import ProjectDefaultStyle
 from app.models.prompt_block import PromptBlock
 from app.models.prompt_preset import PromptPreset
-from app.models.plot_analysis import PlotAnalysis
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
 from app.models.auth_external_account import AuthExternalAccount
@@ -47,7 +46,6 @@ __all__ = [
     "ProjectSourceDocumentChunk",
     "PromptBlock",
     "PromptPreset",
-    "PlotAnalysis",
     "SearchDocument",
     "StoryMemory",
     "AuthExternalAccount",
