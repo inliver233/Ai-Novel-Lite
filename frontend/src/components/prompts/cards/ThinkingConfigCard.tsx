@@ -23,7 +23,10 @@ export function ThinkingConfigCard(props: ThinkingConfigCardProps) {
               className="select"
               disabled={props.saving}
               value={props.form.reasoning_effort}
-              onChange={(event) => props.setForm((prev) => ({ ...prev, reasoning_effort: event.currentTarget.value }))}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                props.setForm((prev) => ({ ...prev, reasoning_effort: value }));
+              }}
             >
               <option value="">默认</option>
               <option value="minimal">minimal</option>
@@ -43,7 +46,10 @@ export function ThinkingConfigCard(props: ThinkingConfigCardProps) {
               className="select"
               disabled={props.saving}
               value={props.form.reasoning_effort}
-              onChange={(event) => props.setForm((prev) => ({ ...prev, reasoning_effort: event.currentTarget.value }))}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                props.setForm((prev) => ({ ...prev, reasoning_effort: value }));
+              }}
             >
               <option value="">默认</option>
               <option value="minimal">minimal</option>
@@ -59,7 +65,10 @@ export function ThinkingConfigCard(props: ThinkingConfigCardProps) {
               className="select"
               disabled={props.saving}
               value={props.form.text_verbosity}
-              onChange={(event) => props.setForm((prev) => ({ ...prev, text_verbosity: event.currentTarget.value }))}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                props.setForm((prev) => ({ ...prev, text_verbosity: value }));
+              }}
             >
               <option value="">默认</option>
               <option value="low">low</option>
@@ -77,9 +86,10 @@ export function ThinkingConfigCard(props: ThinkingConfigCardProps) {
               checked={props.form.anthropic_thinking_enabled}
               disabled={props.saving}
               type="checkbox"
-              onChange={(event) =>
-                props.setForm((prev) => ({ ...prev, anthropic_thinking_enabled: event.currentTarget.checked }))
-              }
+              onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                props.setForm((prev) => ({ ...prev, anthropic_thinking_enabled: checked }));
+              }}
             />
             <span className="text-sm text-ink">启用 thinking</span>
           </label>
@@ -115,9 +125,10 @@ export function ThinkingConfigCard(props: ThinkingConfigCardProps) {
               checked={props.form.gemini_include_thoughts}
               disabled={props.saving}
               type="checkbox"
-              onChange={(event) =>
-                props.setForm((prev) => ({ ...prev, gemini_include_thoughts: event.currentTarget.checked }))
-              }
+              onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                props.setForm((prev) => ({ ...prev, gemini_include_thoughts: checked }));
+              }}
             />
             <span className="text-sm text-ink">thinkingConfig.includeThoughts</span>
           </label>

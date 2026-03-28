@@ -71,7 +71,10 @@ export function AdvancedConfigCard(props: AdvancedConfigCardProps) {
             className="input"
             disabled={props.saving}
             value={props.form.stop}
-            onChange={(event) => props.setForm((previous) => ({ ...previous, stop: event.currentTarget.value }))}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              props.setForm((previous) => ({ ...previous, stop: value }));
+            }}
           />
         </label>
 
@@ -92,7 +95,10 @@ export function AdvancedConfigCard(props: AdvancedConfigCardProps) {
             disabled={props.saving}
             rows={6}
             value={props.form.extra}
-            onChange={(event) => props.setForm((previous) => ({ ...previous, extra: event.currentTarget.value }))}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              props.setForm((previous) => ({ ...previous, extra: value }));
+            }}
           />
           <div className="text-[11px] text-subtext">
             保留自定义 provider 字段；推理参数建议优先用上面的结构化控件。

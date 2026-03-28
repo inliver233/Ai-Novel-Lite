@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import type { LLMProfile, LLMTaskCatalogItem } from "../../types";
@@ -74,7 +74,6 @@ type Props = {
 };
 
 export function LlmPresetPanel(props: Props) {
-  const modelSelectorRef = useRef<HTMLDivElement | null>(null);
   const selectedProfile = props.selectedProfileId
     ? (props.profiles.find((profile) => profile.id === props.selectedProfileId) ?? null)
     : null;
@@ -92,24 +91,6 @@ export function LlmPresetPanel(props: Props) {
     () => describeModelListState(props.mainModelList, mainAccessState),
     [mainAccessState, props.mainModelList],
   );
-
-  useLayoutEffect(() => {
-    const root = modelSelectorRef.current;
-    if (!root) return;
-
-    const legacyFields = [
-      ['select[name="main-module_provider"]', "provider"],
-      ['input[name="main-module_model"]', "model"],
-      ['input[name="main-module_base_url"]', "base_url"],
-    ] as const;
-
-    legacyFields.forEach(([selector, legacyName]) => {
-      const element = root.querySelector<HTMLElement>(selector);
-      if (element?.getAttribute("name") !== legacyName) {
-        element?.setAttribute("name", legacyName);
-      }
-    });
-  });
 
   return (
     <section className="panel p-6">
@@ -140,7 +121,7 @@ export function LlmPresetPanel(props: Props) {
         />
       </div>
 
-      <div className="mt-4" ref={modelSelectorRef}>
+      <div className="mt-4">
         <ModelSelectorCard
           actionBlockedReason={mainAccessState.actionReason}
           form={props.llmForm}

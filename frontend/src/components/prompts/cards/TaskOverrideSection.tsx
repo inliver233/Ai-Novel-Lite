@@ -220,10 +220,11 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                         className="select"
                         disabled={taskUiLocked}
                         value={task.form.provider}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const provider = event.currentTarget.value as LLMProvider;
                           props.onTaskFormChange(task.task_key, (previous) => ({
                             ...previous,
-                            provider: event.currentTarget.value as LLMProvider,
+                            provider: provider,
                             max_tokens: "",
                             text_verbosity: "",
                             reasoning_effort: "",
@@ -231,8 +232,8 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                             anthropic_thinking_budget_tokens: "",
                             gemini_thinking_budget: "",
                             gemini_include_thoughts: false,
-                          }))
-                        }
+                          }));
+                        }}
                       >
                         {PROVIDER_OPTIONS.map((option) => (
                           <option key={`${task.task_key}-${option.value}`} value={option.value}>
@@ -249,12 +250,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                         disabled={taskUiLocked}
                         list={datalistId}
                         value={task.form.model}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
                           props.onTaskFormChange(task.task_key, (previous) => ({
                             ...previous,
-                            model: event.currentTarget.value,
-                          }))
-                        }
+                            model: value,
+                          }));
+                        }}
                       />
                       <datalist id={datalistId}>
                         {task.modelList.options.map((option) => (
@@ -273,12 +275,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                         disabled={taskUiLocked}
                         placeholder={isCompatibleProvider ? "https://your-gateway.example.com/v1" : undefined}
                         value={task.form.base_url}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
                           props.onTaskFormChange(task.task_key, (previous) => ({
                             ...previous,
-                            base_url: event.currentTarget.value,
-                          }))
-                        }
+                            base_url: value,
+                          }));
+                        }}
                       />
                     </label>
 
@@ -289,12 +292,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                         disabled={taskUiLocked}
                         type="text"
                         value={task.form.temperature}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
                           props.onTaskFormChange(task.task_key, (previous) => ({
                             ...previous,
-                            temperature: event.currentTarget.value,
-                          }))
-                        }
+                            temperature: value,
+                          }));
+                        }}
                       />
                     </label>
 
@@ -305,12 +309,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                         disabled={taskUiLocked}
                         type="text"
                         value={task.form.max_tokens}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
                           props.onTaskFormChange(task.task_key, (previous) => ({
                             ...previous,
-                            max_tokens: event.currentTarget.value,
-                          }))
-                        }
+                            max_tokens: value,
+                          }));
+                        }}
                       />
                     </label>
 
@@ -321,12 +326,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                         disabled={taskUiLocked}
                         type="text"
                         value={task.form.timeout_seconds}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
                           props.onTaskFormChange(task.task_key, (previous) => ({
                             ...previous,
-                            timeout_seconds: event.currentTarget.value,
-                          }))
-                        }
+                            timeout_seconds: value,
+                          }));
+                        }}
                       />
                     </label>
                   </div>
@@ -343,12 +349,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                           disabled={taskUiLocked}
                           type="text"
                           value={task.form.top_p}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
                             props.onTaskFormChange(task.task_key, (previous) => ({
                               ...previous,
-                              top_p: event.currentTarget.value,
-                            }))
-                          }
+                              top_p: value,
+                            }));
+                          }}
                         />
                       </label>
 
@@ -361,12 +368,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                               disabled={taskUiLocked}
                               type="text"
                               value={task.form.presence_penalty}
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const value = event.currentTarget.value;
                                 props.onTaskFormChange(task.task_key, (previous) => ({
                                   ...previous,
-                                  presence_penalty: event.currentTarget.value,
-                                }))
-                              }
+                                  presence_penalty: value,
+                                }));
+                              }}
                             />
                           </label>
 
@@ -377,12 +385,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                               disabled={taskUiLocked}
                               type="text"
                               value={task.form.frequency_penalty}
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const value = event.currentTarget.value;
                                 props.onTaskFormChange(task.task_key, (previous) => ({
                                   ...previous,
-                                  frequency_penalty: event.currentTarget.value,
-                                }))
-                              }
+                                  frequency_penalty: value,
+                                }));
+                              }}
                             />
                           </label>
                         </>
@@ -394,12 +403,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                             disabled={taskUiLocked}
                             type="text"
                             value={task.form.top_k}
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              const value = event.currentTarget.value;
                               props.onTaskFormChange(task.task_key, (previous) => ({
                                 ...previous,
-                                top_k: event.currentTarget.value,
-                              }))
-                            }
+                                top_k: value,
+                              }));
+                            }}
                           />
                         </label>
                       )}
@@ -410,12 +420,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                           className="input"
                           disabled={taskUiLocked}
                           value={task.form.stop}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
                             props.onTaskFormChange(task.task_key, (previous) => ({
                               ...previous,
-                              stop: event.currentTarget.value,
-                            }))
-                          }
+                              stop: value,
+                            }));
+                          }}
                         />
                       </label>
 
@@ -426,12 +437,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                             className="select"
                             disabled={taskUiLocked}
                             value={task.form.reasoning_effort}
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              const value = event.currentTarget.value;
                               props.onTaskFormChange(task.task_key, (previous) => ({
                                 ...previous,
-                                reasoning_effort: event.currentTarget.value,
-                              }))
-                            }
+                                reasoning_effort: value,
+                              }));
+                            }}
                           >
                             <option value="">默认</option>
                             <option value="minimal">minimal</option>
@@ -449,12 +461,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                               checked={task.form.anthropic_thinking_enabled}
                               disabled={taskUiLocked}
                               type="checkbox"
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const checked = event.currentTarget.checked;
                                 props.onTaskFormChange(task.task_key, (previous) => ({
                                   ...previous,
-                                  anthropic_thinking_enabled: event.currentTarget.checked,
-                                }))
-                              }
+                                  anthropic_thinking_enabled: checked,
+                                }));
+                              }}
                             />
                             <span className="text-sm text-ink">启用 thinking</span>
                           </label>
@@ -466,12 +479,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                               disabled={taskUiLocked || !task.form.anthropic_thinking_enabled}
                               type="text"
                               value={task.form.anthropic_thinking_budget_tokens}
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const value = event.currentTarget.value;
                                 props.onTaskFormChange(task.task_key, (previous) => ({
                                   ...previous,
-                                  anthropic_thinking_budget_tokens: event.currentTarget.value,
-                                }))
-                              }
+                                  anthropic_thinking_budget_tokens: value,
+                                }));
+                              }}
                             />
                             {!task.form.anthropic_thinking_enabled ? (
                               <div className="text-[11px] text-subtext">启用后可设置思考预算</div>
@@ -489,12 +503,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                               disabled={taskUiLocked}
                               type="text"
                               value={task.form.gemini_thinking_budget}
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const value = event.currentTarget.value;
                                 props.onTaskFormChange(task.task_key, (previous) => ({
                                   ...previous,
-                                  gemini_thinking_budget: event.currentTarget.value,
-                                }))
-                              }
+                                  gemini_thinking_budget: value,
+                                }));
+                              }}
                             />
                           </label>
 
@@ -503,12 +518,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                               checked={task.form.gemini_include_thoughts}
                               disabled={taskUiLocked}
                               type="checkbox"
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const checked = event.currentTarget.checked;
                                 props.onTaskFormChange(task.task_key, (previous) => ({
                                   ...previous,
-                                  gemini_include_thoughts: event.currentTarget.checked,
-                                }))
-                              }
+                                  gemini_include_thoughts: checked,
+                                }));
+                              }}
                             />
                             <span className="text-sm text-ink">thinkingConfig.includeThoughts</span>
                           </label>
@@ -522,12 +538,13 @@ export function TaskOverrideSection(props: TaskOverrideSectionProps) {
                           disabled={taskUiLocked}
                           rows={3}
                           value={task.form.extra}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
                             props.onTaskFormChange(task.task_key, (previous) => ({
                               ...previous,
-                              extra: event.currentTarget.value,
-                            }))
-                          }
+                              extra: value,
+                            }));
+                          }}
                         />
                         <div className="text-[11px] text-subtext">
                           保留少量 JSON 扩展参数；优先使用上面的结构化控件。

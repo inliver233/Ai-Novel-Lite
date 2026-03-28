@@ -40,10 +40,11 @@ export function ModelSelectorCard(props: ModelSelectorCardProps) {
             disabled={props.saving}
             name={`${props.moduleId}_provider`}
             value={props.form.provider}
-            onChange={(event) =>
+            onChange={(event) => {
+              const provider = event.currentTarget.value as LLMProvider;
               props.setForm((value) => ({
                 ...value,
-                provider: event.currentTarget.value as LLMProvider,
+                provider: provider,
                 max_tokens: "",
                 text_verbosity: "",
                 reasoning_effort: "",
@@ -51,8 +52,8 @@ export function ModelSelectorCard(props: ModelSelectorCardProps) {
                 anthropic_thinking_budget_tokens: "",
                 gemini_thinking_budget: "",
                 gemini_include_thoughts: false,
-              }))
-            }
+              }));
+            }}
           >
             {PROVIDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -84,7 +85,10 @@ export function ModelSelectorCard(props: ModelSelectorCardProps) {
             list={datalistId}
             name={`${props.moduleId}_model`}
             value={props.form.model}
-            onChange={(event) => props.setForm((value) => ({ ...value, model: event.currentTarget.value }))}
+            onChange={(event) => {
+              const nextValue = event.currentTarget.value;
+              props.setForm((value) => ({ ...value, model: nextValue }));
+            }}
           />
           <datalist id={datalistId}>
             {props.modelList.options.map((option) => (
@@ -104,7 +108,10 @@ export function ModelSelectorCard(props: ModelSelectorCardProps) {
             name={`${props.moduleId}_base_url`}
             placeholder={isCompatibleProvider ? "https://your-gateway.example.com/v1" : undefined}
             value={props.form.base_url}
-            onChange={(event) => props.setForm((value) => ({ ...value, base_url: event.currentTarget.value }))}
+            onChange={(event) => {
+              const nextValue = event.currentTarget.value;
+              props.setForm((value) => ({ ...value, base_url: nextValue }));
+            }}
           />
           <div className="text-[11px] text-subtext">
             OpenAI / OpenAI-compatible 一般包含 `/v1`；Anthropic/Gemini 一般为 host。

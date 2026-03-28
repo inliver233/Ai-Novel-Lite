@@ -51,7 +51,10 @@ export function ParameterTunerCard(props: ParameterTunerCardProps) {
             disabled={props.saving}
             type="text"
             value={props.form.max_tokens}
-            onChange={(event) => props.setForm((prev) => ({ ...prev, max_tokens: event.currentTarget.value }))}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              props.setForm((prev) => ({ ...prev, max_tokens: value }));
+            }}
           />
           {tokenHint ? <div className="text-[11px] text-subtext">{tokenHint}</div> : null}
         </label>
@@ -63,7 +66,10 @@ export function ParameterTunerCard(props: ParameterTunerCardProps) {
             disabled={props.saving}
             type="text"
             value={props.form.timeout_seconds}
-            onChange={(event) => props.setForm((prev) => ({ ...prev, timeout_seconds: event.currentTarget.value }))}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              props.setForm((prev) => ({ ...prev, timeout_seconds: value }));
+            }}
           />
         </label>
 
@@ -76,9 +82,10 @@ export function ParameterTunerCard(props: ParameterTunerCardProps) {
                 disabled={props.saving}
                 type="text"
                 value={props.form.presence_penalty}
-                onChange={(event) =>
-                  props.setForm((prev) => ({ ...prev, presence_penalty: event.currentTarget.value }))
-                }
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  props.setForm((prev) => ({ ...prev, presence_penalty: value }));
+                }}
               />
             </label>
 
@@ -89,9 +96,10 @@ export function ParameterTunerCard(props: ParameterTunerCardProps) {
                 disabled={props.saving}
                 type="text"
                 value={props.form.frequency_penalty}
-                onChange={(event) =>
-                  props.setForm((prev) => ({ ...prev, frequency_penalty: event.currentTarget.value }))
-                }
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  props.setForm((prev) => ({ ...prev, frequency_penalty: value }));
+                }}
               />
             </label>
           </>
@@ -103,7 +111,10 @@ export function ParameterTunerCard(props: ParameterTunerCardProps) {
               disabled={props.saving}
               type="text"
               value={props.form.top_k}
-              onChange={(event) => props.setForm((prev) => ({ ...prev, top_k: event.currentTarget.value }))}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                props.setForm((prev) => ({ ...prev, top_k: value }));
+              }}
             />
           </label>
         )}
