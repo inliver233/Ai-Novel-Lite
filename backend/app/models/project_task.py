@@ -1,12 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 from app.db.utils import utc_now
+
+
+class TaskKind(str, Enum):
+    BATCH_GENERATION = "batch_generation"
+    IMPORT_TASK = "import_task"
+    PROJECT_TASK = "project_task"
+
+
+class TaskStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    DONE = "done"
+    FAILED = "failed"
+    CANCELED = "canceled"
 
 
 class ProjectTask(Base):
@@ -16,8 +31,8 @@ class ProjectTask(Base):
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     actor_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    kind: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
+    kind: Mapped[TaskKind] = mapped_column(String(64), nullable=False)
+    status: Mapped[TaskStatus] = mapped_column(String(16), nullable=False, default="queued")
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
 
     params_json: Mapped[str | None] = mapped_column(Text, nullable=True)
