@@ -389,7 +389,8 @@ export function CharactersPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => void closeDrawer()}
-        panelClassName="h-full w-full max-w-xl border-l border-border bg-canvas p-6 shadow-sm"
+        side="bottom"
+        panelClassName="h-[85dvh] w-full sm:max-w-xl border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
         ariaLabel={editing ? "编辑角色" : "新增角色"}
       >
         <div className="flex items-start justify-between gap-3">

@@ -8,9 +8,9 @@ import { usePromptsPageState } from "./prompts/usePromptsPageState";
 
 function PromptsPageSkeleton() {
   return (
-    <div className="grid gap-6 pb-24" aria-busy="true" aria-live="polite">
+      <div className="grid gap-6 pb-24" aria-busy="true" aria-live="polite">
       <span className="sr-only">正在加载模型配置…</span>
-      <div className="panel p-6">
+      <div className="panel p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid gap-2">
             <div className="skeleton h-6 w-44" />
@@ -24,7 +24,7 @@ function PromptsPageSkeleton() {
           <div className="skeleton h-28 w-full sm:col-span-2" />
         </div>
       </div>
-      <div className="panel p-6">
+      <div className="panel p-4 sm:p-6">
         <div className="skeleton h-5 w-40" />
         <div className="mt-3 grid gap-2">
           <div className="skeleton h-4 w-80" />

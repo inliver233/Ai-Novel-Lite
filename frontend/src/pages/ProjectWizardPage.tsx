@@ -237,7 +237,7 @@ export function ProjectWizardPage() {
   return (
     <div className="grid gap-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <section className="panel p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-4">
           <div className="grid gap-2">
             <div className="font-content text-xl">开工向导</div>
             <div className="text-xs text-subtext">
