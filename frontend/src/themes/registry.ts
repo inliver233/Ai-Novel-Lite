@@ -13,7 +13,7 @@ export const THEMES: ThemeMeta[] = [
     id: "ink-wash",
     name: "墨洗",
     nameEn: "Ink Wash",
-    description: "占位：RF-019 将补全主题配色与细节。",
+    description: "灰墨水洗风格，素雅安静的书卷气息。",
   },
 ];
 
@@ -24,4 +24,3 @@ export function getTheme(id: ThemeId): ThemeMeta | undefined {
 export function listThemes(): ThemeMeta[] {
   return THEMES;
 }
-
