@@ -3,19 +3,20 @@ import { motion, useReducedMotion } from "framer-motion";
 
 import { transition } from "../../lib/motion";
 import { Overlay } from "./Overlay";
+import type { DialogA11yProps, ModalLikeProps } from "./types";
 
 type Side = "right" | "left" | "bottom";
 
-export function Drawer(props: {
-  open: boolean;
-  side?: Side;
-  onClose?: () => void;
-  overlayClassName?: string;
-  panelClassName?: string;
-  ariaLabel?: string;
-  ariaLabelledBy?: string;
-  children: React.ReactNode;
-}) {
+type DrawerProps = Omit<ModalLikeProps, "children" | "onClose" | "className"> &
+  DialogA11yProps & {
+    side?: Side;
+    onClose?: () => void;
+    overlayClassName?: string;
+    panelClassName?: string;
+    children: React.ReactNode;
+  };
+
+export function Drawer(props: DrawerProps) {
   const reduceMotion = useReducedMotion();
   const side: Side = props.side ?? "right";
 
@@ -40,8 +41,8 @@ export function Drawer(props: {
 
   return (
     <Overlay
-      open={props.open}
-      onBackdropClick={props.onClose}
+      visible={props.open}
+      onClick={props.onClose}
       className={clsx(
         "flex",
         side === "bottom"

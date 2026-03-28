@@ -3,22 +3,22 @@ import { motion, useReducedMotion } from "framer-motion";
 
 import { transition } from "../../lib/motion";
 import { Overlay } from "./Overlay";
+import type { DialogA11yProps, ModalLikeProps } from "./types";
 
-export function Modal(props: {
-  open: boolean;
-  onClose?: () => void;
-  className?: string;
-  panelClassName?: string;
-  ariaLabel?: string;
-  ariaLabelledBy?: string;
-  children: React.ReactNode;
-}) {
+type ModalProps = Omit<ModalLikeProps, "children" | "onClose"> &
+  DialogA11yProps & {
+    onClose?: () => void;
+    panelClassName?: string;
+    children: React.ReactNode;
+  };
+
+export function Modal(props: ModalProps) {
   const reduceMotion = useReducedMotion();
 
   return (
     <Overlay
-      open={props.open}
-      onBackdropClick={props.onClose}
+      visible={props.open}
+      onClick={props.onClose}
       className={clsx("flex items-center justify-center p-4", props.className)}
     >
       <motion.div

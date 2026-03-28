@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 
 import { overlayFadeVariants, transition } from "../../lib/motion";
+import type { OverlayProps } from "./types";
 
 type EscCloseHandler = () => void;
 
@@ -31,24 +32,21 @@ function _ensureEscListener() {
 }
 
 export function Overlay(props: {
-  open: boolean;
-  className?: string;
   children: React.ReactNode;
-  onBackdropClick?: () => void;
-}) {
+} & OverlayProps) {
   const reduceMotion = useReducedMotion();
-  const closeRef = useRef(props.onBackdropClick);
+  const closeRef = useRef(props.onClick);
 
   useEffect(() => {
-    closeRef.current = props.onBackdropClick;
-  }, [props.onBackdropClick]);
+    closeRef.current = props.onClick;
+  }, [props.onClick]);
 
   useEffect(() => {
     _ensureEscListener();
   }, []);
 
   useEffect(() => {
-    if (!props.open || !props.onBackdropClick) return;
+    if (!props.visible || !props.onClick) return;
     const handler = () => closeRef.current?.();
     const stack = _escStack();
     stack.push(handler);
@@ -57,11 +55,11 @@ export function Overlay(props: {
       const idx = nextStack.lastIndexOf(handler);
       if (idx >= 0) nextStack.splice(idx, 1);
     };
-  }, [props.open, props.onBackdropClick]);
+  }, [props.visible, props.onClick]);
 
   return (
     <AnimatePresence>
-      {props.open ? (
+      {props.visible ? (
         <motion.div
           className={clsx("fixed inset-0 z-50 bg-black/30", props.className)}
           initial="initial"
@@ -70,9 +68,9 @@ export function Overlay(props: {
           variants={overlayFadeVariants}
           transition={reduceMotion ? { duration: 0.01 } : transition.base}
           onPointerDown={(e) => {
-            if (!props.onBackdropClick) return;
+            if (!props.onClick) return;
             if (e.target !== e.currentTarget) return;
-            props.onBackdropClick();
+            props.onClick();
           }}
         >
           {props.children}
