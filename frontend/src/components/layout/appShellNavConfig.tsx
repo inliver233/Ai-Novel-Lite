@@ -4,7 +4,6 @@ import {
   BookOpen,
   BookText,
   FileDown,
-  Palette,
   PenLine,
   Settings,
   Sparkles,
@@ -89,14 +88,6 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.promptStudio,
     ariaLabel: "提示词工作室 (nav_prompt_studio)",
     to: (projectId) => `/projects/${projectId}/prompt-studio`,
-  },
-  {
-    id: "styles",
-    group: "aiConfig",
-    icon: Palette,
-    label: UI_COPY.nav.styles,
-    ariaLabel: "风格 (nav_styles)",
-    to: (projectId) => `/projects/${projectId}/styles`,
   },
   {
     id: "settings",

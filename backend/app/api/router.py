@@ -23,6 +23,7 @@ from app.api.routes import (
     outlines,
     projects,
     prompts,
+    prompt_studio,
     search,
     settings,
     story_memory,
@@ -45,6 +46,7 @@ api_router.include_router(outline.router, tags=["outline"])
 api_router.include_router(chapters.router, tags=["chapters"])
 api_router.include_router(batch_generation.router, tags=["batch_generation"])
 api_router.include_router(prompts.router, tags=["prompts"])
+api_router.include_router(prompt_studio.router, tags=["prompt_studio"])
 api_router.include_router(llm_preset.router, tags=["llm_preset"])
 api_router.include_router(llm_task_presets.router, tags=["llm_task_presets"])
 api_router.include_router(llm_capabilities.router, tags=["llm_capabilities"])

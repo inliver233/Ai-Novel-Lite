@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { useConfirm } from "../components/ui/confirm";
+import { RequestIdBadge } from "../components/ui/RequestIdBadge";
 import { useToast } from "../components/ui/toast";
 import { copyText } from "../lib/copyText";
 import { PROMPT_STUDIO_TASKS } from "../lib/promptTaskCatalog";
@@ -10,9 +11,7 @@ import { usePersistentOutletIsActive } from "../hooks/usePersistentOutlet";
 import { UnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 import { ApiError, apiJson, sanitizeFilename } from "../services/apiClient";
 import type { Character, Outline, Project, ProjectSettings, PromptBlock, PromptPreset, PromptPreview } from "../types";
-import { PromptStudioPreviewPanel } from "./promptStudio/PromptStudioPreviewPanel";
 import type { PromptStudioTask } from "./promptStudio/types";
-import { guessPreviewValues } from "./promptStudio/utils";
 
 const PREVIEW_TASKS: PromptStudioTask[] = PROMPT_STUDIO_TASKS;
 
@@ -69,6 +68,111 @@ function collectPreviewValuePaths(values: Record<string, unknown>): string[] {
   }
 
   return [...out].sort((a, b) => a.localeCompare(b, "en"));
+}
+
+function formatCharacters(chars: Character[]): string {
+  return chars.map((c) => `- ${c.name}${c.role ? `（${c.role}）` : ""}`).join("\n");
+}
+
+function guessPreviewValues(args: {
+  project: Project | null;
+  settings: ProjectSettings | null;
+  outline: Outline | null;
+  characters: Character[];
+}): Record<string, unknown> {
+  const projectName = args.project?.name ?? "";
+  const genre = args.project?.genre ?? "";
+  const logline = args.project?.logline ?? "";
+  const worldSetting = args.settings?.world_setting ?? "";
+  const styleGuide = args.settings?.style_guide ?? "";
+  const constraints = args.settings?.constraints ?? "";
+  const charactersText = formatCharacters(args.characters);
+  const outlineText = args.outline?.content_md ?? "";
+
+  const chapterNumber = 1;
+  const chapterTitle = "第一章";
+  const chapterPlan = "（示例要点）";
+  const chapterSummary = "（示例摘要）";
+  const instruction = "（示例指令）";
+  const previousChapter = "（示例上一章摘要）";
+  const targetWordCount = 2500;
+  const rawContent = "（示例已生成正文，用于 post_edit 预览）";
+  const chapterContentMd = "（示例章节正文）";
+  const planText = "（示例规划，可用于 plan_first 注入）";
+  const analysisJson = JSON.stringify(
+    {
+      chapter_summary: "（示例分析摘要）",
+      hooks: [{ excerpt: "（示例 excerpt）", note: "（示例 hook 备注）" }],
+      foreshadows: [],
+      plot_points: [{ beat: "（示例情节点）", excerpt: "（示例 excerpt）" }],
+      suggestions: [
+        {
+          title: "（示例建议）",
+          excerpt: "（示例 excerpt）",
+          issue: "（示例问题）",
+          recommendation: "（示例建议）",
+          priority: "medium",
+        },
+      ],
+      overall_notes: "",
+    },
+    null,
+    2,
+  );
+  const requirementsObj = { chapter_count: 12 };
+
+  const values: Record<string, unknown> = {
+    project_name: projectName,
+    genre,
+    logline,
+    world_setting: worldSetting,
+    style_guide: styleGuide,
+    constraints,
+    characters: charactersText,
+    outline: outlineText,
+    chapter_number: String(chapterNumber),
+    chapter_title: chapterTitle,
+    chapter_plan: chapterPlan,
+    chapter_summary: chapterSummary,
+    chapter_content_md: chapterContentMd,
+    analysis_json: analysisJson,
+    requirements: JSON.stringify(requirementsObj, null, 2),
+    instruction,
+    previous_chapter: previousChapter,
+    target_word_count: String(targetWordCount),
+    raw_content: rawContent,
+    story_plan: planText,
+    smart_context_recent_summaries: "（示例 smart_context_recent_summaries）",
+    smart_context_recent_full: "（示例 smart_context_recent_full）",
+    smart_context_story_skeleton: "（示例 smart_context_story_skeleton）",
+  };
+  values.project = {
+    name: projectName,
+    genre,
+    logline,
+    world_setting: worldSetting,
+    style_guide: styleGuide,
+    constraints,
+    characters: charactersText,
+  };
+  values.story = {
+    outline: outlineText,
+    chapter_number: chapterNumber,
+    chapter_title: chapterTitle,
+    chapter_plan: chapterPlan,
+    chapter_summary: chapterSummary,
+    previous_chapter: previousChapter,
+    plan: planText,
+    raw_content: rawContent,
+    chapter_content_md: chapterContentMd,
+    analysis_json: analysisJson,
+    smart_context_recent_summaries: "（示例 smart_context_recent_summaries）",
+    smart_context_recent_full: "（示例 smart_context_recent_full）",
+    smart_context_story_skeleton: "（示例 smart_context_story_skeleton）",
+  };
+  values.user = { instruction, requirements: requirementsObj };
+
+  return values;
 }
 
 type PromptPresetResource = {
@@ -128,6 +232,165 @@ function formatImportAllReport(report: ImportAllReport): string {
   ].filter((v) => typeof v === "string");
 
   return lines.join("\n").trim();
+}
+
+function PromptTemplatesPreviewPanel(props: {
+  busy: boolean;
+  selectedPresetId: string | null;
+  previewTask: string;
+  setPreviewTask: (task: string) => void;
+  tasks: PromptStudioTask[];
+  previewLoading: boolean;
+  runPreview: () => Promise<void>;
+  requestId: string | null;
+  preview: PromptPreview | null;
+  templateErrors: Array<{ identifier: string; error: string }>;
+  renderLog: unknown | null;
+}) {
+  const {
+    busy,
+    preview,
+    previewLoading,
+    previewTask,
+    requestId,
+    renderLog,
+    runPreview,
+    selectedPresetId,
+    setPreviewTask,
+    tasks,
+    templateErrors,
+  } = props;
+
+  return (
+    <div className="panel p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold">预览（后端渲染）</div>
+          {requestId ? <RequestIdBadge className="mt-2" requestId={requestId} /> : null}
+        </div>
+        <div className="flex gap-2">
+          <select
+            className="select w-auto"
+            value={previewTask}
+            onChange={(e) => setPreviewTask(e.currentTarget.value)}
+            disabled={busy}
+          >
+            {tasks.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn btn-secondary"
+            onClick={() => void runPreview()}
+            disabled={previewLoading || busy || !selectedPresetId}
+            type="button"
+          >
+            {previewLoading ? "渲染中…" : "渲染预览"}
+          </button>
+        </div>
+      </div>
+
+      {preview ? (
+        <div className="grid gap-3">
+          {templateErrors.length ? (
+            <div className="rounded-atelier border border-border bg-surface/50 p-3 text-xs">
+              <div className="font-semibold">模板渲染错误</div>
+              <div className="mt-2 grid gap-1 text-subtext">
+                {templateErrors.map((item) => (
+                  <div key={`${item.identifier}:${item.error}`}>
+                    <span className="font-mono text-ink">{item.identifier}</span>
+                    <span className="text-subtext">：{item.error}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {preview.missing?.length ? (
+            <div className="rounded-atelier border border-border bg-surface/50 p-3 text-xs">
+              <div className="font-semibold">缺失变量</div>
+              <div className="mt-1 text-subtext">{preview.missing.join(", ")}</div>
+            </div>
+          ) : null}
+
+          <div className="rounded-atelier border border-border bg-surface/50 p-3 text-xs">
+            <div className="font-semibold">Token 估算</div>
+            <div className="mt-1 text-subtext">
+              总计：{preview.prompt_tokens_estimate ?? 0}
+              {preview.prompt_budget_tokens ? ` / 预算：${preview.prompt_budget_tokens}` : ""}
+            </div>
+          </div>
+
+          {renderLog ? (
+            <details className="rounded-atelier border border-border bg-surface/50 p-3">
+              <summary className="ui-transition-fast cursor-pointer text-sm hover:text-ink">
+                查看 render_log（裁剪/原因/错误）
+              </summary>
+              <div className="mt-2 flex justify-end">
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={async () => {
+                    await copyText(JSON.stringify(renderLog, null, 2), { title: "复制失败：请手动复制 render_log" });
+                  }}
+                  type="button"
+                >
+                  复制 render_log
+                </button>
+              </div>
+              <pre className="mt-2 max-h-[260px] overflow-auto whitespace-pre-wrap break-words rounded-atelier border border-border bg-surface p-3 text-xs">
+                {JSON.stringify(renderLog, null, 2)}
+              </pre>
+            </details>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="grid gap-1">
+              <div className="text-xs text-subtext">system</div>
+              <textarea
+                readOnly
+                className="textarea atelier-mono min-h-[180px] resize-y bg-surface py-2 text-xs"
+                value={preview.system}
+              />
+            </div>
+            <div className="grid gap-1">
+              <div className="text-xs text-subtext">user</div>
+              <textarea
+                readOnly
+                className="textarea atelier-mono min-h-[180px] resize-y bg-surface py-2 text-xs"
+                value={preview.user}
+              />
+            </div>
+          </div>
+
+          <details className="rounded-atelier border border-border bg-surface/50 p-3">
+            <summary className="ui-transition-fast cursor-pointer text-sm hover:text-ink">查看分块渲染结果</summary>
+            <div className="mt-3 grid gap-2">
+              {(preview.blocks ?? []).map((pb) => (
+                <div key={pb.id} className="surface p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-semibold">
+                      {pb.identifier} <span className="text-xs text-subtext">({pb.role})</span>
+                    </div>
+                    <div className="text-xs text-subtext">
+                      tokens≈{pb.token_estimate ?? 0}
+                      {pb.missing?.length ? ` · missing: ${pb.missing.join(", ")}` : ""}
+                    </div>
+                  </div>
+                  <pre className="mt-2 max-h-[260px] overflow-auto whitespace-pre-wrap break-words rounded-atelier border border-border bg-surface p-3 text-xs">
+                    {pb.text}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      ) : (
+        <div className="text-sm text-subtext">选择任务并点击“渲染预览”。</div>
+      )}
+    </div>
+  );
 }
 
 export function PromptTemplatesPage() {
@@ -777,7 +1040,7 @@ export function PromptTemplatesPage() {
             ) : null}
           </div>
 
-          <PromptStudioPreviewPanel
+          <PromptTemplatesPreviewPanel
             busy={busy}
             selectedPresetId={preset?.id ?? null}
             previewTask={previewTask}

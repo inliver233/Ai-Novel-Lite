@@ -18,7 +18,6 @@ const ROUTE_META: RouteMeta[] = [
   { suffix: "/preview", title: UI_COPY.nav.preview, layout: "paper" },
   { suffix: "/export", title: UI_COPY.nav.export, layout: "paper" },
   { suffix: "/search", title: UI_COPY.nav.search, layout: "tool" },
-  { suffix: "/styles", title: UI_COPY.nav.styles, layout: "tool" },
   { suffix: "/prompts", title: UI_COPY.nav.prompts, layout: "tool" },
   { suffix: "/prompt-studio", title: UI_COPY.nav.promptStudio, layout: "tool" },
   { suffix: "/prompt-templates", title: UI_COPY.nav.promptTemplates, layout: "tool" },

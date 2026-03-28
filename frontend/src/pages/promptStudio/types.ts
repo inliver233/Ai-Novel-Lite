@@ -1,6 +1,22 @@
-import type { PromptBlock, PromptPreset } from "../../types";
+export type PromptStudioPresetSummary = {
+  id: string;
+  name: string;
+  is_active: boolean;
+};
 
-export type PresetDetails = { preset: PromptPreset; blocks: PromptBlock[] };
+export type PromptStudioPresetDetail = {
+  id: string;
+  name: string;
+  content: string;
+  is_active: boolean;
+};
+
+export type PromptStudioCategory = {
+  key: string;
+  label: string;
+  task: string | null;
+  presets: PromptStudioPresetSummary[];
+};
 
 export type BlockDraft = {
   identifier: string;

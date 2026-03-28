@@ -82,11 +82,6 @@ const ExportPage = lazy(async () => {
   return { default: mod.ExportPage };
 });
 
-const StylesPage = lazy(async () => {
-  const mod = await importWithChunkRetry(() => import("./pages/StylesPage"));
-  return { default: mod.StylesPage };
-});
-
 const ImportPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/ImportPage"));
   return { default: mod.ImportPage };
@@ -172,16 +167,16 @@ const router = createBrowserRouter([
                 element: <PromptStudioPage />,
               },
               {
+                path: "styles",
+                element: <Navigate to="../prompt-studio" replace />,
+              },
+              {
                 path: "prompt-templates",
                 element: <PromptTemplatesPage />,
               },
               {
                 path: "export",
                 element: <ExportPage />,
-              },
-              {
-                path: "styles",
-                element: <StylesPage />,
               },
               {
                 path: "import",
