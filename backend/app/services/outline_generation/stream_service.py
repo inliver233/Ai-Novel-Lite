@@ -11,20 +11,20 @@ from app.core.logging import log_event
 from app.llm.client import call_llm_stream_messages
 from app.schemas.outline_generate import OutlineGenerateRequest
 from app.services.generation_service import call_llm_and_record, with_param_overrides
-from app.services.outline_generation_fill_service import _fill_outline_missing_chapters_with_llm
-from app.services.outline_generation_models import PreparedOutlineGeneration
-from app.services.outline_generation_prepare_service import _write_outline_segmented_aggregate_run
-from app.services.outline_generation_route_bridge import _outline_route
-from app.services.outline_generation_stream_finalize_service import (
+from app.services.outline_generation.fill_service import _fill_outline_missing_chapters_with_llm
+from app.services.outline_generation.models import PreparedOutlineGeneration
+from app.services.outline_generation.prepare_service import _write_outline_segmented_aggregate_run
+from app.services.outline_generation.route_bridge import _outline_route
+from app.services.outline_generation.stream_finalize_service import (
     finalize_outline_stream_result,
     finalize_segmented_outline_stream_result,
     write_outline_stream_error_run,
 )
-from app.services.outline_generation_stream_progress_service import (
+from app.services.outline_generation.stream_progress_service import (
     iter_fill_progress_sse_events,
     iter_segment_progress_sse_events,
 )
-from app.services.outline_generation_segment_service import _generate_outline_segmented_with_llm
+from app.services.outline_generation.segment_service import _generate_outline_segmented_with_llm
 from app.services.output_contracts import build_repair_prompt_for_task, contract_for_task
 from app.services.run_store import write_generation_run
 from app.utils.sse_response import (
@@ -361,4 +361,3 @@ def generate_outline_stream_events(
         )
         yield sse_error(error="服务器内部错误", code=500)
         yield sse_done()
-

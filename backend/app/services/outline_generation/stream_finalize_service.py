@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable
 
 from app.services.generation_service import PreparedLlmCall
-from app.services.outline_generation_models import OutlineSegmentGenerationResult
+from app.services.outline_generation.models import OutlineSegmentGenerationResult
 from app.services.run_store import write_generation_run
 
 

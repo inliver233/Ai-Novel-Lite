@@ -4,11 +4,11 @@ import logging
 
 from app.core.errors import AppError
 from app.services.generation_service import call_llm_and_record, with_param_overrides
-from app.services.outline_generation_gap_repair_final_sweep_service import (
+from app.services.outline_generation.gap_repair_final_sweep_service import (
     _repair_outline_remaining_gaps_final_sweep_with_llm,
 )
-from app.services.outline_generation_models import OutlineFillProgressHook
-from app.services.outline_generation_route_bridge import _outline_route
+from app.services.outline_generation.models import OutlineFillProgressHook
+from app.services.outline_generation.route_bridge import _outline_route
 from app.services.output_contracts import contract_for_task
 
 logger = logging.getLogger("ainovel")
@@ -304,4 +304,3 @@ def _repair_outline_remaining_gaps_with_llm(
             }
         )
     return data, outline_route._dedupe_warnings(warnings), run_ids
-

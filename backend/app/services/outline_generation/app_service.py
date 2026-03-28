@@ -5,16 +5,16 @@ import logging
 from app.core.errors import AppError
 from app.schemas.outline_generate import OutlineGenerateRequest
 from app.services.generation_service import call_llm_and_record, with_param_overrides
-from app.services.outline_generation_fill_service import _fill_outline_missing_chapters_with_llm
-from app.services.outline_generation_models import OutlineSegmentGenerationResult, PreparedOutlineGeneration
-from app.services.outline_generation_prepare_service import (
+from app.services.outline_generation.fill_service import _fill_outline_missing_chapters_with_llm
+from app.services.outline_generation.models import OutlineSegmentGenerationResult, PreparedOutlineGeneration
+from app.services.outline_generation.prepare_service import (
     _build_outline_segment_aggregate_output_text,
     _write_outline_segmented_aggregate_run,
     prepare_outline_generation,
 )
-from app.services.outline_generation_route_bridge import _outline_route
-from app.services.outline_generation_segment_service import _generate_outline_segmented_with_llm
-from app.services.outline_generation_stream_service import generate_outline_stream_events
+from app.services.outline_generation.route_bridge import _outline_route
+from app.services.outline_generation.segment_service import _generate_outline_segmented_with_llm
+from app.services.outline_generation.stream_service import generate_outline_stream_events
 from app.services.output_contracts import build_repair_prompt_for_task, contract_for_task
 
 logger = logging.getLogger("ainovel")
@@ -203,4 +203,3 @@ def prepare_outline_stream_request(
         x_llm_provider=x_llm_provider,
         x_llm_api_key=x_llm_api_key,
     )
-

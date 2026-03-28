@@ -27,7 +27,7 @@ from app.api.routes.outline import (
 )
 from app.core.errors import AppError
 from app.services.generation_service import PreparedLlmCall
-from app.services.outline_generation_app_service import (
+from app.services.outline_generation.app_service import (
     _fill_outline_missing_chapters_with_llm,
     _generate_outline_segmented_with_llm,
 )
@@ -364,10 +364,10 @@ class TestOutlineGenerationGuidance(unittest.TestCase):
             return SimpleNamespace(text=text, finish_reason="stop", run_id=f"run-{call_count['value']}")
 
         with (
-            patch("app.services.outline_generation_fill_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
-            patch("app.services.outline_generation_gap_repair_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
+            patch("app.services.outline_generation.fill_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
+            patch("app.services.outline_generation.gap_repair_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
             patch(
-                "app.services.outline_generation_gap_repair_final_sweep_service.call_llm_and_record",
+                "app.services.outline_generation.gap_repair_final_sweep_service.call_llm_and_record",
                 side_effect=_fake_call_llm_and_record,
             ),
         ):
@@ -414,15 +414,15 @@ class TestOutlineGenerationGuidance(unittest.TestCase):
 
         with (
             patch(
-                "app.services.outline_generation_fill_service.call_llm_and_record",
+                "app.services.outline_generation.fill_service.call_llm_and_record",
                 side_effect=AppError(code="LLM_TIMEOUT", message="timeout", status_code=504),
             ),
             patch(
-                "app.services.outline_generation_gap_repair_service.call_llm_and_record",
+                "app.services.outline_generation.gap_repair_service.call_llm_and_record",
                 side_effect=AppError(code="LLM_TIMEOUT", message="timeout", status_code=504),
             ),
             patch(
-                "app.services.outline_generation_gap_repair_final_sweep_service.call_llm_and_record",
+                "app.services.outline_generation.gap_repair_final_sweep_service.call_llm_and_record",
                 side_effect=AppError(code="LLM_TIMEOUT", message="timeout", status_code=504),
             ),
         ):
@@ -496,10 +496,10 @@ class TestOutlineGenerationGuidance(unittest.TestCase):
             return SimpleNamespace(text=text, finish_reason="stop", run_id=f"run-{call_count['value']}")
 
         with (
-            patch("app.services.outline_generation_fill_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
-            patch("app.services.outline_generation_gap_repair_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
+            patch("app.services.outline_generation.fill_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
+            patch("app.services.outline_generation.gap_repair_service.call_llm_and_record", side_effect=_fake_call_llm_and_record),
             patch(
-                "app.services.outline_generation_gap_repair_final_sweep_service.call_llm_and_record",
+                "app.services.outline_generation.gap_repair_final_sweep_service.call_llm_and_record",
                 side_effect=_fake_call_llm_and_record,
             ),
         ):
@@ -557,7 +557,7 @@ class TestOutlineGenerationGuidance(unittest.TestCase):
                 dropped_params=[],
             )
 
-        with patch("app.services.outline_generation_segment_service.call_llm_and_record", side_effect=_fake_call_llm_and_record):
+        with patch("app.services.outline_generation.segment_service.call_llm_and_record", side_effect=_fake_call_llm_and_record):
             res = _generate_outline_segmented_with_llm(
                 request_id="rid-segment-test",
                 actor_user_id="u1",

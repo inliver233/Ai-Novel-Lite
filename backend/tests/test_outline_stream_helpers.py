@@ -4,13 +4,13 @@ import json
 import threading
 import unittest
 
-from app.services.outline_generation_models import OutlineSegmentGenerationResult
-from app.services.outline_generation_stream_finalize_service import (
+from app.services.outline_generation.models import OutlineSegmentGenerationResult
+from app.services.outline_generation.stream_finalize_service import (
     finalize_outline_stream_result,
     finalize_segmented_outline_stream_result,
     sanitize_outline_stream_result,
 )
-from app.services.outline_generation_stream_progress_service import iter_segment_progress_sse_events
+from app.services.outline_generation.stream_progress_service import iter_segment_progress_sse_events
 
 
 class _DoneFuture:

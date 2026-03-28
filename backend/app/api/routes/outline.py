@@ -76,7 +76,7 @@ from app.models.outline import Outline
 from app.models.project_settings import ProjectSettings
 from app.schemas.outline import OutlineOut, OutlineUpdate
 from app.schemas.outline_generate import OutlineGenerateRequest
-from app.services.outline_generation_app_service import (
+from app.services.outline_generation.app_service import (
     generate_outline as generate_outline_service,
     generate_outline_stream_events,
     prepare_outline_stream_request,

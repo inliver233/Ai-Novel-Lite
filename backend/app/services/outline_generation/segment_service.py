@@ -4,9 +4,9 @@ import logging
 
 from app.core.errors import AppError
 from app.services.generation_service import PreparedLlmCall, call_llm_and_record, with_param_overrides
-from app.services.outline_generation_fill_service import _fill_outline_missing_chapters_with_llm
-from app.services.outline_generation_models import OutlineSegmentGenerationResult, OutlineSegmentProgressHook
-from app.services.outline_generation_route_bridge import _outline_route
+from app.services.outline_generation.fill_service import _fill_outline_missing_chapters_with_llm
+from app.services.outline_generation.models import OutlineSegmentGenerationResult, OutlineSegmentProgressHook
+from app.services.outline_generation.route_bridge import _outline_route
 from app.services.output_contracts import contract_for_task
 
 logger = logging.getLogger("ainovel")
@@ -384,4 +384,3 @@ def _generate_outline_segmented_with_llm(
         finish_reasons=finish_reasons,
         meta=meta,
     )
-

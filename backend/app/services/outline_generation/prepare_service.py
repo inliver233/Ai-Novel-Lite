@@ -12,8 +12,8 @@ from app.models.project_settings import ProjectSettings
 from app.schemas.outline_generate import OutlineGenerateRequest
 from app.services.generation_service import PreparedLlmCall, build_run_params_json, with_param_overrides
 from app.services.llm_task_preset_resolver import resolve_task_llm_config
-from app.services.outline_generation_models import PreparedOutlineGeneration
-from app.services.outline_generation_route_bridge import _outline_route
+from app.services.outline_generation.models import PreparedOutlineGeneration
+from app.services.outline_generation.route_bridge import _outline_route
 from app.services.prompt_presets import render_preset_for_task
 from app.services.prompt_store import format_characters
 from app.services.run_store import write_generation_run
@@ -210,4 +210,3 @@ def _write_outline_segmented_aggregate_run(
         output_text=output_text,
         error_json=error_json,
     )
-
