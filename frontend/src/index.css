@@ -198,6 +198,40 @@
       animation: none !important;
     }
   }
+  /* Mobile: enlarge touch targets on non-hover (touch) devices */
+  @media (hover: none) and (pointer: coarse) {
+    .btn,
+    .btn-sm,
+    .btn-icon {
+      min-height: 44px;
+    }
+
+    .select,
+    .input,
+    .textarea,
+    .input-underline,
+    .textarea-underline,
+    .input-minimal,
+    .textarea-minimal {
+      min-height: 44px;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  /* Mobile: hide thick scrollbars on small screens */
+  @media (max-width: 639px) {
+    * {
+      scrollbar-width: none;
+    }
+    *::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }
 
 @layer components {
@@ -360,6 +394,14 @@
 
   .callout-info {
     @apply callout border-info/30 bg-info/10 text-info;
+  }
+
+  .mobile-safe-bottom {
+    @apply pb-[env(safe-area-inset-bottom)];
+  }
+
+  .mobile-full-bleed {
+    @apply -mx-4 px-4;
   }
 }
 

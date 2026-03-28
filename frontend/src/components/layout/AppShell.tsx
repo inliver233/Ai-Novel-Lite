@@ -411,8 +411,8 @@ export function AppShell() {
 
         <main className="flex-1">
           <header className="border-b border-border bg-canvas">
-            <div className={clsx("mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8", mainMaxWidth)}>
-              <div className="flex items-center justify-between gap-4">
+            <div className={clsx("mx-auto px-4 py-3 sm:px-6 sm:py-5 lg:px-8", mainMaxWidth)}>
+              <div className="flex items-center justify-between gap-2 sm:gap-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <button
                     className="btn btn-secondary btn-icon lg:hidden"
@@ -423,10 +423,10 @@ export function AppShell() {
                   >
                     <PanelLeftOpen size={18} />
                   </button>
-                  <h1 className="min-w-0 truncate font-content text-2xl sm:text-3xl">{title}</h1>
+                  <h1 className="min-w-0 truncate font-content text-lg sm:text-2xl md:text-3xl">{title}</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="hidden text-right text-xs text-subtext sm:block">
+                  <div className="hidden sm:block text-right text-xs text-subtext">
                     <div className="truncate">
                       {auth.status === "authenticated"
                         ? `${auth.user?.displayName ?? auth.user?.id ?? "user"} (${auth.user?.id ?? "unknown"})`
@@ -439,6 +439,12 @@ export function AppShell() {
                       </div>
                     ) : null}
                   </div>
+
+                  {auth.status === "authenticated" ? (
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-[11px] font-medium text-accent sm:hidden">
+                      {(auth.user?.displayName ?? auth.user?.id ?? "U").slice(0, 2).toUpperCase()}
+                    </span>
+                  ) : null}
 
                   {auth.status === "authenticated" ? (
                     <button
@@ -457,7 +463,7 @@ export function AppShell() {
                     </NavLink>
                   )}
 
-                  <div className="lg:hidden">
+                  <div className="hidden">
                     <ThemeToggle />
                   </div>
                 </div>

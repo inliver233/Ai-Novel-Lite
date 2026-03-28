@@ -6,14 +6,15 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-m
 import { ToastContext } from "./toast";
 import type { ToastApi } from "./toast";
 import { RequestIdBadge } from "./RequestIdBadge";
+import type { ToastAction, ToastSeverity } from "./types";
 import { transition } from "../../lib/motion";
 
 type ToastItem = {
   id: string;
-  variant: "success" | "warning" | "error";
+  variant: ToastSeverity;
   message: string;
   requestId?: string;
-  action?: { label: string; onClick: () => void | Promise<void> };
+  action?: ToastAction;
 };
 
 export function ToastProvider(props: { children: React.ReactNode }) {
@@ -73,7 +74,7 @@ export function ToastProvider(props: { children: React.ReactNode }) {
       {props.children}
       <LayoutGroup id={`atelier-toast-stack-${motionGroupId}`}>
         <div
-          className="fixed bottom-4 right-4 z-50 flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-2"
+          className="fixed bottom-4 inset-x-4 z-50 sm:inset-x-auto sm:right-4 sm:left-auto w-full sm:w-[360px] max-w-[calc(100vw-2rem)] flex flex-col gap-2"
           aria-live="polite"
           role="status"
         >
