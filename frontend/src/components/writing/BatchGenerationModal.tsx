@@ -117,7 +117,7 @@ export function BatchGenerationModal(props: {
     <Modal
       open={props.open}
       onClose={props.batchLoading ? undefined : props.onClose}
-      panelClassName="surface max-w-3xl p-5"
+      panelClassName="surface w-full sm:max-w-3xl p-3 sm:p-5"
       ariaLabelledBy={titleId}
     >
       <div className="flex items-start justify-between gap-3">

@@ -9,7 +9,7 @@ export function ChapterListPanel(props: {
   containerClassName?: string;
 }) {
   const containerClassName =
-    props.containerClassName ?? "panel flex h-[calc(100vh-220px)] min-h-[480px] flex-col overflow-hidden p-2";
+    props.containerClassName ?? "panel flex h-[calc(100dvh-180px)] sm:h-[calc(100vh-220px)] min-h-[280px] sm:min-h-[480px] flex-col overflow-hidden p-1.5 sm:p-2";
 
   return (
     <div className={containerClassName}>

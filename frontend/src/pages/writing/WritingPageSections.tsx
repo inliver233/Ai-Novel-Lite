@@ -57,7 +57,7 @@ export function WritingEditorSection(props: WritingEditorSectionProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl rounded-atelier border border-border bg-surface p-5 shadow-sm">
+    <div className="mx-auto w-full max-w-4xl rounded-atelier border border-border bg-surface p-3 sm:p-5 shadow-sm">
       {props.isDoneReadonly ? (
         <div className="callout-warning mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs">{getWritingReadonlyCallout()}</div>
@@ -69,7 +69,7 @@ export function WritingEditorSection(props: WritingEditorSectionProps) {
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-content text-2xl text-ink">
+          <div className="font-content text-lg sm:text-2xl text-ink">
             {getWritingChapterHeading(props.activeChapter.number)}{" "}
             <span className="text-subtext">{props.dirty ? WRITING_PAGE_COPY.dirtyBadge : ""}</span>
           </div>
@@ -77,7 +77,7 @@ export function WritingEditorSection(props: WritingEditorSectionProps) {
             {WRITING_PAGE_COPY.updatedAtPrefix} {props.activeChapter.updated_at}
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <button
             className="btn btn-ghost text-accent hover:bg-accent/10"
             disabled={props.loadingChapter || props.generating}
@@ -229,10 +229,10 @@ export function WritingChapterListDrawer(props: WritingChapterListDrawerProps) {
     <Drawer
       open={props.open}
       onClose={props.onClose}
-      side="left"
+      side="bottom"
       overlayClassName="lg:hidden"
       ariaLabel="章节列表"
-      panelClassName={`h-full ${CHAPTER_LIST_SIDEBAR_WIDTH_CLASS} overflow-hidden border-r border-border bg-surface shadow-sm`}
+      panelClassName={`h-[75dvh] w-full sm:${CHAPTER_LIST_SIDEBAR_WIDTH_CLASS} overflow-hidden border-t sm:border-t-0 sm:border-r border-border bg-surface shadow-sm rounded-t-atelier sm:rounded-none`}
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="text-sm text-ink">章节列表</div>
