@@ -13,9 +13,9 @@ from app.models.project import Project
 from app.models.project_settings import ProjectSettings
 from app.schemas.chapter_plan import ChapterPlanRequest
 from app.services.chapter_context_service import load_previous_chapter_context
-from app.services.chapter_generation_models import PreparedChapterPlanRequest
-from app.services.chapter_generation_prepare_service import _require_chapter_prereqs_if_needed, resolve_task_llm_for_call
-from app.services.chapter_generation_prompt_service import resolve_macro_seed
+from app.services.chapter_generation.models import PreparedChapterPlanRequest
+from app.services.chapter_generation.prepare_service import _require_chapter_prereqs_if_needed, resolve_task_llm_for_call
+from app.services.chapter_generation.prompt_service import resolve_macro_seed
 from app.services.prompt_presets import ensure_default_plan_preset, render_preset_for_task
 from app.services.prompt_store import format_characters
 
@@ -143,4 +143,3 @@ def prepare_chapter_plan_request(
         prompt_messages=prompt_messages,
         prompt_render_log_json=prompt_render_log_json,
     )
-

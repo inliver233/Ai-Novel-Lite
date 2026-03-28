@@ -40,12 +40,12 @@ from app.schemas.chapters import (
 )
 from app.schemas.chapter_generate import ChapterGenerateRequest
 from app.schemas.chapter_plan import ChapterPlanRequest
-from app.services.chapter_generation_app_service import (
+from app.services.chapter_generation.app_service import (
     generate_chapter as generate_chapter_service,
     generate_chapter_precheck as generate_chapter_precheck_service,
     plan_chapter as plan_chapter_service,
 )
-from app.services.chapter_generation_stream_service import (
+from app.services.chapter_generation.stream_service import (
     generate_chapter_stream_events,
     prepare_chapter_stream_request,
 )

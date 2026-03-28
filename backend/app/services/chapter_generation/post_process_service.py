@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from app.schemas.chapter_generate import ChapterGenerateRequest
-from app.services.chapter_generation_models import PreparedChapterGenerateRequest
+from app.services.chapter_generation.models import PreparedChapterGenerateRequest
 from app.services.generation_pipeline import run_content_optimize_step, run_post_edit_step
 
 
@@ -92,4 +92,3 @@ def _append_post_process_steps(
             data["content_optimize_warnings"] = content_optimize_warnings
         if content_optimize_parse_error is not None:
             data["content_optimize_parse_error"] = content_optimize_parse_error
-

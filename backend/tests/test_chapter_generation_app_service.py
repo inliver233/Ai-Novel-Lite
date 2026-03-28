@@ -8,12 +8,12 @@ from unittest.mock import ANY, patch
 from app.core.errors import AppError
 from app.llm.messages import ChatMessage
 from app.schemas.chapter_generate import ChapterGenerateRequest
-from app.services.chapter_generation_app_service import (
+from app.services.chapter_generation.app_service import (
     generate_chapter,
     generate_chapter_precheck,
     run_plan_first_step,
 )
-from app.services.chapter_generation_models import (
+from app.services.chapter_generation.models import (
     ChapterMemoryPreparation,
     PreparedChapterGenerateRequest,
 )
@@ -34,7 +34,7 @@ def _prepared_llm_call() -> PreparedLlmCall:
 
 class TestChapterGenerationAppService(unittest.TestCase):
     def setUp(self) -> None:
-        self.logger = logging.getLogger("test.chapter_generation_app_service")
+        self.logger = logging.getLogger("test.chapter_generation.app_service")
 
     def test_generate_chapter_precheck_rejects_plan_first(self) -> None:
         body = ChapterGenerateRequest(mode="replace", instruction="draft", plan_first=True)
@@ -53,7 +53,7 @@ class TestChapterGenerationAppService(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "VALIDATION_ERROR")
         self.assertIn("plan_first", ctx.exception.message)
 
-    @patch("app.services.chapter_generation_app_service.prepare_chapter_generate_request")
+    @patch("app.services.chapter_generation.app_service.prepare_chapter_generate_request")
     def test_generate_chapter_precheck_returns_compatible_payload(self, prepare_request) -> None:
         prepared = PreparedChapterGenerateRequest(
             request_id="rid-precheck",
@@ -101,11 +101,11 @@ class TestChapterGenerationAppService(unittest.TestCase):
         self.assertEqual(precheck["mcp_research"], {"applied": True, "warnings": []})
         self.assertTrue(precheck["prompt_overridden"])
 
-    @patch("app.services.chapter_generation_app_service._append_post_process_steps")
-    @patch("app.services.chapter_generation_app_service.run_chapter_generate_llm_step")
-    @patch("app.services.chapter_generation_app_service.apply_target_word_count")
-    @patch("app.services.chapter_generation_app_service.run_plan_first_step")
-    @patch("app.services.chapter_generation_app_service.prepare_chapter_generate_request")
+    @patch("app.services.chapter_generation.app_service._append_post_process_steps")
+    @patch("app.services.chapter_generation.app_service.run_chapter_generate_llm_step")
+    @patch("app.services.chapter_generation.app_service.apply_target_word_count")
+    @patch("app.services.chapter_generation.app_service.run_plan_first_step")
+    @patch("app.services.chapter_generation.app_service.prepare_chapter_generate_request")
     def test_generate_chapter_merges_plan_and_generation_metadata(
         self,
         prepare_request,
@@ -167,9 +167,9 @@ class TestChapterGenerationAppService(unittest.TestCase):
         append_post_process.assert_called_once()
         apply_target_word_count_mock.assert_called_once_with(prepared=prepared, body=ANY)
 
-    @patch("app.services.chapter_generation_app_service.render_main_prompt")
-    @patch("app.services.chapter_generation_app_service.inject_plan_into_render_values")
-    @patch("app.services.chapter_generation_app_service.run_plan_llm_step")
+    @patch("app.services.chapter_generation.app_service.render_main_prompt")
+    @patch("app.services.chapter_generation.app_service.inject_plan_into_render_values")
+    @patch("app.services.chapter_generation.app_service.run_plan_llm_step")
     def test_run_plan_first_step_rerenders_prompt_with_plan(
         self,
         run_plan_llm_step_mock,

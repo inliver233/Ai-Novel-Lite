@@ -14,9 +14,9 @@ from app.models.project import Project
 from app.models.project_settings import ProjectSettings
 from app.schemas.chapter_generate import ChapterGenerateRequest
 from app.services.chapter_context_service import build_chapter_generate_render_values
-from app.services.chapter_generation_memory_service import build_memory_run_params_extra_json, prepare_chapter_memory_injection
-from app.services.chapter_generation_models import PreparedChapterGenerateRequest
-from app.services.chapter_generation_prompt_service import (
+from app.services.chapter_generation.memory_service import build_memory_run_params_extra_json, prepare_chapter_memory_injection
+from app.services.chapter_generation.models import PreparedChapterGenerateRequest
+from app.services.chapter_generation.prompt_service import (
     apply_prompt_override,
     build_mcp_research_config,
     build_mcp_research_params,
@@ -284,4 +284,3 @@ def render_main_prompt(
         memory_retrieval_log_json=None,
         extra_json=prepared.run_params_extra_json,
     )
-

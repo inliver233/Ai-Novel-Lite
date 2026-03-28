@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.chapter import Chapter
 from app.models.project_settings import ProjectSettings
 from app.schemas.chapter_generate import ChapterGenerateRequest
-from app.services.chapter_generation_models import ChapterMemoryPreparation
+from app.services.chapter_generation.models import ChapterMemoryPreparation
 from app.services.memory_query_service import normalize_query_text, parse_query_preprocessing_config
 from app.services.memory_retrieval_service import build_memory_retrieval_log_json, retrieve_memory_context_pack
 
@@ -105,4 +105,3 @@ def build_memory_run_params_extra_json(
         params["memory_injection_config"] = memory_preparation.memory_injection_config
         params["memory_retrieval_log_json"] = memory_preparation.memory_retrieval_log_json
     return params
-

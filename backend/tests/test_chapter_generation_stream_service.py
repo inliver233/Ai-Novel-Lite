@@ -5,8 +5,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from app.core.errors import AppError
-from app.services.chapter_generation_models import PreparedChapterGenerateRequest
-from app.services.chapter_generation_stream_service import prepare_chapter_stream_request
+from app.services.chapter_generation.models import PreparedChapterGenerateRequest
+from app.services.chapter_generation.stream_service import prepare_chapter_stream_request
 from app.services.generation_service import PreparedLlmCall
 
 
@@ -24,9 +24,9 @@ def _prepared_llm_call() -> PreparedLlmCall:
 
 class TestChapterGenerationStreamService(unittest.TestCase):
     def setUp(self) -> None:
-        self.logger = logging.getLogger("test.chapter_generation_stream_service")
+        self.logger = logging.getLogger("test.chapter_generation.stream_service")
 
-    @patch("app.services.chapter_generation_stream_service.prepare_chapter_generate_request")
+    @patch("app.services.chapter_generation.stream_service.prepare_chapter_generate_request")
     def test_prepare_stream_request_returns_prepared_request(self, prepare_request) -> None:
         prepared = PreparedChapterGenerateRequest(
             request_id="rid-stream",
@@ -51,7 +51,7 @@ class TestChapterGenerationStreamService(unittest.TestCase):
 
         self.assertIs(result, prepared)
 
-    @patch("app.services.chapter_generation_stream_service.prepare_chapter_generate_request")
+    @patch("app.services.chapter_generation.stream_service.prepare_chapter_generate_request")
     def test_prepare_stream_request_raises_when_render_values_missing(self, prepare_request) -> None:
         prepare_request.return_value = PreparedChapterGenerateRequest(
             request_id="rid-stream",

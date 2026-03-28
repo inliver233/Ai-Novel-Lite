@@ -8,12 +8,12 @@ from app.core.errors import AppError
 from app.core.logging import exception_log_fields, log_event
 from app.llm.client import call_llm_messages, call_llm_stream_messages
 from app.schemas.chapter_generate import ChapterGenerateRequest
-from app.services.chapter_generation_app_service import (
+from app.services.chapter_generation.app_service import (
     apply_target_word_count,
     prepare_chapter_generate_request,
     run_plan_first_step,
 )
-from app.services.chapter_generation_models import PreparedChapterGenerateRequest
+from app.services.chapter_generation.models import PreparedChapterGenerateRequest
 from app.services.generation_service import build_run_params_json
 from app.services.generation_pipeline import run_content_optimize_step, run_post_edit_step
 from app.services.llm_retry import (

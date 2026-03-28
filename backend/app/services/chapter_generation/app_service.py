@@ -6,10 +6,10 @@ from app.core.errors import AppError
 from app.schemas.chapter_generate import ChapterGenerateRequest
 from app.schemas.chapter_plan import ChapterPlanRequest
 from app.services.chapter_context_service import inject_plan_into_render_values
-from app.services.chapter_generation_models import PreparedChapterGenerateRequest
-from app.services.chapter_generation_post_process_service import _append_post_process_steps
-from app.services.chapter_generation_plan_prepare_service import prepare_chapter_plan_request
-from app.services.chapter_generation_prepare_service import (
+from app.services.chapter_generation.models import PreparedChapterGenerateRequest
+from app.services.chapter_generation.post_process_service import _append_post_process_steps
+from app.services.chapter_generation.plan_prepare_service import prepare_chapter_plan_request
+from app.services.chapter_generation.prepare_service import (
     find_missing_prereq_numbers,
     prepare_chapter_generate_request,
     render_main_prompt,
@@ -242,4 +242,3 @@ def generate_chapter(
     if gen_step.finish_reason is not None:
         data["finish_reason"] = gen_step.finish_reason
     return data
-
