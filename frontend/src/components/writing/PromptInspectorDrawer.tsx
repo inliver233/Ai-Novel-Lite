@@ -93,10 +93,6 @@ export function PromptInspectorDrawer(props: Props) {
       setError({ code: "NO_PRESET", message: "请先在 Prompts 页保存 LLM 配置" });
       return;
     }
-    if (genForm.plan_first) {
-      setError({ code: "UNSUPPORTED", message: "预检不支持“先生成规划”（plan_first）" });
-      return;
-    }
 
     const macroSeed = effectiveMacroSeed ?? createMacroSeed();
     if (!effectiveMacroSeed) {
@@ -112,10 +108,6 @@ export function PromptInspectorDrawer(props: Props) {
       mode,
       instruction: genForm.instruction,
       target_word_count: safeTargetWordCount,
-      plan_first: false,
-      post_edit: genForm.post_edit,
-      post_edit_sanitize: genForm.post_edit_sanitize,
-      content_optimize: genForm.content_optimize,
       macro_seed: macroSeed,
       ...(genForm.prompt_override != null ? { prompt_override: genForm.prompt_override } : {}),
       style_id: genForm.style_id,

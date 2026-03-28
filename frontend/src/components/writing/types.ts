@@ -22,10 +22,6 @@ export type GenerateForm = {
   macro_seed?: string;
   prompt_override?: PromptOverride | null;
   stream: boolean;
-  plan_first: boolean;
-  post_edit: boolean;
-  post_edit_sanitize: boolean;
-  content_optimize: boolean;
   style_id: string | null;
   memory_injection_enabled: boolean;
   memory_query_text: string;

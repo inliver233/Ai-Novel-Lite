@@ -30,10 +30,6 @@ type Props = {
   onGenerateReplace: () => void;
   onCancelGenerate?: () => void;
   onOpenPromptInspector: () => void;
-  postEditCompareAvailable?: boolean;
-  onOpenPostEditCompare?: () => void;
-  contentOptimizeCompareAvailable?: boolean;
-  onOpenContentOptimizeCompare?: () => void;
 };
 
 export function AiGenerateDrawer(props: Props) {
@@ -123,12 +119,10 @@ export function AiGenerateDrawer(props: Props) {
         <AiGenerateAdvancedSection
           advancedOpen={advancedOpen}
           advancedPanelId={advancedPanelId}
-          autoReliableTransport={drawerState.autoReliableTransport}
           generating={props.generating}
           genForm={props.genForm}
           setAdvancedOpen={setAdvancedOpen}
           setGenForm={props.setGenForm}
-          showUnsupportedStreamWarning={drawerState.showUnsupportedStreamWarning}
         />
 
         <div className="panel p-3 text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.autosaveHint}</div>
@@ -144,26 +138,6 @@ export function AiGenerateDrawer(props: Props) {
           {AI_GENERATE_DRAWER_COPY.actions.promptInspector}
           {drawerState.hasPromptOverride ? AI_GENERATE_DRAWER_COPY.actions.promptInspectorOverrideSuffix : ""}
         </button>
-        {props.postEditCompareAvailable ? (
-          <button
-            className="btn btn-secondary"
-            disabled={props.generating || !props.onOpenPostEditCompare}
-            onClick={() => props.onOpenPostEditCompare?.()}
-            type="button"
-          >
-            {AI_GENERATE_DRAWER_COPY.actions.postEditCompare}
-          </button>
-        ) : null}
-        {props.contentOptimizeCompareAvailable ? (
-          <button
-            className="btn btn-secondary"
-            disabled={props.generating || !props.onOpenContentOptimizeCompare}
-            onClick={() => props.onOpenContentOptimizeCompare?.()}
-            type="button"
-          >
-            {AI_GENERATE_DRAWER_COPY.actions.contentOptimizeCompare}
-          </button>
-        ) : null}
         {drawerState.hasPromptOverride ? (
           <button
             className="btn btn-secondary"

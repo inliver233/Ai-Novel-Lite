@@ -7,10 +7,8 @@ import { ProgressBar } from "../../components/ui/ProgressBar";
 import { AiGenerateDrawer } from "../../components/writing/AiGenerateDrawer";
 import { BatchGenerationModal } from "../../components/writing/BatchGenerationModal";
 import { ChapterListPanel } from "../../components/writing/ChapterListPanel";
-import { ContentOptimizeCompareDrawer } from "../../components/writing/ContentOptimizeCompareDrawer";
 import { CreateChapterDialog } from "../../components/writing/CreateChapterDialog";
 import { GenerationHistoryDrawer } from "../../components/writing/GenerationHistoryDrawer";
-import { PostEditCompareDrawer } from "../../components/writing/PostEditCompareDrawer";
 import { PromptInspectorDrawer } from "../../components/writing/PromptInspectorDrawer";
 import { WritingToolbar } from "../../components/writing/WritingToolbar";
 import { humanizeChapterStatus } from "../../lib/humanize";
@@ -303,8 +301,6 @@ export type WritingPageOverlaysProps = {
   createChapterDialogProps: ComponentProps<typeof CreateChapterDialog>;
   batchGenerationModalProps: ComponentProps<typeof BatchGenerationModal>;
   aiGenerateDrawerProps: ComponentProps<typeof AiGenerateDrawer>;
-  postEditCompareDrawerProps: ComponentProps<typeof PostEditCompareDrawer>;
-  contentOptimizeCompareDrawerProps: ComponentProps<typeof ContentOptimizeCompareDrawer>;
   promptInspectorDrawerProps: ComponentProps<typeof PromptInspectorDrawer>;
   generationHistoryDrawerProps: ComponentProps<typeof GenerationHistoryDrawer>;
 };
@@ -315,8 +311,6 @@ export function WritingPageOverlays(props: WritingPageOverlaysProps) {
       <CreateChapterDialog {...props.createChapterDialogProps} />
       <BatchGenerationModal {...props.batchGenerationModalProps} />
       <AiGenerateDrawer {...props.aiGenerateDrawerProps} />
-      <PostEditCompareDrawer {...props.postEditCompareDrawerProps} />
-      <ContentOptimizeCompareDrawer {...props.contentOptimizeCompareDrawerProps} />
       <PromptInspectorDrawer {...props.promptInspectorDrawerProps} />
       <GenerationHistoryDrawer {...props.generationHistoryDrawerProps} />
     </>

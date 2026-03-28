@@ -16,10 +16,6 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
     macro_seed: "",
     prompt_override: null,
     stream: false,
-    plan_first: false,
-    post_edit: false,
-    post_edit_sanitize: false,
-    content_optimize: false,
     style_id: null,
     memory_injection_enabled: true,
     memory_query_text: "",
@@ -43,34 +39,14 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
 }
 
 describe("aiGenerateDrawerModels", () => {
-  it("derives reliable transport warnings from advanced generation flags", () => {
-    const noAdvanced = getAiGenerateDrawerState({
-      genForm: makeForm({ stream: true }),
-      preset: { project_id: "p1", provider: "openai", model: "gpt-test", stop: [], extra: {} },
-    });
-    const planFirst = getAiGenerateDrawerState({
-      genForm: makeForm({ plan_first: true, stream: false }),
+  it("derives preset summary and prompt override flags", () => {
+    const hasPreset = getAiGenerateDrawerState({
+      genForm: makeForm(),
       preset: { project_id: "p1", provider: "openai", model: "gpt-test", stop: [], extra: {} },
     });
 
-    expect(noAdvanced.autoReliableTransport).toBe(false);
-    expect(noAdvanced.showUnsupportedStreamWarning).toBe(false);
-    expect(planFirst.reliableTransportRequired).toBe(true);
-    expect(planFirst.autoReliableTransport).toBe(true);
-  });
-
-  it("flags unsupported stream fallback only for non-openai presets without reliable transport", () => {
-    const unsupported = getAiGenerateDrawerState({
-      genForm: makeForm({ stream: true }),
-      preset: { project_id: "p1", provider: "anthropic", model: "local", stop: [], extra: {} },
-    });
-    const withReliableTransport = getAiGenerateDrawerState({
-      genForm: makeForm({ stream: true, post_edit: true }),
-      preset: { project_id: "p1", provider: "anthropic", model: "local", stop: [], extra: {} },
-    });
-
-    expect(unsupported.showUnsupportedStreamWarning).toBe(true);
-    expect(withReliableTransport.showUnsupportedStreamWarning).toBe(false);
+    expect(hasPreset.hasPromptOverride).toBe(false);
+    expect(hasPreset.presetSummary).toBe("openai / gpt-test");
   });
 
   it("keeps prompt override and style helper text copy stable", () => {

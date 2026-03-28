@@ -32,18 +32,9 @@ export const AI_GENERATE_CONTEXT_TOGGLES: ReadonlyArray<{ key: ContextToggleKey;
 
 export function getAiGenerateDrawerState(args: { genForm: GenerateForm; preset: LLMPreset | null }) {
   const { genForm, preset } = args;
-  const streamProviderSupported = Boolean(preset && preset.provider.startsWith("openai"));
-  const reliableTransportRequired = Boolean(genForm.plan_first || genForm.post_edit || genForm.content_optimize);
-  const autoReliableTransport = !genForm.stream && reliableTransportRequired;
   const hasPromptOverride = genForm.prompt_override != null;
   return {
-    streamProviderSupported,
-    reliableTransportRequired,
-    autoReliableTransport,
     hasPromptOverride,
-    showUnsupportedStreamWarning: Boolean(
-      preset && genForm.stream && !streamProviderSupported && !reliableTransportRequired,
-    ),
     presetSummary: preset ? `${preset.provider} / ${preset.model}` : AI_GENERATE_DRAWER_COPY.llmMissing,
   };
 }

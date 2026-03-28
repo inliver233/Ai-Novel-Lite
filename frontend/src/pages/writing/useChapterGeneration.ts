@@ -33,42 +33,12 @@ type GenerateResponse = {
   raw_output: string;
   dropped_params?: string[];
   generation_run_id?: string;
-  post_edit_applied?: boolean;
-  post_edit_raw_content_md?: string;
-  post_edit_edited_content_md?: string;
-  post_edit_run_id?: string;
-  content_optimize_applied?: boolean;
-  content_optimize_raw_content_md?: string;
-  content_optimize_optimized_content_md?: string;
-  content_optimize_run_id?: string;
-};
-
-export type PostEditCompare = {
-  requestId: string | null;
-  generationRunId: string | null;
-  postEditRunId: string | null;
-  rawContentMd: string;
-  editedContentMd: string;
-  appliedChoice: "raw" | "post_edit";
-};
-
-export type ContentOptimizeCompare = {
-  requestId: string | null;
-  generationRunId: string | null;
-  contentOptimizeRunId: string | null;
-  rawContentMd: string;
-  optimizedContentMd: string;
-  appliedChoice: "raw" | "content_optimize";
 };
 
 const DEFAULT_GEN_FORM: GenerateForm = {
   instruction: "写出本章冲突升级，结尾留钩子。",
   target_word_count: 3000,
   stream: false,
-  plan_first: false,
-  post_edit: false,
-  post_edit_sanitize: false,
-  content_optimize: false,
   style_id: null,
   memory_injection_enabled: true,
   memory_query_text: "",
@@ -129,8 +99,6 @@ export function useChapterGeneration(args: {
   const [genStreamProgress, setGenStreamProgress] = useState<StreamProgress | null>(null);
   const genStreamClientRef = useRef<SSEPostClient | null>(null);
   const genStreamHasChunkRef = useRef(false);
-  const [postEditCompare, setPostEditCompare] = useState<PostEditCompare | null>(null);
-  const [contentOptimizeCompare, setContentOptimizeCompare] = useState<ContentOptimizeCompare | null>(null);
 
   const [genForm, setGenForm] = useState<GenerateForm>(() => ({
     ...DEFAULT_GEN_FORM,
@@ -152,73 +120,12 @@ export function useChapterGeneration(args: {
   }, [projectId]);
 
   useEffect(() => {
-    setPostEditCompare(null);
-    setContentOptimizeCompare(null);
-  }, [activeChapter?.id]);
-
-  useEffect(() => {
     if (!projectId) return;
     const key = writingMemoryInjectionEnabledStorageKey(getCurrentUserId(), projectId);
     localStorage.setItem(key, genForm.memory_injection_enabled ? "1" : "0");
   }, [genForm.memory_injection_enabled, projectId]);
 
   const abortGenerate = useCallback(() => genStreamClientRef.current?.abort(), []);
-
-  const applyPostEditVariant = useCallback(
-    async (choice: PostEditCompare["appliedChoice"]) => {
-      if (!activeChapter) return;
-      if (!postEditCompare) return;
-      const nextContent = choice === "raw" ? postEditCompare.rawContentMd : postEditCompare.editedContentMd;
-      setForm((prev) => {
-        if (!prev) return prev;
-        return { ...prev, content_md: nextContent, status: "drafting" };
-      });
-      setPostEditCompare((prev) => (prev ? { ...prev, appliedChoice: choice } : prev));
-      toast.toastSuccess(
-        choice === "raw" ? WRITING_PAGE_COPY.postEditRawApplied : WRITING_PAGE_COPY.postEditEditedApplied,
-        postEditCompare.requestId ?? undefined,
-      );
-
-      if (!postEditCompare.generationRunId) return;
-      try {
-        await apiJson(`/api/chapters/${activeChapter.id}/post_edit_adoption`, {
-          method: "POST",
-          body: JSON.stringify({
-            generation_run_id: postEditCompare.generationRunId,
-            post_edit_run_id: postEditCompare.postEditRunId,
-            choice,
-          }),
-        });
-      } catch (e) {
-        const err = e as ApiError;
-        toast.toastWarning(
-          `${WRITING_PAGE_COPY.adoptionRecordFailedPrefix}${err.message} (${err.code})`,
-          err.requestId,
-        );
-      }
-    },
-    [activeChapter, postEditCompare, setForm, toast],
-  );
-
-  const applyContentOptimizeVariant = useCallback(
-    async (choice: ContentOptimizeCompare["appliedChoice"]) => {
-      if (!contentOptimizeCompare) return;
-      const nextContent =
-        choice === "raw" ? contentOptimizeCompare.rawContentMd : contentOptimizeCompare.optimizedContentMd;
-      setForm((prev) => {
-        if (!prev) return prev;
-        return { ...prev, content_md: nextContent, status: "drafting" };
-      });
-      setContentOptimizeCompare((prev) => (prev ? { ...prev, appliedChoice: choice } : prev));
-      toast.toastSuccess(
-        choice === "raw"
-          ? WRITING_PAGE_COPY.contentOptimizeRawApplied
-          : WRITING_PAGE_COPY.contentOptimizeOptimizedApplied,
-        contentOptimizeCompare.requestId ?? undefined,
-      );
-    },
-    [contentOptimizeCompare, setForm, toast],
-  );
 
   const generate = useCallback(
     async (
@@ -232,10 +139,7 @@ export function useChapterGeneration(args: {
       }
       const headers: Record<string, string> = { "X-LLM-Provider": preset.provider };
       const streamProviderSupported = preset.provider.startsWith("openai");
-      const advancedTransportRequired = genForm.plan_first || genForm.post_edit || genForm.content_optimize;
 
-      setPostEditCompare(null);
-      setContentOptimizeCompare(null);
       if (dirty) {
         const choice = await confirm.choose(WRITING_PAGE_COPY.confirms.generateWithDirty);
         if (choice === "cancel") return;
@@ -270,10 +174,6 @@ export function useChapterGeneration(args: {
           mode,
           instruction: genForm.instruction,
           target_word_count: safeTargetWordCount,
-          plan_first: genForm.plan_first,
-          post_edit: genForm.post_edit,
-          post_edit_sanitize: genForm.post_edit_sanitize,
-          content_optimize: genForm.content_optimize,
           ...(typeof macroSeed === "string" && macroSeed.trim() ? { macro_seed: macroSeed.trim() } : {}),
           ...(promptOverride != null ? { prompt_override: promptOverride } : {}),
           style_id: genForm.style_id,
@@ -296,8 +196,8 @@ export function useChapterGeneration(args: {
         const baseContent = form.content_md;
         const baseSummary = form.summary;
 
-        const shouldStream = advancedTransportRequired || (genForm.stream && streamProviderSupported);
-        if (genForm.stream && !streamProviderSupported && !advancedTransportRequired) {
+        const shouldStream = genForm.stream && streamProviderSupported;
+        if (genForm.stream && !streamProviderSupported) {
           toast.toastWarning(WRITING_PAGE_COPY.generateUnsupportedProviderFallback);
         }
 
@@ -355,22 +255,6 @@ export function useChapterGeneration(args: {
               const obj = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
               const content = typeof obj?.content_md === "string" ? obj.content_md : "";
               const summary = typeof obj?.summary === "string" ? obj.summary : "";
-              const genRunId = typeof obj?.generation_run_id === "string" ? obj.generation_run_id : null;
-              const postEditApplied = Boolean(obj?.post_edit_applied);
-              const postEditRaw =
-                typeof obj?.post_edit_raw_content_md === "string" ? obj.post_edit_raw_content_md : null;
-              const postEditEdited =
-                typeof obj?.post_edit_edited_content_md === "string" ? obj.post_edit_edited_content_md : null;
-              const postEditRunId = typeof obj?.post_edit_run_id === "string" ? obj.post_edit_run_id : null;
-              const contentOptimizeApplied = Boolean(obj?.content_optimize_applied);
-              const contentOptimizeRaw =
-                typeof obj?.content_optimize_raw_content_md === "string" ? obj.content_optimize_raw_content_md : null;
-              const contentOptimizeOptimized =
-                typeof obj?.content_optimize_optimized_content_md === "string"
-                  ? obj.content_optimize_optimized_content_md
-                  : null;
-              const contentOptimizeRunId =
-                typeof obj?.content_optimize_run_id === "string" ? obj.content_optimize_run_id : null;
               const dropped = Array.isArray(obj?.dropped_params)
                 ? obj.dropped_params.filter((p): p is string => typeof p === "string" && p.trim().length > 0)
                 : [];
@@ -397,58 +281,6 @@ export function useChapterGeneration(args: {
                   status: "drafting",
                 };
               });
-
-              const postEditRawTrimmed = postEditRaw?.trim() ?? "";
-              const postEditEditedTrimmed = postEditEdited?.trim() ?? "";
-              if (
-                genForm.post_edit &&
-                postEditRawTrimmed &&
-                postEditEditedTrimmed &&
-                postEditRawTrimmed !== postEditEditedTrimmed
-              ) {
-                const rawFull =
-                  mode === "append" ? appendMarkdown(baseContent, postEditRawTrimmed) : postEditRawTrimmed;
-                const editedFull =
-                  mode === "append" ? appendMarkdown(baseContent, postEditEditedTrimmed) : postEditEditedTrimmed;
-                setPostEditCompare({
-                  requestId: requestId ?? null,
-                  generationRunId: genRunId,
-                  postEditRunId,
-                  rawContentMd: rawFull,
-                  editedContentMd: editedFull,
-                  appliedChoice: postEditApplied ? "post_edit" : "raw",
-                });
-              } else {
-                setPostEditCompare(null);
-              }
-
-              const contentOptimizeRawTrimmed = contentOptimizeRaw?.trim() ?? "";
-              const contentOptimizeOptimizedTrimmed = contentOptimizeOptimized?.trim() ?? "";
-              if (
-                genForm.content_optimize &&
-                contentOptimizeRawTrimmed &&
-                contentOptimizeOptimizedTrimmed &&
-                contentOptimizeRawTrimmed !== contentOptimizeOptimizedTrimmed
-              ) {
-                const rawFull =
-                  mode === "append"
-                    ? appendMarkdown(baseContent, contentOptimizeRawTrimmed)
-                    : contentOptimizeRawTrimmed;
-                const optimizedFull =
-                  mode === "append"
-                    ? appendMarkdown(baseContent, contentOptimizeOptimizedTrimmed)
-                    : contentOptimizeOptimizedTrimmed;
-                setContentOptimizeCompare({
-                  requestId: requestId ?? null,
-                  generationRunId: genRunId,
-                  contentOptimizeRunId,
-                  rawContentMd: rawFull,
-                  optimizedContentMd: optimizedFull,
-                  appliedChoice: contentOptimizeApplied ? "content_optimize" : "raw",
-                });
-              } else {
-                setContentOptimizeCompare(null);
-              }
             },
           });
           genStreamClientRef.current = client;
@@ -479,18 +311,13 @@ export function useChapterGeneration(args: {
               return;
             }
             if (err instanceof SSEError && err.code !== "SSE_SERVER_ERROR") {
-              if (!genStreamHasChunkRef.current && !advancedTransportRequired) {
+              if (!genStreamHasChunkRef.current) {
                 toast.toastError(WRITING_PAGE_COPY.generateFallback, err.requestId ?? requestId);
                 const res = await apiJson<GenerateResponse>(`/api/chapters/${activeChapter.id}/generate`, {
                   method: "POST",
                   headers,
                   body: JSON.stringify(payload),
                 });
-
-                const postEditRawTrimmed = (res.data.post_edit_raw_content_md ?? "").trim();
-                const postEditEditedTrimmed = (res.data.post_edit_edited_content_md ?? "").trim();
-                const contentOptimizeRawTrimmed = (res.data.content_optimize_raw_content_md ?? "").trim();
-                const contentOptimizeOptimizedTrimmed = (res.data.content_optimize_optimized_content_md ?? "").trim();
 
                 setForm((prev) => {
                   if (!prev) return prev;
@@ -505,54 +332,6 @@ export function useChapterGeneration(args: {
                     status: "drafting",
                   };
                 });
-
-                if (
-                  genForm.post_edit &&
-                  postEditRawTrimmed &&
-                  postEditEditedTrimmed &&
-                  postEditRawTrimmed !== postEditEditedTrimmed
-                ) {
-                  const rawFull =
-                    mode === "append" ? appendMarkdown(baseContent, postEditRawTrimmed) : postEditRawTrimmed;
-                  const editedFull =
-                    mode === "append" ? appendMarkdown(baseContent, postEditEditedTrimmed) : postEditEditedTrimmed;
-                  setPostEditCompare({
-                    requestId: res.request_id ?? null,
-                    generationRunId: res.data.generation_run_id ?? null,
-                    postEditRunId: res.data.post_edit_run_id ?? null,
-                    rawContentMd: rawFull,
-                    editedContentMd: editedFull,
-                    appliedChoice: res.data.post_edit_applied ? "post_edit" : "raw",
-                  });
-                } else {
-                  setPostEditCompare(null);
-                }
-
-                if (
-                  genForm.content_optimize &&
-                  contentOptimizeRawTrimmed &&
-                  contentOptimizeOptimizedTrimmed &&
-                  contentOptimizeRawTrimmed !== contentOptimizeOptimizedTrimmed
-                ) {
-                  const rawFull =
-                    mode === "append"
-                      ? appendMarkdown(baseContent, contentOptimizeRawTrimmed)
-                      : contentOptimizeRawTrimmed;
-                  const optimizedFull =
-                    mode === "append"
-                      ? appendMarkdown(baseContent, contentOptimizeOptimizedTrimmed)
-                      : contentOptimizeOptimizedTrimmed;
-                  setContentOptimizeCompare({
-                    requestId: res.request_id ?? null,
-                    generationRunId: res.data.generation_run_id ?? null,
-                    contentOptimizeRunId: res.data.content_optimize_run_id ?? null,
-                    rawContentMd: rawFull,
-                    optimizedContentMd: optimizedFull,
-                    appliedChoice: res.data.content_optimize_applied ? "content_optimize" : "raw",
-                  });
-                } else {
-                  setContentOptimizeCompare(null);
-                }
 
                 toast.toastSuccess(WRITING_PAGE_COPY.generateDoneUnsaved, res.request_id);
                 const dp = res.data.dropped_params ?? [];
@@ -597,11 +376,6 @@ export function useChapterGeneration(args: {
             body: JSON.stringify(payload),
           });
 
-          const postEditRawTrimmed = (res.data.post_edit_raw_content_md ?? "").trim();
-          const postEditEditedTrimmed = (res.data.post_edit_edited_content_md ?? "").trim();
-          const contentOptimizeRawTrimmed = (res.data.content_optimize_raw_content_md ?? "").trim();
-          const contentOptimizeOptimizedTrimmed = (res.data.content_optimize_optimized_content_md ?? "").trim();
-
           setForm((prev) => {
             if (!prev) return prev;
             const nextContent =
@@ -615,51 +389,6 @@ export function useChapterGeneration(args: {
               status: "drafting",
             };
           });
-
-          if (
-            genForm.post_edit &&
-            postEditRawTrimmed &&
-            postEditEditedTrimmed &&
-            postEditRawTrimmed !== postEditEditedTrimmed
-          ) {
-            const rawFull = mode === "append" ? appendMarkdown(baseContent, postEditRawTrimmed) : postEditRawTrimmed;
-            const editedFull =
-              mode === "append" ? appendMarkdown(baseContent, postEditEditedTrimmed) : postEditEditedTrimmed;
-            setPostEditCompare({
-              requestId: res.request_id ?? null,
-              generationRunId: res.data.generation_run_id ?? null,
-              postEditRunId: res.data.post_edit_run_id ?? null,
-              rawContentMd: rawFull,
-              editedContentMd: editedFull,
-              appliedChoice: res.data.post_edit_applied ? "post_edit" : "raw",
-            });
-          } else {
-            setPostEditCompare(null);
-          }
-
-          if (
-            genForm.content_optimize &&
-            contentOptimizeRawTrimmed &&
-            contentOptimizeOptimizedTrimmed &&
-            contentOptimizeRawTrimmed !== contentOptimizeOptimizedTrimmed
-          ) {
-            const rawFull =
-              mode === "append" ? appendMarkdown(baseContent, contentOptimizeRawTrimmed) : contentOptimizeRawTrimmed;
-            const optimizedFull =
-              mode === "append"
-                ? appendMarkdown(baseContent, contentOptimizeOptimizedTrimmed)
-                : contentOptimizeOptimizedTrimmed;
-            setContentOptimizeCompare({
-              requestId: res.request_id ?? null,
-              generationRunId: res.data.generation_run_id ?? null,
-              contentOptimizeRunId: res.data.content_optimize_run_id ?? null,
-              rawContentMd: rawFull,
-              optimizedContentMd: optimizedFull,
-              appliedChoice: res.data.content_optimize_applied ? "content_optimize" : "raw",
-            });
-          } else {
-            setContentOptimizeCompare(null);
-          }
 
           toast.toastSuccess(WRITING_PAGE_COPY.generateDoneUnsaved, res.request_id);
           const dp = res.data.dropped_params ?? [];
@@ -700,10 +429,6 @@ export function useChapterGeneration(args: {
     genStreamClientRef,
     genForm,
     setGenForm,
-    postEditCompare,
-    applyPostEditVariant,
-    contentOptimizeCompare,
-    applyContentOptimizeVariant,
     generate,
     abortGenerate,
   };

@@ -71,8 +71,6 @@ export function useWritingPageState(): WritingPageState {
 
   const [aiOpen, setAiOpen] = useState(false);
   const [promptInspectorOpen, setPromptInspectorOpen] = useState(false);
-  const [postEditCompareOpen, setPostEditCompareOpen] = useState(false);
-  const [contentOptimizeCompareOpen, setContentOptimizeCompareOpen] = useState(false);
   const [autoUpdatesTriggering, setAutoUpdatesTriggering] = useState(false);
 
   const writingQuery = useProjectData<WritingLoaded>(projectId, async (id) => {
@@ -198,10 +196,6 @@ export function useWritingPageState(): WritingPageState {
     genStreamProgress,
     genForm,
     setGenForm,
-    postEditCompare,
-    applyPostEditVariant,
-    contentOptimizeCompare,
-    applyContentOptimizeVariant,
     generate,
     abortGenerate,
   } = generation;
@@ -409,30 +403,6 @@ export function useWritingPageState(): WritingPageState {
       onGenerateReplace: () => void generate("replace"),
       onCancelGenerate: abortGenerate,
       onOpenPromptInspector: () => setPromptInspectorOpen(true),
-      postEditCompareAvailable: Boolean(postEditCompare),
-      onOpenPostEditCompare: () => setPostEditCompareOpen(true),
-      contentOptimizeCompareAvailable: Boolean(contentOptimizeCompare),
-      onOpenContentOptimizeCompare: () => setContentOptimizeCompareOpen(true),
-    },
-    postEditCompareDrawerProps: {
-      open: postEditCompareOpen && Boolean(postEditCompare),
-      onClose: () => setPostEditCompareOpen(false),
-      rawContentMd: postEditCompare?.rawContentMd ?? "",
-      editedContentMd: postEditCompare?.editedContentMd ?? "",
-      requestId: postEditCompare?.requestId ?? null,
-      appliedChoice: postEditCompare?.appliedChoice ?? "post_edit",
-      onApplyRaw: () => void applyPostEditVariant("raw"),
-      onApplyPostEdit: () => void applyPostEditVariant("post_edit"),
-    },
-    contentOptimizeCompareDrawerProps: {
-      open: contentOptimizeCompareOpen && Boolean(contentOptimizeCompare),
-      onClose: () => setContentOptimizeCompareOpen(false),
-      rawContentMd: contentOptimizeCompare?.rawContentMd ?? "",
-      optimizedContentMd: contentOptimizeCompare?.optimizedContentMd ?? "",
-      requestId: contentOptimizeCompare?.requestId ?? null,
-      appliedChoice: contentOptimizeCompare?.appliedChoice ?? "content_optimize",
-      onApplyRaw: () => void applyContentOptimizeVariant("raw"),
-      onApplyOptimized: () => void applyContentOptimizeVariant("content_optimize"),
     },
     promptInspectorDrawerProps: {
       open: promptInspectorOpen,
