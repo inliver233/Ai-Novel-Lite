@@ -12,8 +12,13 @@ from app.db.utils import utc_now
 
 class TaskKind(str, Enum):
     BATCH_GENERATION = "batch_generation"
+    BATCH_GENERATION_ORCHESTRATOR = "batch_generation_orchestrator"
+    CHARACTERS_AUTO_UPDATE = "characters_auto_update"
     IMPORT_TASK = "import_task"
+    NOOP = "noop"
     PROJECT_TASK = "project_task"
+    SEARCH_REBUILD = "search_rebuild"
+    VECTOR_REBUILD = "vector_rebuild"
 
 
 class TaskStatus(str, Enum):
