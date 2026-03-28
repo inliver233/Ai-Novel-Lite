@@ -19,9 +19,9 @@ export function CopyFallbackModal(props: { text: string; title: string; descript
       open
       onClose={props.onClose}
       ariaLabelledBy={titleId}
-      panelClassName="w-full max-w-2xl rounded-atelier border border-border bg-surface shadow-sm"
+      panelClassName="w-full sm:max-w-2xl rounded-atelier border border-border bg-surface shadow-sm"
     >
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div id={titleId} className="font-content text-lg text-ink">
           {props.title}
         </div>
@@ -34,7 +34,7 @@ export function CopyFallbackModal(props: { text: string; title: string; descript
           <textarea
             id={textareaId}
             ref={textareaRef}
-            className="textarea font-mono text-xs"
+            className="textarea font-mono text-xs min-h-[25dvh] sm:min-h-0"
             rows={10}
             value={props.text}
             readOnly

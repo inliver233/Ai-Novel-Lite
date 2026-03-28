@@ -44,14 +44,14 @@ export function ConfirmProvider(props: { children: React.ReactNode }) {
       <Modal
         open={open && Boolean(options)}
         onClose={() => close(variant === "choose" ? ("cancel" satisfies ConfirmChoice) : false)}
-        panelClassName="surface max-w-md p-5"
+        panelClassName="surface w-full sm:max-w-md p-4 sm:p-5"
         ariaLabel={options?.title ?? "确认"}
       >
         {options ? (
           <>
             <div className="font-content text-xl text-ink">{options.title}</div>
             {options.description ? <div className="mt-2 text-sm text-subtext">{options.description}</div> : null}
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex justify-end flex-col-reverse sm:flex-row gap-2">
               <button
                 className="btn btn-secondary"
                 onClick={() => close(variant === "choose" ? ("cancel" satisfies ConfirmChoice) : false)}
