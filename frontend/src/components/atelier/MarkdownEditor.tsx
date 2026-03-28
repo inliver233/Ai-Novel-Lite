@@ -120,7 +120,7 @@ export function MarkdownEditor({
         <textarea
           className={clsx(
             mono ? "atelier-mono" : "atelier-content",
-            "w-full resize-y bg-transparent px-3 py-3 text-ink outline-none placeholder:text-subtext/70",
+            "w-full resize-y bg-transparent px-3 py-3 text-ink outline-none placeholder:text-subtext/70 min-h-[35dvh] sm:min-h-0",
           )}
           ref={setTextareaRef}
           name={name}

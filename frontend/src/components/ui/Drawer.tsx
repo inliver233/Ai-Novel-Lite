@@ -7,10 +7,9 @@ import type { DialogA11yProps, ModalLikeProps } from "./types";
 
 type Side = "right" | "left" | "bottom";
 
-type DrawerProps = Omit<ModalLikeProps, "children" | "onClose" | "className"> &
+type DrawerProps = ModalLikeProps &
   DialogA11yProps & {
     side?: Side;
-    onClose?: () => void;
     overlayClassName?: string;
     panelClassName?: string;
     children: React.ReactNode;
@@ -46,7 +45,7 @@ export function Drawer(props: DrawerProps) {
       className={clsx(
         "flex",
         side === "bottom"
-          ? "items-end justify-center sm:items-stretch sm:justify-end"
+          ? "items-end justify-center"
           : side === "left"
             ? "items-stretch justify-start"
             : "items-stretch justify-end",
@@ -54,7 +53,11 @@ export function Drawer(props: DrawerProps) {
       )}
     >
       <motion.div
-        className={clsx("overflow-y-auto", props.panelClassName)}
+        className={clsx(
+          "overflow-y-auto",
+          side === "bottom" && "rounded-t-atelier max-h-[85dvh]",
+          props.panelClassName,
+        )}
         role="dialog"
         aria-modal="true"
         aria-label={props.ariaLabelledBy ? undefined : props.ariaLabel}
@@ -64,6 +67,11 @@ export function Drawer(props: DrawerProps) {
         exit={panelMotion.exit}
         transition={reduceMotion ? { duration: 0.01 } : transition.slow}
       >
+        {side === "bottom" ? (
+          <div className="flex justify-center py-2">
+            <div className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        ) : null}
         {props.children}
       </motion.div>
     </Overlay>
