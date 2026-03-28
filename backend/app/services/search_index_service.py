@@ -482,6 +482,10 @@ def query_project_search(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
+    # NOTE: This path intentionally does NOT depend on `search_documents` / FTS tables.
+    # Some deployments/projects might have an empty search_documents table (or never rebuilt),
+    # and we still want the UI search to be usable.
+
     pid = str(project_id or "").strip()
     q_raw = str(q or "").strip()
     sources_norm = [str(s or "").strip() for s in (sources or []) if str(s or "").strip()]
@@ -489,110 +493,274 @@ def query_project_search(
     offset = max(0, int(offset or 0))
 
     if not pid:
-        return {"items": [], "next_offset": None, "mode": "none"}
+        return {"items": [], "next_offset": None, "mode": "none", "fts_enabled": False}
     if not q_raw:
-        return {"items": [], "next_offset": None, "mode": "empty"}
+        return {"items": [], "next_offset": None, "mode": "empty", "fts_enabled": False}
 
-    params: dict[str, Any] = {"project_id": pid, "limit": limit, "offset": offset}
-
-    if _fts_enabled(db):
-        fts_q = _fts_query_fuzzy(q_raw)
-        if not fts_q:
-            return {"items": [], "next_offset": None, "mode": "empty"}
-        params["q"] = fts_q
-
-        where = "d.project_id = :project_id AND search_index MATCH :q"
-        if sources_norm:
-            keys: list[str] = []
-            for idx, src in enumerate(sources_norm):
-                k = f"src_{idx}"
-                params[k] = src
-                keys.append(f":{k}")
-            where += f" AND d.source_type IN ({','.join(keys)})"
-
-        sql = text(
-            "SELECT d.source_type,d.source_id,COALESCE(d.title,'') AS title,"
-            "snippet(search_index,1,'[',']','...',12) AS snippet,"
-            "d.url_path AS jump_url,"
-            "d.locator_json AS locator_json,"
-            "bm25(search_index,5.0,1.0) AS rank "
-            "FROM search_index JOIN search_documents d ON d.id = search_index.rowid "
-            f"WHERE {where} "
-            "ORDER BY rank ASC, d.id DESC "
-            "LIMIT :limit OFFSET :offset"
-        )
-        rows = db.execute(sql, params).all()
-        items = [
-            {
-                "source_type": str(r[0] or ""),
-                "source_id": str(r[1] or ""),
-                "title": str(r[2] or ""),
-                "snippet": str(r[3] or ""),
-                "jump_url": (str(r[4] or "").strip() or None),
-                "locator_json": (str(r[5] or "").strip() or None),
-            }
-            for r in rows
-        ]
-        next_offset = (offset + limit) if len(items) >= limit else None
-        return {"items": items, "next_offset": next_offset, "mode": "fts", "fts_enabled": True}
-
-    # Fallback: LIKE on normalized documents. Lower quality but keeps the UI usable.
     terms = _split_query_terms(q_raw)
     if not terms:
         return {"items": [], "next_offset": None, "mode": "empty", "fts_enabled": False}
-    params["q_primary"] = terms[0]
 
-    dialect = str(getattr(getattr(db.get_bind(), "dialect", None), "name", "") or "")
-    like_op = "ILIKE" if dialect == "postgresql" else "LIKE"
-    pos_fn = "strpos" if dialect == "postgresql" else "instr"
+    q_primary = terms[0]
+    terms_lower = [t.lower() for t in terms if t]
+    if not terms_lower:
+        return {"items": [], "next_offset": None, "mode": "empty", "fts_enabled": False}
 
-    where_parts: list[str] = []
-    for idx, term in enumerate(terms):
-        k = f"term_{idx}"
-        params[k] = f"%{term}%"
-        where_parts.append(f"(COALESCE(title,'') {like_op} :{k} OR content {like_op} :{k})")
-    where = f"project_id = :project_id AND ({' AND '.join(where_parts)})"
+    all_types = ["chapter", "outline", "character", "story_memory", "source_document"]
     if sources_norm:
-        keys = []
-        for idx, src in enumerate(sources_norm):
-            k = f"src_{idx}"
-            params[k] = src
-            keys.append(f":{k}")
-        where += f" AND source_type IN ({','.join(keys)})"
+        search_types = [s for s in sources_norm if s in all_types]
+        if not search_types:
+            return {"items": [], "next_offset": None, "mode": "direct", "fts_enabled": False}
+    else:
+        search_types = all_types
 
-    rows2 = (
-        db.execute(
-            text(
-                "SELECT source_type,source_id,COALESCE(title,'') AS title,content, url_path, locator_json, "
-                f"CASE WHEN COALESCE(title,'') {like_op} :term_0 THEN 0 ELSE 1 END AS title_hit, "
-                f"CASE WHEN content {like_op} :term_0 THEN 0 ELSE 1 END AS content_hit, "
-                f"{pos_fn}(lower(COALESCE(title,'')), lower(:q_primary)) AS title_pos, "
-                f"{pos_fn}(lower(content), lower(:q_primary)) AS content_pos "
-                "FROM search_documents "
-                f"WHERE {where} "
-                "ORDER BY title_hit ASC, content_hit ASC, "
-                "CASE WHEN title_pos > 0 THEN title_pos ELSE 999999 END ASC, "
-                "CASE WHEN content_pos > 0 THEN content_pos ELSE 999999 END ASC, "
-                "updated_at DESC, id DESC "
-                "LIMIT :limit OFFSET :offset"
-            ),
-            params,
+    # Local import to keep the change scoped to this function.
+    from sqlalchemy import func  # type: ignore
+
+    def _escape_like(term: str) -> str:
+        # Escape LIKE wildcards to keep search behaviour closer to "contains" semantics.
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    def _like_all_terms(expr) -> list[Any]:
+        expr_l = func.lower(expr)
+        conds: list[Any] = []
+        for t in terms_lower:
+            conds.append(expr_l.like(f"%{_escape_like(t)}%", escape="\\"))
+        return conds
+
+    ranked: list[dict[str, Any]] = []
+
+    if "chapter" in search_types:
+        chapter_expr = (
+            func.coalesce(Chapter.title, "")
+            + "\n\n"
+            + func.coalesce(Chapter.plan, "")
+            + "\n\n"
+            + func.coalesce(Chapter.summary, "")
+            + "\n\n"
+            + func.coalesce(Chapter.content_md, "")
         )
-        .all()
+        chapters = (
+            db.execute(
+                select(Chapter)
+                .where(Chapter.project_id == pid, *_like_all_terms(chapter_expr))
+                .order_by(Chapter.updated_at.desc(), Chapter.id.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for c in chapters:
+            title = _trim(getattr(c, "title", None))
+            header = f"第 {int(getattr(c, 'number', 0) or 0)} 章：{title}".strip("：")
+            plan = _trim(getattr(c, "plan", None))
+            summary = _trim(getattr(c, "summary", None))
+            content_md = _trim(getattr(c, "content_md", None))
+            content = "\n\n".join([x for x in [header, plan, summary, content_md] if x]).strip()
+            if not content:
+                continue
+            updated_at = getattr(c, "updated_at", None)
+            updated_ts = float(updated_at.timestamp()) if updated_at is not None else 0.0
+            ranked.append(
+                {
+                    "title_hit": 0 if q_primary.lower() in header.lower() else 1,
+                    "updated_ts": updated_ts,
+                    "item": {
+                        "source_type": "chapter",
+                        "source_id": str(getattr(c, "id", "") or ""),
+                        "title": header,
+                        "snippet": _like_snippet(content=content, q=q_primary),
+                        "jump_url": f"/projects/{pid}/writing?chapterId={str(getattr(c, 'id', '') or '')}",
+                        "locator_json": json.dumps({"chapter_id": str(getattr(c, "id", "") or "")}, ensure_ascii=False),
+                    },
+                }
+            )
+
+    if "character" in search_types:
+        character_expr = (
+            func.coalesce(Character.name, "")
+            + "\n\n"
+            + func.coalesce(Character.role, "")
+            + "\n\n"
+            + func.coalesce(Character.profile, "")
+            + "\n\n"
+            + func.coalesce(Character.notes, "")
+        )
+        characters = (
+            db.execute(
+                select(Character)
+                .where(Character.project_id == pid, *_like_all_terms(character_expr))
+                .order_by(Character.updated_at.desc(), Character.id.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for ch in characters:
+            name = _trim(getattr(ch, "name", None))
+            role = _trim(getattr(ch, "role", None))
+            profile = _trim(getattr(ch, "profile", None))
+            notes = _trim(getattr(ch, "notes", None))
+            body = "\n\n".join([x for x in [role, profile, notes] if x])
+            content = (name + "\n\n" + body).strip()
+            if not content:
+                continue
+            updated_at = getattr(ch, "updated_at", None)
+            updated_ts = float(updated_at.timestamp()) if updated_at is not None else 0.0
+            ranked.append(
+                {
+                    "title_hit": 0 if q_primary.lower() in name.lower() else 1,
+                    "updated_ts": updated_ts,
+                    "item": {
+                        "source_type": "character",
+                        "source_id": str(getattr(ch, "id", "") or ""),
+                        "title": name or "角色卡",
+                        "snippet": _like_snippet(content=content, q=q_primary),
+                        "jump_url": f"/projects/{pid}/characters",
+                        "locator_json": json.dumps({"character_id": str(getattr(ch, "id", "") or "")}, ensure_ascii=False),
+                    },
+                }
+            )
+
+    if "story_memory" in search_types:
+        memory_expr = (
+            func.coalesce(StoryMemory.memory_type, "")
+            + "\n\n"
+            + func.coalesce(StoryMemory.title, "")
+            + "\n\n"
+            + func.coalesce(StoryMemory.content, "")
+            + "\n\n"
+            + func.coalesce(StoryMemory.full_context_md, "")
+        )
+        memories = (
+            db.execute(
+                select(StoryMemory)
+                .where(StoryMemory.project_id == pid, *_like_all_terms(memory_expr))
+                .order_by(StoryMemory.updated_at.desc(), StoryMemory.id.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for m in memories:
+            mt = _trim(getattr(m, "memory_type", None)) or "story_memory"
+            title = _trim(getattr(m, "title", None)) or mt
+            content_body = _trim(getattr(m, "content", None))
+            full_context = _trim(getattr(m, "full_context_md", None))
+            content = "\n\n".join([x for x in [title, content_body, full_context] if x]).strip()
+            if not content:
+                continue
+            updated_at = getattr(m, "updated_at", None)
+            updated_ts = float(updated_at.timestamp()) if updated_at is not None else 0.0
+            ranked.append(
+                {
+                    "title_hit": 0 if q_primary.lower() in title.lower() else 1,
+                    "updated_ts": updated_ts,
+                    "item": {
+                        "source_type": "story_memory",
+                        "source_id": str(getattr(m, "id", "") or ""),
+                        "title": title,
+                        "snippet": _like_snippet(content=content, q=q_primary),
+                        "jump_url": None,
+                        "locator_json": json.dumps(
+                            {
+                                "story_memory_id": str(getattr(m, "id", "") or ""),
+                                "chapter_id": str(getattr(m, "chapter_id", "") or "").strip() or None,
+                            },
+                            ensure_ascii=False,
+                        ),
+                    },
+                }
+            )
+
+    if "outline" in search_types:
+        outline_expr = func.coalesce(Outline.title, "") + "\n\n" + func.coalesce(Outline.content_md, "")
+        outlines = (
+            db.execute(
+                select(Outline)
+                .where(Outline.project_id == pid, *_like_all_terms(outline_expr))
+                .order_by(Outline.updated_at.desc(), Outline.id.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for o in outlines:
+            title = _trim(getattr(o, "title", None)) or "大纲"
+            content_md = _trim(getattr(o, "content_md", None))
+            content = (title + "\n\n" + content_md).strip()
+            if not content:
+                continue
+            updated_at = getattr(o, "updated_at", None)
+            updated_ts = float(updated_at.timestamp()) if updated_at is not None else 0.0
+            ranked.append(
+                {
+                    "title_hit": 0 if q_primary.lower() in title.lower() else 1,
+                    "updated_ts": updated_ts,
+                    "item": {
+                        "source_type": "outline",
+                        "source_id": str(getattr(o, "id", "") or ""),
+                        "title": title,
+                        "snippet": _like_snippet(content=content, q=q_primary),
+                        "jump_url": f"/projects/{pid}/outline",
+                        "locator_json": json.dumps({"outline_id": str(getattr(o, "id", "") or "")}, ensure_ascii=False),
+                    },
+                }
+            )
+
+    if "source_document" in search_types and _has_table(db, name="project_source_documents"):
+        doc_expr = (
+            func.coalesce(ProjectSourceDocument.filename, "")
+            + "\n\n"
+            + func.coalesce(ProjectSourceDocument.content_type, "")
+            + "\n\n"
+            + func.coalesce(ProjectSourceDocument.content_text, "")
+        )
+        docs = (
+            db.execute(
+                select(ProjectSourceDocument)
+                .where(ProjectSourceDocument.project_id == pid, *_like_all_terms(doc_expr))
+                .order_by(ProjectSourceDocument.updated_at.desc(), ProjectSourceDocument.id.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for d in docs:
+            filename = _trim(getattr(d, "filename", None))
+            content_type = _trim(getattr(d, "content_type", None))
+            content_text = _trim(getattr(d, "content_text", None))
+            title = filename or "导入文档"
+            content = "\n\n".join([x for x in [filename, content_type, content_text] if x]).strip()
+            if not content:
+                continue
+            updated_at = getattr(d, "updated_at", None)
+            updated_ts = float(updated_at.timestamp()) if updated_at is not None else 0.0
+            ranked.append(
+                {
+                    "title_hit": 0 if q_primary.lower() in title.lower() else 1,
+                    "updated_ts": updated_ts,
+                    "item": {
+                        "source_type": "source_document",
+                        "source_id": str(getattr(d, "id", "") or ""),
+                        "title": title,
+                        "snippet": _like_snippet(content=content, q=q_primary),
+                        "jump_url": f"/projects/{pid}/import?docId={str(getattr(d, 'id', '') or '')}",
+                        "locator_json": json.dumps({"document_id": str(getattr(d, "id", "") or "")}, ensure_ascii=False),
+                    },
+                }
+            )
+
+    ranked.sort(
+        key=lambda r: (
+            int(r.get("title_hit", 1)),
+            -float(r.get("updated_ts", 0.0)),
+            str(getattr(getattr(r, "item", None), "source_type", "") or r.get("item", {}).get("source_type", "")),
+            str(getattr(getattr(r, "item", None), "source_id", "") or r.get("item", {}).get("source_id", "")),
+        )
     )
-    items2 = [
-        {
-            "source_type": str(r[0] or ""),
-            "source_id": str(r[1] or ""),
-            "title": str(r[2] or ""),
-            "snippet": _like_snippet(content=str(r[3] or ""), q=str(params.get("q_primary") or "")),
-            "jump_url": (str(r[4] or "").strip() or None),
-            "locator_json": (str(r[5] or "").strip() or None),
-        }
-        for r in rows2
-    ]
-    next_offset2 = (offset + limit) if len(items2) >= limit else None
-    return {"items": items2, "next_offset": next_offset2, "mode": "like", "fts_enabled": False}
+
+    total = len(ranked)
+    page = ranked[offset : offset + limit]
+    items_out = [r.get("item") for r in page if isinstance(r.get("item"), dict)]
+    next_offset = (offset + limit) if (offset + limit) < total else None
+
+    return {"items": items_out, "next_offset": next_offset, "mode": "direct", "fts_enabled": False}
 
 
 def schedule_search_rebuild_task(

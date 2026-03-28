@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { DebugDetails, DebugPageShell } from "../components/atelier/DebugPageShell";
+import { DebugPageShell } from "../components/atelier/DebugPageShell";
 import { useToast } from "../components/ui/toast";
-import { copyText } from "../lib/copyText";
 import { UI_COPY } from "../lib/uiCopy";
 import { ApiError, apiJson } from "../services/apiClient";
 
@@ -13,7 +12,6 @@ type SearchItem = {
   title: string;
   snippet: string;
   jump_url: string | null;
-  locator_json?: string | null;
 };
 
 type SearchQueryResponse = {
@@ -55,16 +53,17 @@ export function SearchPage() {
   const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
-  const [sourcesState, setSourcesState] = useState<Record<string, boolean>>({});
+  const [sourcesState, setSourcesState] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(SOURCE_OPTIONS.map((s) => [s.key, true])),
+  );
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<SearchItem[]>([]);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
-  const [debug, setDebug] = useState<{ mode?: string; fts_enabled?: boolean } | null>(null);
 
   const selectedSources = useMemo(() => {
     const selected = SOURCE_OPTIONS.filter((s) => sourcesState[s.key]).map((s) => s.key);
-    return selected.length ? selected : null;
+    return selected.length === SOURCE_OPTIONS.length ? null : selected.length ? selected : null;
   }, [sourcesState]);
 
   const runQuery = useCallback(
@@ -91,7 +90,6 @@ export function SearchPage() {
         const nextItems = filterActiveItems(Array.isArray(data.items) ? data.items : []);
         setItems((prev) => (append ? dedupeItems([...prev, ...nextItems]) : dedupeItems(nextItems)));
         setNextOffset(typeof data.next_offset === "number" ? data.next_offset : null);
-        setDebug({ mode: data.mode, fts_enabled: data.fts_enabled });
       } catch (e) {
         const err =
           e instanceof ApiError
@@ -109,7 +107,6 @@ export function SearchPage() {
     setQuery("");
     setItems([]);
     setNextOffset(null);
-    setDebug(null);
   }, []);
 
   const toggleSource = useCallback((key: string) => {
@@ -168,29 +165,6 @@ export function SearchPage() {
       toast.toastWarning(`该来源暂不支持跳转：${it.source_type}`);
     },
     [navigate, projectId, toast],
-  );
-
-  const copySourceId = useCallback(
-    async (it: SearchItem) => {
-      const ok = await copyText(it.source_id, { title: UI_COPY.search.copyIdFailTitle });
-      if (ok) toast.toastSuccess(UI_COPY.search.copiedId);
-      else toast.toastWarning(UI_COPY.search.copyFailedToast);
-    },
-    [toast],
-  );
-
-  const copyLocator = useCallback(
-    async (it: SearchItem) => {
-      const raw = String(it.locator_json ?? "").trim();
-      if (!raw) {
-        toast.toastWarning("该结果没有 locator 信息");
-        return;
-      }
-      const ok = await copyText(raw, { title: UI_COPY.search.copyLocatorFailTitle });
-      if (ok) toast.toastSuccess(UI_COPY.search.copiedLocator);
-      else toast.toastWarning(UI_COPY.search.copyFailedToast);
-    },
-    [toast],
   );
 
   return (
@@ -262,30 +236,13 @@ export function SearchPage() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-ink">{it.title || it.source_id}</div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-subtext">
-                      <span>{sourceLabel(it.source_type)}</span>
-                      <span className="font-mono">{it.source_type}</span>
-                      <span className="font-mono break-all">{it.source_id}</span>
+                    <div className="mt-0.5">
+                      <span className="inline-flex items-center rounded-atelier border border-border/60 bg-canvas px-2 py-0.5 text-[11px] text-subtext">
+                        {sourceLabel(it.source_type)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      aria-label="search_copy_id"
-                      onClick={() => void copySourceId(it)}
-                    >
-                      {UI_COPY.search.copyId}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      aria-label="search_copy_locator"
-                      disabled={!String(it.locator_json ?? "").trim()}
-                      onClick={() => void copyLocator(it)}
-                    >
-                      {UI_COPY.search.copyLocator}
-                    </button>
                     {canJump(it) ? (
                       <button
                         type="button"
@@ -328,12 +285,6 @@ export function SearchPage() {
             </button>
           </div>
         ) : null}
-
-        <DebugDetails title={UI_COPY.search.debugTitle} defaultOpen={false}>
-          <pre className="overflow-auto whitespace-pre-wrap break-words text-xs text-subtext">
-            {JSON.stringify({ projectId, selectedSources, nextOffset, debug }, null, 2)}
-          </pre>
-        </DebugDetails>
       </div>
     </DebugPageShell>
   );
