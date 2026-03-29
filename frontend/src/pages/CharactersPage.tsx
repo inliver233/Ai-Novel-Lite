@@ -7,6 +7,7 @@ import { Drawer } from "../components/ui/Drawer";
 import { useConfirm } from "../components/ui/confirm";
 import { useToast } from "../components/ui/toast";
 import { useAutoSave } from "../hooks/useAutoSave";
+import { useIsMobile } from "../hooks/useIsMobile";
 import { useProjectData } from "../hooks/useProjectData";
 import { useWizardProgress } from "../hooks/useWizardProgress";
 import { copyText } from "../lib/copyText";
@@ -28,6 +29,7 @@ export function CharactersPage() {
   const confirm = useConfirm();
   const reduceMotion = useReducedMotion();
   const wizard = useWizardProgress(projectId);
+  const isMobile = useIsMobile();
   const refreshWizard = wizard.refresh;
   const bumpWizardLocal = wizard.bumpLocal;
 
@@ -389,8 +391,8 @@ export function CharactersPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => void closeDrawer()}
-        side="bottom"
-        panelClassName="h-[85dvh] w-full sm:max-w-xl border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
+        side={isMobile ? "bottom" : "right"}
+        panelClassName="h-[85dvh] sm:h-full w-full sm:max-w-xl border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
         ariaLabel={editing ? "编辑角色" : "新增角色"}
       >
         <div className="flex items-start justify-between gap-3">

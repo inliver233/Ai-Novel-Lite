@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { createRequestSeqGuard } from "../../lib/requestSeqGuard";
 import { ApiError, apiDownloadAttachment, apiJson } from "../../services/apiClient";
 import { Drawer } from "../ui/Drawer";
@@ -20,6 +21,7 @@ export function GenerationHistoryDrawer(props: Props) {
   const { onClose, open } = props;
   const toast = useToast();
   const titleId = useId();
+  const isMobile = useIsMobile();
   const [downloading, setDownloading] = useState(false);
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [pipelineRuns, setPipelineRuns] = useState<GenerationRun[]>([]);
@@ -138,8 +140,8 @@ export function GenerationHistoryDrawer(props: Props) {
       open={open}
       onClose={onClose}
       ariaLabelledBy={titleId}
-      side="bottom"
-      panelClassName="h-[85dvh] w-full sm:max-w-2xl border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
+      side={isMobile ? "bottom" : "right"}
+      panelClassName="h-[85dvh] sm:h-full w-full sm:max-w-2xl border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
         <div>

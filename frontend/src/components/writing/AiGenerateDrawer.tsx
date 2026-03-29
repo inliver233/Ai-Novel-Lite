@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useState, type Dispatch, type S
 
 import { ProgressBar } from "../ui/ProgressBar";
 import { Drawer } from "../ui/Drawer";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import type { Character, LLMPreset } from "../../types";
 import { AiGenerateAdvancedSection } from "./aiGenerateDrawer/AiGenerateAdvancedSection";
 import { AI_GENERATE_DRAWER_COPY } from "./aiGenerateDrawer/aiGenerateDrawerCopy";
@@ -46,6 +47,8 @@ export function AiGenerateDrawer(props: Props) {
     [styles.projectDefaultStyle?.name, styles.stylesError?.code],
   );
 
+  const isMobile = useIsMobile();
+
   const closeDrawer = useCallback(() => {
     setAdvancedOpen(false);
     props.onClose();
@@ -66,9 +69,9 @@ export function AiGenerateDrawer(props: Props) {
     <Drawer
       open={props.open}
       onClose={closeDrawer}
-      side="bottom"
+      side={isMobile ? "bottom" : "right"}
       ariaLabelledBy={titleId}
-      panelClassName="h-[85vh] w-full overflow-y-auto rounded-atelier border-t border-border bg-canvas p-6 shadow-sm sm:h-full sm:max-w-md sm:rounded-none sm:border-l sm:border-t-0"
+      panelClassName="h-[85dvh] sm:h-full w-full overflow-y-auto rounded-t-atelier border-t border-border bg-canvas p-4 shadow-sm sm:max-w-md sm:rounded-none sm:border-t-0 sm:border-l sm:p-6"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

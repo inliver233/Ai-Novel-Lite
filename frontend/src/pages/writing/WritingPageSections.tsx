@@ -4,6 +4,7 @@ import { GhostwriterIndicator } from "../../components/atelier/GhostwriterIndica
 import { MarkdownEditor } from "../../components/atelier/MarkdownEditor";
 import { Drawer } from "../../components/ui/Drawer";
 import { ProgressBar } from "../../components/ui/ProgressBar";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { AiGenerateDrawer } from "../../components/writing/AiGenerateDrawer";
 import { BatchGenerationModal } from "../../components/writing/BatchGenerationModal";
 import { ChapterListPanel } from "../../components/writing/ChapterListPanel";
@@ -225,14 +226,16 @@ export type WritingChapterListDrawerProps = {
 };
 
 export function WritingChapterListDrawer(props: WritingChapterListDrawerProps) {
+  const isMobile = useIsMobile();
+
   return (
     <Drawer
       open={props.open}
       onClose={props.onClose}
-      side="bottom"
+      side={isMobile ? "bottom" : "left"}
       overlayClassName="lg:hidden"
       ariaLabel="章节列表"
-      panelClassName={`h-[75dvh] w-full sm:${CHAPTER_LIST_SIDEBAR_WIDTH_CLASS} overflow-hidden border-t sm:border-t-0 sm:border-r border-border bg-surface shadow-sm rounded-t-atelier sm:rounded-none`}
+      panelClassName={`h-[75dvh] sm:h-full w-full sm:${CHAPTER_LIST_SIDEBAR_WIDTH_CLASS} overflow-hidden border-t sm:border-t-0 sm:border-r border-border bg-surface shadow-sm rounded-t-atelier sm:rounded-none`}
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="text-sm text-ink">章节列表</div>

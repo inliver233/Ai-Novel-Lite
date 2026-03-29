@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type Dispatch
 
 import type { GenerateForm } from "./types";
 import type { LLMPreset } from "../../types";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { ApiError, apiJson } from "../../services/apiClient";
 import { Drawer } from "../ui/Drawer";
 import { useToast } from "../ui/toast";
@@ -60,6 +61,7 @@ export function PromptInspectorDrawer(props: Props) {
   const { open, onClose, preset, chapterId, draftContentMd, genForm, setGenForm, onGenerate } = props;
   const toast = useToast();
   const titleId = useId();
+  const isMobile = useIsMobile();
   const loadedOnceRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
@@ -209,8 +211,8 @@ export function PromptInspectorDrawer(props: Props) {
       open={open}
       onClose={onClose}
       ariaLabelledBy={titleId}
-      side="bottom"
-      panelClassName="h-[85dvh] w-full sm:max-w-2xl overflow-y-auto border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
+      side={isMobile ? "bottom" : "right"}
+      panelClassName="h-[85dvh] sm:h-full w-full sm:max-w-2xl overflow-y-auto border-t sm:border-t-0 sm:border-l border-border bg-canvas p-4 sm:p-6 shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
