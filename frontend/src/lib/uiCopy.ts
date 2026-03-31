@@ -18,6 +18,7 @@ export const UI_COPY = {
     wizard: "开工向导",
     projectSettings: "项目设置",
     characters: "角色卡",
+    entries: "条目",
     outline: "大纲",
     writing: "写作",
     preview: "预览",
@@ -122,8 +123,7 @@ export const UI_COPY = {
   },
   writing: {
     memoryInjectionToggle: "记忆注入",
-    memoryInjectionHint:
-      "启用后：生成时会把记忆等模块的结果注入到提示词。",
+    memoryInjectionHint: "启用后：生成时会把记忆等模块的结果注入到提示词。",
     memoryInjectionDisabledPreview: "记忆注入已关闭。",
     memoryPackEmpty: "当前为空包（Phase 0 占位）。",
   },

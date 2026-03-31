@@ -4,6 +4,7 @@ import {
   BookOpen,
   BookText,
   FileDown,
+  FileText,
   PenLine,
   Settings,
   Sparkles,
@@ -56,6 +57,14 @@ export const APP_SHELL_PROJECT_NAV_ITEMS: ReadonlyArray<AppShellProjectNavItem> 
     label: UI_COPY.nav.characters,
     ariaLabel: "角色卡 (nav_characters)",
     to: (projectId) => `/projects/${projectId}/characters`,
+  },
+  {
+    id: "entries",
+    group: "workbench",
+    icon: FileText,
+    label: UI_COPY.nav.entries,
+    ariaLabel: "条目 (nav_entries)",
+    to: (projectId) => `/projects/${projectId}/entries`,
   },
   {
     id: "preview",

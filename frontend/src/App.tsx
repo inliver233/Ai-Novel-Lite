@@ -46,6 +46,11 @@ const CharactersPage = lazy(async () => {
   return { default: mod.CharactersPage };
 });
 
+const EntriesPage = lazy(async () => {
+  const mod = await importWithChunkRetry(() => import("./pages/EntriesPage"));
+  return { default: mod.EntriesPage };
+});
+
 const OutlinePage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/OutlinePage"));
   return { default: mod.OutlinePage };
@@ -60,7 +65,6 @@ const PreviewPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/PreviewPage"));
   return { default: mod.PreviewPage };
 });
-
 
 const PromptsPage = lazy(async () => {
   const mod = await importWithChunkRetry(() => import("./pages/PromptsPage"));
@@ -145,6 +149,10 @@ const router = createBrowserRouter([
               {
                 path: "characters",
                 element: <CharactersPage />,
+              },
+              {
+                path: "entries",
+                element: <EntriesPage />,
               },
               {
                 path: "outline",

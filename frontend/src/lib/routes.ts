@@ -12,6 +12,7 @@ const ROUTE_META: RouteMeta[] = [
   { suffix: "/admin/users", title: UI_COPY.nav.adminUsers, layout: "tool" },
   { suffix: "/settings", title: UI_COPY.nav.projectSettings, layout: "paper" },
   { suffix: "/characters", title: UI_COPY.nav.characters, layout: "paper" },
+  { suffix: "/entries", title: UI_COPY.nav.entries, layout: "paper" },
   { suffix: "/outline", title: UI_COPY.nav.outline, layout: "paper" },
   { suffix: "/wizard", title: UI_COPY.nav.wizard, layout: "tool" },
   { suffix: "/writing", title: UI_COPY.nav.writing, layout: "tool" },
