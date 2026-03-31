@@ -1,6 +1,7 @@
 from app.models.batch_generation_task import BatchGenerationTask, BatchGenerationTaskItem
 from app.models.chapter import Chapter
 from app.models.character import Character
+from app.models.entry import Entry
 from app.models.generation_run import GenerationRun
 from app.models.knowledge_base import KnowledgeBase
 from app.models.llm_profile import LLMProfile
@@ -30,6 +31,7 @@ __all__ = [
     "BatchGenerationTaskItem",
     "Chapter",
     "Character",
+    "Entry",
     "GenerationRun",
     "KnowledgeBase",
     "LLMProfile",
