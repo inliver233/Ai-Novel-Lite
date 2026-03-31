@@ -114,8 +114,12 @@ export function PromptInspectorDrawer(props: Props) {
       ...(genForm.prompt_override != null ? { prompt_override: genForm.prompt_override } : {}),
       style_id: genForm.style_id,
       memory_injection_enabled: genForm.memory_injection_enabled,
-      memory_query_text: genForm.memory_query_text.trim() ? genForm.memory_query_text : null,
-      memory_modules: genForm.memory_modules,
+      memory_query_text: null,
+      memory_modules: {
+        story_memory: true,
+        semantic_history: false,
+        vector_rag: genForm.rag_enabled,
+      },
       context: {
         include_world_setting: genForm.context.include_world_setting,
         include_style_guide: genForm.context.include_style_guide,
@@ -125,7 +129,7 @@ export function PromptInspectorDrawer(props: Props) {
         require_sequential: genForm.context.require_sequential,
         character_ids: genForm.context.character_ids,
         entry_ids: genForm.context.entry_ids,
-        previous_chapter: genForm.context.previous_chapter === "none" ? null : genForm.context.previous_chapter,
+        previous_chapter: genForm.previous_mode === "full" ? "content" : "summary",
         current_draft_tail: currentDraftTail,
       },
     };

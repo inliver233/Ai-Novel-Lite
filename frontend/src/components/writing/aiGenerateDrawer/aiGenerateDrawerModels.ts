@@ -8,21 +8,7 @@ export type WritingStyle = {
   is_preset: boolean;
 };
 
-export type MemoryModuleKey = keyof GenerateForm["memory_modules"];
-export type ContextToggleKey = Exclude<
-  keyof GenerateForm["context"],
-  "character_ids" | "entry_ids" | "previous_chapter"
->;
-
-export const AI_GENERATE_PRIMARY_MEMORY_MODULES: ReadonlyArray<{ key: MemoryModuleKey; label: string }> = [
-  { key: "story_memory", label: "剧情记忆（story_memory）" },
-];
-
-export const AI_GENERATE_ADVANCED_MEMORY_MODULES: ReadonlyArray<{ key: MemoryModuleKey; label: string }> = [
-  { key: "story_memory", label: "剧情记忆（story_memory）" },
-  { key: "semantic_history", label: "语义历史（semantic_history）" },
-  { key: "vector_rag", label: "向量 RAG（vector_rag）" },
-];
+export type ContextToggleKey = Exclude<keyof GenerateForm["context"], "character_ids" | "entry_ids">;
 
 export const AI_GENERATE_CONTEXT_TOGGLES: ReadonlyArray<{ key: ContextToggleKey; label: string; inputName: string }> = [
   { key: "include_world_setting", label: "世界观", inputName: "context_include_world_setting" },

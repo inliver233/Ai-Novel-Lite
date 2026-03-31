@@ -169,7 +169,8 @@ export function useBatchGeneration(args: {
           include_smart_context: genForm.context.include_smart_context,
           require_sequential: true,
           character_ids: genForm.context.character_ids,
-          previous_chapter: genForm.context.previous_chapter === "none" ? null : genForm.context.previous_chapter,
+          entry_ids: genForm.context.entry_ids,
+          previous_chapter: genForm.previous_mode === "full" ? "content" : "summary",
         },
       };
 

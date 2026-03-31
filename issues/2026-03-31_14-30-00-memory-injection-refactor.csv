@@ -1,0 +1,5 @@
+ID,Title,Description,Acceptance,Test_Method,Dev_Status
+M1,前端 GenerateForm 类型与模型重构,"修改 types.ts: 删除 memory_query_text/memory_modules, 新增 previous_mode/rag_enabled; 修改 aiGenerateDrawerModels.ts: 删除 AI_GENERATE_PRIMARY/ADVANCED_MEMORY_MODULES 常量; 修改 aiGenerateDrawerCopy.ts: 更新 memorySection 文案","GenerateForm 类型编译通过; 无引用旧字段的编译错误",编译检查,TODO
+M2,前端 UI 重构 — 记忆注入面板与上下文面板,"重写 AiGenerateDefaultSection.tsx: 记忆注入改为可折叠面板(默认收起); 展开后两行: 前文模式 radio(full/summary 默认full) + RAG检索 checkbox(默认true); 上下文区域删除 previous_chapter 下拉框","UI 符合设计; 可折叠; 两个控制项正常工作",前端 build + 浏览器验证,TODO
+M3,请求发送层适配,"修改 useChapterGeneration.ts: 更新 DEFAULT_GEN_FORM 和 payload 构造(previous_mode→previous_chapter映射 / rag_enabled→memory_modules映射); 同步修改 useBatchGeneration.ts 和 PromptInspectorDrawer.tsx","生成请求 payload 格式正确; 后端能正常处理",build + API 测试,TODO
+M4,后端清理与全量验证,"清理 memory_service.py 中 tables 废弃字段; 后端 compileall 通过; 前端 build 通过; 全面冒烟测试","build 全绿; 生成功能端到端可用",build + 运行测试,TODO

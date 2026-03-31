@@ -7,9 +7,7 @@ import type { ToastApi } from "../../components/ui/toast";
 import { UI_COPY } from "../../lib/uiCopy";
 import { ApiError, apiJson } from "../../services/apiClient";
 import { createChapterMarkerStreamParser } from "../../services/chapterMarkerStreamParser";
-import { getCurrentUserId } from "../../services/currentUser";
 import { SSEError, SSEPostClient } from "../../services/sseClient";
-import { writingMemoryInjectionEnabledStorageKey } from "../../services/uiState";
 import type { Chapter, ChapterListItem, LLMPreset } from "../../types";
 import { extractMissingNumbers } from "./writingErrorUtils";
 import {
@@ -36,17 +34,13 @@ type GenerateResponse = {
 };
 
 const DEFAULT_GEN_FORM: GenerateForm = {
-  instruction: "写出本章冲突升级，结尾留钩子。",
-  target_word_count: 3000,
-  stream: false,
+  instruction: "",
+  target_word_count: null,
+  stream: true,
   style_id: null,
   memory_injection_enabled: true,
-  memory_query_text: "",
-  memory_modules: {
-    story_memory: true,
-    semantic_history: false,
-    vector_rag: true,
-  },
+  previous_mode: "full",
+  rag_enabled: true,
   context: {
     include_world_setting: true,
     include_style_guide: true,
@@ -56,17 +50,8 @@ const DEFAULT_GEN_FORM: GenerateForm = {
     require_sequential: false,
     character_ids: [],
     entry_ids: [],
-    previous_chapter: "summary",
   },
 };
-
-function loadMemoryInjectionEnabled(projectId: string | undefined): boolean {
-  if (!projectId) return DEFAULT_GEN_FORM.memory_injection_enabled;
-  const key = writingMemoryInjectionEnabledStorageKey(getCurrentUserId(), projectId);
-  const raw = localStorage.getItem(key);
-  if (raw === null) return DEFAULT_GEN_FORM.memory_injection_enabled;
-  return raw === "1";
-}
 
 export function useChapterGeneration(args: {
   projectId?: string;
@@ -103,7 +88,7 @@ export function useChapterGeneration(args: {
 
   const [genForm, setGenForm] = useState<GenerateForm>(() => ({
     ...DEFAULT_GEN_FORM,
-    memory_injection_enabled: loadMemoryInjectionEnabled(projectId),
+    context: { ...DEFAULT_GEN_FORM.context },
   }));
 
   const lastProjectIdRef = useRef<string | undefined>(undefined);
@@ -111,12 +96,11 @@ export function useChapterGeneration(args: {
   useEffect(() => {
     if (lastProjectIdRef.current === projectId) return;
     lastProjectIdRef.current = projectId;
-    const enabled = loadMemoryInjectionEnabled(projectId);
     setGenForm((prev) => ({
       ...prev,
-      memory_injection_enabled: enabled,
-      memory_query_text: "",
-      memory_modules: { ...DEFAULT_GEN_FORM.memory_modules },
+      memory_injection_enabled: DEFAULT_GEN_FORM.memory_injection_enabled,
+      previous_mode: DEFAULT_GEN_FORM.previous_mode,
+      rag_enabled: DEFAULT_GEN_FORM.rag_enabled,
       context: {
         ...prev.context,
         character_ids: [],
@@ -124,12 +108,6 @@ export function useChapterGeneration(args: {
       },
     }));
   }, [projectId]);
-
-  useEffect(() => {
-    if (!projectId) return;
-    const key = writingMemoryInjectionEnabledStorageKey(getCurrentUserId(), projectId);
-    localStorage.setItem(key, genForm.memory_injection_enabled ? "1" : "0");
-  }, [genForm.memory_injection_enabled, projectId]);
 
   const abortGenerate = useCallback(() => genStreamClientRef.current?.abort(), []);
 
@@ -184,8 +162,12 @@ export function useChapterGeneration(args: {
           ...(promptOverride != null ? { prompt_override: promptOverride } : {}),
           style_id: genForm.style_id,
           memory_injection_enabled: genForm.memory_injection_enabled,
-          memory_query_text: genForm.memory_query_text.trim() ? genForm.memory_query_text : null,
-          memory_modules: genForm.memory_modules,
+          memory_query_text: null,
+          memory_modules: {
+            story_memory: true,
+            semantic_history: false,
+            vector_rag: genForm.rag_enabled,
+          },
           context: {
             include_world_setting: genForm.context.include_world_setting,
             include_style_guide: genForm.context.include_style_guide,
@@ -195,7 +177,7 @@ export function useChapterGeneration(args: {
             require_sequential: genForm.context.require_sequential,
             character_ids: genForm.context.character_ids,
             entry_ids: genForm.context.entry_ids,
-            previous_chapter: genForm.context.previous_chapter === "none" ? null : genForm.context.previous_chapter,
+            previous_chapter: genForm.previous_mode === "full" ? "content" : "summary",
             current_draft_tail: currentDraftTail,
           },
         };

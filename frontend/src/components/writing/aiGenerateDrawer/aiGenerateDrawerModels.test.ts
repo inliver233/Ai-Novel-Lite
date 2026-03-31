@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { GenerateForm } from "../types";
-import {
-  AI_GENERATE_ADVANCED_MEMORY_MODULES,
-  AI_GENERATE_CONTEXT_TOGGLES,
-  AI_GENERATE_PRIMARY_MEMORY_MODULES,
-  getAiGenerateDrawerState,
-  getStyleHelperText,
-} from "./aiGenerateDrawerModels";
+import { AI_GENERATE_CONTEXT_TOGGLES, getAiGenerateDrawerState, getStyleHelperText } from "./aiGenerateDrawerModels";
 
 function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
   return {
@@ -18,12 +12,8 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
     stream: false,
     style_id: null,
     memory_injection_enabled: true,
-    memory_query_text: "",
-    memory_modules: {
-      story_memory: true,
-      semantic_history: false,
-      vector_rag: true,
-    },
+    previous_mode: "full",
+    rag_enabled: true,
     context: {
       include_world_setting: true,
       include_style_guide: true,
@@ -33,7 +23,6 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
       require_sequential: false,
       character_ids: [],
       entry_ids: [],
-      previous_chapter: "summary",
     },
     ...overrides,
   };
@@ -62,13 +51,7 @@ describe("aiGenerateDrawerModels", () => {
     expect(getStyleHelperText(null, "E_STYLE")).toBe("项目默认：（未设置） | 加载失败：E_STYLE");
   });
 
-  it("keeps mapped context and memory module groups deterministic", () => {
-    expect(AI_GENERATE_PRIMARY_MEMORY_MODULES.map((item) => item.key)).toEqual(["story_memory"]);
-    expect(AI_GENERATE_ADVANCED_MEMORY_MODULES.map((item) => item.key)).toEqual([
-      "story_memory",
-      "semantic_history",
-      "vector_rag",
-    ]);
+  it("keeps mapped context toggles deterministic", () => {
     expect(AI_GENERATE_CONTEXT_TOGGLES.map((item) => item.key)).toEqual([
       "include_world_setting",
       "include_style_guide",

@@ -24,12 +24,8 @@ export type GenerateForm = {
   stream: boolean;
   style_id: string | null;
   memory_injection_enabled: boolean;
-  memory_query_text: string;
-  memory_modules: {
-    story_memory: boolean;
-    semantic_history: boolean;
-    vector_rag: boolean;
-  };
+  previous_mode: "full" | "summary";
+  rag_enabled: boolean;
   context: {
     include_world_setting: boolean;
     include_style_guide: boolean;
@@ -39,7 +35,6 @@ export type GenerateForm = {
     require_sequential: boolean;
     character_ids: string[];
     entry_ids: string[];
-    previous_chapter: "none" | "summary" | "content" | "tail";
   };
 };
 

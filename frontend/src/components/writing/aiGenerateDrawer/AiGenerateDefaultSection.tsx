@@ -1,17 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import { UI_COPY } from "../../../lib/uiCopy";
 import type { Character } from "../../../types";
 import type { GenerateForm } from "../types";
 import { AI_GENERATE_DRAWER_COPY } from "./aiGenerateDrawerCopy";
-import {
-  AI_GENERATE_ADVANCED_MEMORY_MODULES,
-  AI_GENERATE_CONTEXT_TOGGLES,
-  AI_GENERATE_PRIMARY_MEMORY_MODULES,
-  type ContextToggleKey,
-  type MemoryModuleKey,
-  type WritingStyle,
-} from "./aiGenerateDrawerModels";
+import { AI_GENERATE_CONTEXT_TOGGLES, type ContextToggleKey, type WritingStyle } from "./aiGenerateDrawerModels";
 
 type Props = {
   generating: boolean;
@@ -29,13 +21,6 @@ export function AiGenerateDefaultSection(props: Props) {
   const selectedCharacterIds = new Set(props.genForm.context.character_ids);
   const selectedEntryIds = new Set(props.genForm.context.entry_ids);
   const allEntriesSelected = props.entries.length > 0 && props.entries.every((entry) => selectedEntryIds.has(entry.id));
-
-  const updateMemoryModule = (key: MemoryModuleKey, checked: boolean) => {
-    props.setGenForm((current) => ({
-      ...current,
-      memory_modules: { ...current.memory_modules, [key]: checked },
-    }));
-  };
 
   const updateContextToggle = (key: ContextToggleKey, checked: boolean) => {
     props.setGenForm((current) => ({
@@ -118,82 +103,62 @@ export function AiGenerateDefaultSection(props: Props) {
       </div>
 
       <div className="panel p-3">
-        <div className="text-sm font-medium text-ink">{AI_GENERATE_DRAWER_COPY.memorySection.title}</div>
+        <details>
+          <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-ink">
+            <span>{AI_GENERATE_DRAWER_COPY.memorySection.title}</span>
+            <span className="text-xs text-subtext">
+              {props.genForm.memory_injection_enabled ? "已开启" : "已关闭"}
+            </span>
+          </summary>
 
-        <div className="mt-3">
-          <label className="flex items-center justify-between gap-3 text-sm text-ink">
-            <span>{UI_COPY.writing.memoryInjectionToggle}</span>
-            <input
-              className="checkbox"
-              checked={props.genForm.memory_injection_enabled}
-              disabled={props.generating}
-              name="memory_injection_enabled"
-              onChange={(event) => {
-                const checked = event.target.checked;
-                props.setGenForm((current) => ({ ...current, memory_injection_enabled: checked }));
-              }}
-              type="checkbox"
-            />
-          </label>
-          <div className="mt-1 text-[11px] text-subtext">{UI_COPY.writing.memoryInjectionHint}</div>
-
-          {props.genForm.memory_injection_enabled ? (
-            <div className="mt-2 rounded-atelier border border-border bg-surface p-3">
-              <label className="grid gap-1">
-                <span className="text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.memorySection.queryLabel}</span>
-                <input
-                  className="input"
-                  disabled={props.generating}
-                  aria-label="memory_query_text"
-                  value={props.genForm.memory_query_text}
-                  onChange={(event) => {
-                    const value = event.currentTarget.value;
-                    props.setGenForm((current) => ({ ...current, memory_query_text: value }));
-                  }}
-                />
-              </label>
-              <div className="mt-1 text-[11px] text-subtext">{AI_GENERATE_DRAWER_COPY.memorySection.queryHint}</div>
-
-              <div className="mt-3 grid gap-2">
-                <div className="text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.memorySection.modulesLabel}</div>
-                <div className="text-[11px] text-subtext">{AI_GENERATE_DRAWER_COPY.memorySection.modulesHint}</div>
-
-                {AI_GENERATE_PRIMARY_MEMORY_MODULES.map((module) => (
-                  <label key={module.key} className="flex items-center justify-between gap-3 text-sm text-ink">
-                    <span>{module.label}</span>
-                    <input
-                      className="checkbox"
-                      checked={props.genForm.memory_modules[module.key]}
-                      disabled={props.generating}
-                      onChange={(event) => updateMemoryModule(module.key, event.target.checked)}
-                      type="checkbox"
-                    />
-                  </label>
-                ))}
-
-                <details className="rounded-atelier border border-border bg-surface p-2">
-                  <summary className="cursor-pointer text-sm text-ink">
-                    {AI_GENERATE_DRAWER_COPY.memorySection.advancedModulesTitle}
-                  </summary>
-                  <div className="mt-2 grid gap-2">
-                    {AI_GENERATE_ADVANCED_MEMORY_MODULES.map((module) => (
-                      <label key={module.key} className="flex items-center justify-between gap-3 text-sm text-ink">
-                        <span>{module.label}</span>
-                        <input
-                          className="checkbox"
-                          checked={props.genForm.memory_modules[module.key]}
-                          disabled={props.generating}
-                          onChange={(event) => updateMemoryModule(module.key, event.target.checked)}
-                          type="checkbox"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </details>
+          <div className="mt-3 grid gap-3">
+            <div className="grid gap-1">
+              <div className="text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.memorySection.previousModeLabel}</div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 text-sm text-ink">
+                  <input
+                    className="radio"
+                    type="radio"
+                    name="previous_mode"
+                    checked={props.genForm.previous_mode === "full"}
+                    disabled={props.generating}
+                    onChange={() => {
+                      props.setGenForm((current) => ({ ...current, previous_mode: "full" as const }));
+                    }}
+                  />
+                  {AI_GENERATE_DRAWER_COPY.memorySection.previousModeFull}
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-ink">
+                  <input
+                    className="radio"
+                    type="radio"
+                    name="previous_mode"
+                    checked={props.genForm.previous_mode === "summary"}
+                    disabled={props.generating}
+                    onChange={() => {
+                      props.setGenForm((current) => ({ ...current, previous_mode: "summary" as const }));
+                    }}
+                  />
+                  {AI_GENERATE_DRAWER_COPY.memorySection.previousModeSummary}
+                </label>
               </div>
             </div>
-          ) : null}
-        </div>
+
+            <label className="flex items-center justify-between gap-3 text-sm text-ink">
+              <span>{AI_GENERATE_DRAWER_COPY.memorySection.ragLabel}</span>
+              <input
+                className="checkbox"
+                type="checkbox"
+                checked={props.genForm.rag_enabled}
+                disabled={props.generating}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  props.setGenForm((current) => ({ ...current, rag_enabled: checked }));
+                }}
+              />
+            </label>
+          </div>
+        </details>
       </div>
 
       <div className="panel p-3">
@@ -215,29 +180,6 @@ export function AiGenerateDefaultSection(props: Props) {
               </label>
             ))}
           </div>
-
-          <label className="grid gap-1">
-            <span className="text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.contextSection.previousChapterLabel}</span>
-            <select
-              className="select"
-              disabled={props.generating}
-              name="previous_chapter"
-              value={props.genForm.context.previous_chapter}
-              onChange={(event) => {
-                const value = event.target.value as GenerateForm["context"]["previous_chapter"];
-                props.setGenForm((current) => ({
-                  ...current,
-                  context: { ...current.context, previous_chapter: value },
-                }));
-              }}
-            >
-              <option value="none">{AI_GENERATE_DRAWER_COPY.contextSection.previousChapterNone}</option>
-              <option value="tail">{AI_GENERATE_DRAWER_COPY.contextSection.previousChapterTail}</option>
-              <option value="summary">{AI_GENERATE_DRAWER_COPY.contextSection.previousChapterSummary}</option>
-              <option value="content">{AI_GENERATE_DRAWER_COPY.contextSection.previousChapterContent}</option>
-            </select>
-            <div className="text-[11px] text-subtext">{AI_GENERATE_DRAWER_COPY.contextSection.previousChapterHint}</div>
-          </label>
 
           <div className="grid gap-2">
             <div className="text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.contextSection.charactersLabel}</div>
