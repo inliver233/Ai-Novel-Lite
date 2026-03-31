@@ -1,5 +1,5 @@
 import { Check, Plus, Save, Sparkles, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useConfirm } from "../../components/ui/confirm";
 import type { PromptStudioCategory, PromptStudioPresetDetail } from "./types";
@@ -10,7 +10,7 @@ type PromptStudioPanelError = {
   requestId?: string;
 };
 
-export function PresetEditorPanel(props: {
+type Props = {
   category: PromptStudioCategory | null;
   selectedPresetId: string | null;
   onSelectPreset: (presetId: string) => void;
@@ -27,7 +27,9 @@ export function PresetEditorPanel(props: {
   onSave: () => Promise<PromptStudioPresetDetail | null>;
   onActivate: () => Promise<PromptStudioPresetDetail | null>;
   onDelete: () => Promise<boolean>;
-}) {
+};
+
+function PresetEditorPanelContent(props: Props) {
   const {
     busy,
     category,
@@ -52,12 +54,6 @@ export function PresetEditorPanel(props: {
   const [creating, setCreating] = useState(false);
   const [newPresetName, setNewPresetName] = useState("");
   const [newPresetContent, setNewPresetContent] = useState("");
-
-  useEffect(() => {
-    setCreating(false);
-    setNewPresetName("");
-    setNewPresetContent("");
-  }, [category?.key, selectedPresetId]);
 
   const presets = category?.presets ?? [];
   const canCreate = Boolean(category) && !busy && !loading;
@@ -190,7 +186,12 @@ export function PresetEditorPanel(props: {
             <button className="btn btn-secondary" onClick={() => setCreating(false)} type="button">
               取消
             </button>
-            <button className="btn btn-primary" disabled={busy || loading} onClick={() => void handleCreate()} type="button">
+            <button
+              className="btn btn-primary"
+              disabled={busy || loading}
+              onClick={() => void handleCreate()}
+              type="button"
+            >
               <Plus size={16} />
               <span>创建预设</span>
             </button>
@@ -205,7 +206,12 @@ export function PresetEditorPanel(props: {
           </div>
           <div className="mt-3 text-sm font-medium text-ink">当前分类还没有预设</div>
           <div className="mt-1 text-sm text-subtext">点击“新建”创建第一个分类预设。</div>
-          <button className="btn btn-primary mt-4" disabled={!canCreate} onClick={() => setCreating(true)} type="button">
+          <button
+            className="btn btn-primary mt-4"
+            disabled={!canCreate}
+            onClick={() => setCreating(true)}
+            type="button"
+          >
             <Plus size={16} />
             <span>新建预设</span>
           </button>
@@ -282,4 +288,9 @@ export function PresetEditorPanel(props: {
       ) : null}
     </div>
   );
+}
+
+export function PresetEditorPanel(props: Props) {
+  const panelKey = `${props.category?.key ?? "none"}:${props.selectedPresetId ?? "none"}`;
+  return <PresetEditorPanelContent key={panelKey} {...props} />;
 }

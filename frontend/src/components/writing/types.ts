@@ -38,6 +38,7 @@ export type GenerateForm = {
     include_smart_context: boolean;
     require_sequential: boolean;
     character_ids: string[];
+    entry_ids: string[];
     previous_chapter: "none" | "summary" | "content" | "tail";
   };
 };

@@ -15,6 +15,7 @@ type Props = {
 export function CreateChapterDialog(props: Props) {
   const { onClose, open, saving } = props;
   const titleId = useId();
+  const handleClose = saving ? () => {} : onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -31,7 +32,7 @@ export function CreateChapterDialog(props: Props) {
   return (
     <Modal
       open={open}
-      onClose={saving ? undefined : onClose}
+      onClose={handleClose}
       panelClassName="surface w-full sm:max-w-lg p-3 sm:p-5"
       ariaLabelledBy={titleId}
     >

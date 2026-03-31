@@ -112,11 +112,12 @@ export function BatchGenerationModal(props: {
   const canCancel = Boolean(
     task && (task.status === "queued" || task.status === "running" || task.status === "paused"),
   );
+  const handleClose = props.batchLoading ? () => {} : props.onClose;
 
   return (
     <Modal
       open={props.open}
-      onClose={props.batchLoading ? undefined : props.onClose}
+      onClose={handleClose}
       panelClassName="surface w-full sm:max-w-3xl p-3 sm:p-5"
       ariaLabelledBy={titleId}
     >

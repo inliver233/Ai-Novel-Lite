@@ -32,6 +32,7 @@ function makeForm(overrides: Partial<GenerateForm> = {}): GenerateForm {
       include_smart_context: true,
       require_sequential: false,
       character_ids: [],
+      entry_ids: [],
       previous_chapter: "summary",
     },
     ...overrides,

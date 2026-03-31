@@ -18,6 +18,7 @@ type Props = {
   genForm: GenerateForm;
   setGenForm: Dispatch<SetStateAction<GenerateForm>>;
   characters: Character[];
+  entries: { id: string; title: string; tags: string[] }[];
   stylesLoading: boolean;
   presets: WritingStyle[];
   userStyles: WritingStyle[];
@@ -25,6 +26,10 @@ type Props = {
 };
 
 export function AiGenerateDefaultSection(props: Props) {
+  const selectedCharacterIds = new Set(props.genForm.context.character_ids);
+  const selectedEntryIds = new Set(props.genForm.context.entry_ids);
+  const allEntriesSelected = props.entries.length > 0 && props.entries.every((entry) => selectedEntryIds.has(entry.id));
+
   const updateMemoryModule = (key: MemoryModuleKey, checked: boolean) => {
     props.setGenForm((current) => ({
       ...current,
@@ -244,7 +249,7 @@ export function AiGenerateDefaultSection(props: Props) {
                 <label key={character.id} className="flex items-center gap-2 px-2 py-1 text-sm text-ink">
                   <input
                     className="checkbox"
-                    checked={props.genForm.context.character_ids.includes(character.id)}
+                    checked={selectedCharacterIds.has(character.id)}
                     disabled={props.generating}
                     name={`character_${character.id}`}
                     onChange={(event) => {
@@ -262,6 +267,62 @@ export function AiGenerateDefaultSection(props: Props) {
                     type="checkbox"
                   />
                   <span className="truncate">{character.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-subtext">{AI_GENERATE_DRAWER_COPY.contextSection.entriesLabel}</div>
+              {props.entries.length > 0 ? (
+                <button
+                  className="btn btn-ghost px-2 py-1 text-xs"
+                  disabled={props.generating}
+                  onClick={() => {
+                    props.setGenForm((current) => ({
+                      ...current,
+                      context: {
+                        ...current.context,
+                        entry_ids: allEntriesSelected ? [] : props.entries.map((entry) => entry.id),
+                      },
+                    }));
+                  }}
+                  type="button"
+                >
+                  {allEntriesSelected ? "取消全选" : "全选"}
+                </button>
+              ) : null}
+            </div>
+            {props.entries.length === 0 ? (
+              <div className="text-sm text-subtext">{AI_GENERATE_DRAWER_COPY.contextSection.entriesEmpty}</div>
+            ) : null}
+            <div className="max-h-40 overflow-auto rounded-atelier border border-border bg-surface p-2">
+              {props.entries.map((entry) => (
+                <label key={entry.id} className="flex items-center gap-2 px-2 py-1 text-sm text-ink">
+                  <input
+                    className="checkbox"
+                    checked={selectedEntryIds.has(entry.id)}
+                    disabled={props.generating}
+                    name={`entry_${entry.id}`}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      props.setGenForm((current) => {
+                        const next = new Set(current.context.entry_ids);
+                        if (checked) next.add(entry.id);
+                        else next.delete(entry.id);
+                        return {
+                          ...current,
+                          context: { ...current.context, entry_ids: Array.from(next) },
+                        };
+                      });
+                    }}
+                    type="checkbox"
+                  />
+                  <span className="truncate">{entry.title}</span>
+                  {entry.tags.length > 0 ? (
+                    <span className="ml-auto shrink-0 text-[10px] text-subtext">{entry.tags.join("·")}</span>
+                  ) : null}
                 </label>
               ))}
             </div>

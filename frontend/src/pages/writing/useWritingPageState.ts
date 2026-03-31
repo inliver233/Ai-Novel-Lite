@@ -9,6 +9,7 @@ import { usePersistentOutletIsActive } from "../../hooks/usePersistentOutlet";
 import { useProjectData } from "../../hooks/useProjectData";
 import { useWizardProgress } from "../../hooks/useWizardProgress";
 import { ApiError, apiJson } from "../../services/apiClient";
+import { listEntries, type EntryItem } from "../../services/entriesApi";
 import { getWizardProjectChangedAt } from "../../services/wizard";
 import type { Character, LLMPreset, Outline, OutlineListItem } from "../../types";
 
@@ -39,6 +40,7 @@ type WritingLoaded = {
   outline: Outline;
   preset: LLMPreset;
   characters: Character[];
+  entries: EntryItem[];
 };
 
 export type WritingPageState = {
@@ -74,10 +76,23 @@ export function useWritingPageState(): WritingPageState {
   const [autoUpdatesTriggering, setAutoUpdatesTriggering] = useState(false);
 
   const writingQuery = useProjectData<WritingLoaded>(projectId, async (id) => {
-    const [outlineRes, presetRes, charactersRes] = await Promise.all([
+    const loadEntries = async (): Promise<EntryItem[]> => {
+      const items: EntryItem[] = [];
+      let offset = 0;
+      while (true) {
+        const page = await listEntries(id, { limit: 200, offset });
+        items.push(...page.items);
+        if (typeof page.next_offset !== "number") break;
+        offset = page.next_offset;
+      }
+      return items;
+    };
+
+    const [outlineRes, presetRes, charactersRes, entries] = await Promise.all([
       apiJson<{ outline: Outline }>(`/api/projects/${id}/outline`),
       apiJson<{ llm_preset: LLMPreset }>(`/api/projects/${id}/llm_preset`),
       apiJson<{ characters: Character[] }>(`/api/projects/${id}/characters`),
+      loadEntries(),
     ]);
     const outlinesRes = await apiJson<{ outlines: OutlineListItem[] }>(`/api/projects/${id}/outlines`);
     return {
@@ -85,11 +100,13 @@ export function useWritingPageState(): WritingPageState {
       outline: outlineRes.data.outline,
       preset: presetRes.data.llm_preset,
       characters: charactersRes.data.characters,
+      entries,
     };
   });
   const outlines = writingQuery.data?.outlines ?? [];
   const outline = writingQuery.data?.outline ?? null;
   const characters = writingQuery.data?.characters ?? [];
+  const entries = writingQuery.data?.entries ?? [];
   const preset = writingQuery.data?.preset ?? null;
   const refreshWriting = writingQuery.refresh;
 
@@ -190,15 +207,7 @@ export function useWritingPageState(): WritingPageState {
     toast,
     confirm,
   });
-  const {
-    generating,
-    genRequestId,
-    genStreamProgress,
-    genForm,
-    setGenForm,
-    generate,
-    abortGenerate,
-  } = generation;
+  const { generating, genRequestId, genStreamProgress, genForm, setGenForm, generate, abortGenerate } = generation;
 
   const batch = useBatchGeneration({
     projectId,
@@ -395,6 +404,7 @@ export function useWritingPageState(): WritingPageState {
       genForm,
       setGenForm,
       characters,
+      entries,
       streamProgress: genStreamProgress,
       onClose: () => setAiOpen(false),
       onSave: () => void saveChapter(),

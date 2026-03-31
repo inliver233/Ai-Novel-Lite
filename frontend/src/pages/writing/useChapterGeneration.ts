@@ -55,6 +55,7 @@ const DEFAULT_GEN_FORM: GenerateForm = {
     include_smart_context: true,
     require_sequential: false,
     character_ids: [],
+    entry_ids: [],
     previous_chapter: "summary",
   },
 };
@@ -116,6 +117,11 @@ export function useChapterGeneration(args: {
       memory_injection_enabled: enabled,
       memory_query_text: "",
       memory_modules: { ...DEFAULT_GEN_FORM.memory_modules },
+      context: {
+        ...prev.context,
+        character_ids: [],
+        entry_ids: [],
+      },
     }));
   }, [projectId]);
 
@@ -188,6 +194,7 @@ export function useChapterGeneration(args: {
             include_smart_context: genForm.context.include_smart_context,
             require_sequential: genForm.context.require_sequential,
             character_ids: genForm.context.character_ids,
+            entry_ids: genForm.context.entry_ids,
             previous_chapter: genForm.context.previous_chapter === "none" ? null : genForm.context.previous_chapter,
             current_draft_tail: currentDraftTail,
           },

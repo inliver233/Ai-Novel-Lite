@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.chapter import Chapter
 from app.models.character import Character
+from app.models.entry import Entry
 from app.models.outline import Outline
 from app.models.project import Project
 from app.models.project_settings import ProjectSettings
@@ -168,13 +169,41 @@ def resolve_current_draft_tail(*, chapter: Chapter, request_tail: str | None) ->
     return raw[-CURRENT_DRAFT_TAIL_CHARS:].lstrip()
 
 
+def _parse_entry_tags(tags_json: str | None) -> list[str]:
+    if not tags_json:
+        return []
+    try:
+        value = json.loads(tags_json)
+    except Exception:
+        return []
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if isinstance(item, str) and item.strip()]
+
+
+def _format_entries(entries: list[Entry]) -> str:
+    if not entries:
+        return ""
+    parts: list[str] = []
+    for entry in entries:
+        title = str(getattr(entry, "title", "") or "").strip() or "无标题"
+        tags = _parse_entry_tags(getattr(entry, "tags_json", None))
+        tag_str = "、".join(tags) if tags else ""
+        content = str(getattr(entry, "content", "") or "").strip()
+        header = f"### {title}"
+        if tag_str:
+            header = f"### [{tag_str}] {title}"
+        parts.append(f"{header}\n{content}".rstrip())
+    return "\n\n".join(parts)
+
+
 def _load_project_story_text_context(
     db: Session,
     *,
     project_id: str,
     outline_id: str,
     ctx: ChapterGenerateContext,
-) -> tuple[str, str, str, str, str]:
+) -> tuple[str, str, str, str, str, str]:
     settings_row = db.get(ProjectSettings, project_id)
     outline_row = db.get(Outline, outline_id)
 
@@ -206,8 +235,32 @@ def _load_project_story_text_context(
             .all()
         )
     characters_text = format_characters(chars)
+    entries: list[Entry] = []
+    if ctx.entry_ids:
+        fetched_entries = (
+            db.execute(
+                select(Entry).where(
+                    Entry.project_id == project_id,
+                    Entry.id.in_(ctx.entry_ids),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        entries_by_id = {str(entry.id): entry for entry in fetched_entries}
+        seen_entry_ids: set[str] = set()
+        entries = []
+        for entry_id in ctx.entry_ids:
+            if entry_id in seen_entry_ids:
+                continue
+            entry = entries_by_id.get(entry_id)
+            if entry is None:
+                continue
+            seen_entry_ids.add(entry_id)
+            entries.append(entry)
+    entries_text = _format_entries(entries)
 
-    return world_setting, style_guide, constraints, outline_text, characters_text
+    return world_setting, style_guide, constraints, outline_text, characters_text, entries_text
 
 
 def _format_chapter_generate_instruction(*, mode: Literal["replace", "append"], base_instruction: str) -> str:
@@ -230,6 +283,7 @@ def assemble_chapter_generate_render_values(
     style_guide: str,
     constraints: str,
     characters_text: str,
+    entries_text: str,
     outline_text: str,
     instruction: str,
     target_word_count: int | None,
@@ -254,6 +308,7 @@ def assemble_chapter_generate_render_values(
         "style_guide": style_guide,
         "constraints": constraints,
         "characters": characters_text,
+        "entries": entries_text,
         "outline": outline_text,
         "chapter_number": str(chapter_number),
         "chapter_title": chapter_title,
@@ -276,6 +331,7 @@ def assemble_chapter_generate_render_values(
         "style_guide": style_guide,
         "constraints": constraints,
         "characters": characters_text,
+        "entries": entries_text,
     }
     values["story"] = {
         "outline": outline_text,
@@ -302,7 +358,7 @@ def build_chapter_generate_render_values(
     body: ChapterGenerateRequest,
     user_id: str,
 ) -> tuple[dict[str, object], str, dict[str, object], dict[str, object]]:
-    world_setting, style_guide, constraints, outline_text, characters_text = _load_project_story_text_context(
+    world_setting, style_guide, constraints, outline_text, characters_text, entries_text = _load_project_story_text_context(
         db,
         project_id=chapter.project_id,
         outline_id=chapter.outline_id,
@@ -353,6 +409,7 @@ def build_chapter_generate_render_values(
         style_guide=resolved_style_guide,
         constraints=constraints,
         characters_text=characters_text,
+        entries_text=entries_text,
         outline_text=outline_text,
         instruction=instruction,
         target_word_count=body.target_word_count,

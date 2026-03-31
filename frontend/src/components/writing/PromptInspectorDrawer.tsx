@@ -124,6 +124,7 @@ export function PromptInspectorDrawer(props: Props) {
         include_smart_context: genForm.context.include_smart_context,
         require_sequential: genForm.context.require_sequential,
         character_ids: genForm.context.character_ids,
+        entry_ids: genForm.context.entry_ids,
         previous_chapter: genForm.context.previous_chapter === "none" ? null : genForm.context.previous_chapter,
         current_draft_tail: currentDraftTail,
       },

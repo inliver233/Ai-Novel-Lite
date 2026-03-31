@@ -23,6 +23,7 @@ type Props = {
   genForm: GenerateForm;
   setGenForm: Dispatch<SetStateAction<GenerateForm>>;
   characters: Character[];
+  entries: { id: string; title: string; tags: string[] }[];
   streamProgress?: { message: string; progress: number; status: string; charCount?: number } | null;
   onClose: () => void;
   onSave: () => void | Promise<unknown>;
@@ -94,6 +95,7 @@ export function AiGenerateDrawer(props: Props) {
           genForm={props.genForm}
           setGenForm={props.setGenForm}
           characters={props.characters}
+          entries={props.entries}
           stylesLoading={styles.stylesLoading}
           presets={styles.presets}
           userStyles={styles.userStyles}

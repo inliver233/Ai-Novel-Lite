@@ -36,6 +36,8 @@ export const AI_GENERATE_DRAWER_COPY = {
     previousChapterHint: "结尾更利于强衔接，减少开头复述。",
     charactersLabel: "注入角色（可选）",
     charactersEmpty: "暂无角色",
+    entriesLabel: "注入条目（可选）",
+    entriesEmpty: "暂无条目",
   },
   advancedSection: {
     title: "高级参数",
