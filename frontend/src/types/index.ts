@@ -1,9 +1,4 @@
-export type {
-  Project,
-  ProjectSettings,
-  ProjectSummaryItem,
-  ProjectTask,
-} from "./project";
+export type { Project, ProjectSettings, ProjectSummaryItem, ProjectTask } from "./project";
 export type {
   BulkCreateChapterInput,
   Chapter,
@@ -13,17 +8,13 @@ export type {
   ChapterMetaPage,
   ChapterStatus,
   Character,
+  Entry,
   CreateChapterInput,
   Outline,
   OutlineListItem,
   UpdateChapterInput,
 } from "./content";
-export type {
-  PromptBlock,
-  PromptPreset,
-  PromptPreview,
-  PromptPreviewBlock,
-} from "./prompt";
+export type { PromptBlock, PromptPreset, PromptPreview, PromptPreviewBlock } from "./prompt";
 export type {
   LLMModelItem,
   LLMModelsResponse,

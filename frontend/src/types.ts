@@ -15,6 +15,7 @@ export type {
   Outline,
   OutlineListItem,
   Character,
+  Entry,
   PromptPreset,
   PromptBlock,
   PromptPreviewBlock,
