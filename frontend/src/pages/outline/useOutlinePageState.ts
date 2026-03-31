@@ -21,11 +21,13 @@ import type {
   OutlineEditorSectionProps,
   OutlineGenerationModalProps,
   OutlineHeaderSectionProps,
+  OutlineParsingModalProps,
   OutlineTitleModalProps,
 } from "./OutlinePageSections";
 import { getOutlineCreateChaptersDescription, getOutlineCreatedChaptersText, OUTLINE_COPY } from "./outlineCopy";
 import { buildNextOutlineTitle } from "./outlineModels";
 import { useOutlineGenerationState } from "./useOutlineGenerationState";
+import { useOutlineParsingState } from "./useOutlineParsingState";
 
 type OutlineLoaded = {
   outlines: OutlineListItem[];
@@ -48,6 +50,7 @@ export type OutlinePageState = {
   editorProps: OutlineEditorSectionProps;
   titleModalProps: OutlineTitleModalProps;
   generationModalProps: OutlineGenerationModalProps;
+  parsingModalProps: OutlineParsingModalProps;
   wizardBarProps: ComponentProps<typeof WizardNextBar>;
 };
 
@@ -311,6 +314,16 @@ export function useOutlinePageState(): OutlinePageState {
     toast,
   });
 
+  const parsing = useOutlineParsingState({
+    projectId,
+    preset,
+    dirty,
+    save,
+    createOutline,
+    confirm,
+    toast,
+  });
+
   const storedChapters = useMemo(
     () => deriveOutlineFromStoredContent(activeOutline?.content_md ?? "", activeOutline?.structure).chapters,
     [activeOutline?.content_md, activeOutline?.structure],
@@ -431,6 +444,7 @@ export function useOutlinePageState(): OutlinePageState {
       saving,
       onCreateChapters: () => void createChaptersFromOutline(),
       onOpenGenerate: () => generation.setOpen(true),
+      onOpenParse: parsing.openParseModal,
       onSave: () => void save(),
     },
     editorProps: {
@@ -465,25 +479,44 @@ export function useOutlinePageState(): OutlinePageState {
       onPreviewContentChange: (next) =>
         generation.setGenPreview((prev) => (prev ? { ...prev, outline_md: next } : null)),
     },
+    parsingModalProps: {
+      open: parsing.open,
+      parsing: parsing.parsing,
+      parseForm: parsing.parseForm,
+      parseProgress: parsing.parseProgress,
+      parseResult: parsing.parseResult,
+      activeTab: parsing.activeTab,
+      onClose: parsing.closeParseModal,
+      onCancelParse: parsing.cancelParse,
+      onContentChange: parsing.handleContentChange,
+      onFileUpload: (file) => void parsing.handleFileUpload(file),
+      onAgentConfigChange: parsing.handleAgentConfigChange,
+      onStartParse: () => void parsing.startParse(),
+      onTabChange: parsing.setActiveTab,
+      onApplyOutline: () => void parsing.applyOutline(),
+      onApplyCharacters: () => void parsing.applyCharacters(),
+      onApplyEntries: () => void parsing.applyEntries(),
+      onApplyAll: () => void parsing.applyAll(),
+    },
     wizardBarProps: {
       projectId,
       currentStep: "outline",
       progress: wizard.progress,
       loading: wizard.loading,
       dirty,
-      saving: saving || generation.generating,
+      saving: saving || generation.generating || parsing.parsing,
       onSave: () => save(),
       primaryAction:
         wizard.progress.nextStep?.key === "chapters"
           ? canCreateChapters
             ? {
                 label: "下一步：创建章节骨架",
-                disabled: generation.generating || saving,
+                disabled: generation.generating || parsing.parsing || saving,
                 onClick: createChaptersFromOutline,
               }
             : {
                 label: "下一步：先 AI 生成大纲",
-                disabled: generation.generating || saving,
+                disabled: generation.generating || parsing.parsing || saving,
                 onClick: () => generation.setOpen(true),
               }
           : undefined,

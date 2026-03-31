@@ -31,6 +31,7 @@ from app.api.routes import (
     vector,
     writing_styles,
 )
+from app.api.routes import outline_parse
 
 api_router = APIRouter(prefix="/api")
 
@@ -56,6 +57,7 @@ api_router.include_router(llm_models.router, tags=["llm_models"])
 api_router.include_router(llm.router, tags=["llm"])
 api_router.include_router(llm_profiles.router, tags=["llm_profiles"])
 api_router.include_router(outlines.router, tags=["outlines"])
+api_router.include_router(outline_parse.router, tags=["outline_parse"])
 api_router.include_router(export.router, tags=["export"])
 api_router.include_router(import_export.router, tags=["import_export"])
 api_router.include_router(generation_runs.router, tags=["generation_runs"])

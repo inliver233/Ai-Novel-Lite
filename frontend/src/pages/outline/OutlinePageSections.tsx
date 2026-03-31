@@ -78,6 +78,7 @@ export type OutlineActionsBarProps = {
   saving: boolean;
   onCreateChapters: () => void;
   onOpenGenerate: () => void;
+  onOpenParse: () => void;
   onSave: () => void;
 };
 
@@ -96,6 +97,9 @@ export function OutlineActionsBar(props: OutlineActionsBarProps) {
         </button>
         <button className="btn btn-secondary" onClick={props.onOpenGenerate} type="button">
           {OUTLINE_COPY.generate}
+        </button>
+        <button className="btn btn-secondary" onClick={props.onOpenParse} type="button">
+          智能解析 (Beta)
         </button>
       </div>
       <button
@@ -394,3 +398,5 @@ export function OutlineGenerationModal(props: OutlineGenerationModalProps) {
     </Modal>
   );
 }
+
+export { OutlineParsingModal, type OutlineParsingModalProps } from "./OutlineParsingSection";

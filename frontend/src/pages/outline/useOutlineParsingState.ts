@@ -1,0 +1,373 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import type { ConfirmApi } from "../../components/ui/confirm";
+import type { ToastApi } from "../../components/ui/toast";
+import { ApiError, apiJson, sanitizeFilename } from "../../services/apiClient";
+import { SSEError, SSEPostClient } from "../../services/sseClient";
+import { createEntry } from "../../services/entriesApi";
+import type { LLMPreset } from "../../types";
+
+import { OUTLINE_PARSING_COPY } from "./outlineParsingCopy";
+import {
+  DEFAULT_PARSE_AGENT_CONFIG,
+  DEFAULT_PARSE_FORM,
+  type OutlineParseAgentConfig,
+  type OutlineParseForm,
+  type OutlineParseProgress,
+  type OutlineParseResult,
+} from "./outlineParsingModels";
+
+const STREAM_CONNECT_MAX_RETRIES = 2;
+const STREAM_CONNECT_RETRY_BASE_DELAY_MS = 1200;
+
+type SaveOutline = (
+  nextContent?: string,
+  nextStructure?: unknown,
+  opts?: { silent?: boolean; snapshotContent?: string },
+) => Promise<boolean>;
+
+type CreateOutline = (title: string, contentMd: string, structure: unknown) => Promise<void>;
+
+type ParseTab = "outline" | "characters" | "entries";
+
+function waitMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, ms);
+  });
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("file read failed"));
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("file read failed"));
+        return;
+      }
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function buildFreshParseForm(): OutlineParseForm {
+  return {
+    ...DEFAULT_PARSE_FORM,
+    agent_config: { ...DEFAULT_PARSE_AGENT_CONFIG },
+  };
+}
+
+export function useOutlineParsingState(args: {
+  projectId?: string;
+  preset: LLMPreset | null;
+  dirty: boolean;
+  save: SaveOutline;
+  createOutline: CreateOutline;
+  toast: ToastApi;
+  confirm: ConfirmApi;
+}) {
+  const { projectId, preset, dirty, save, createOutline, toast, confirm } = args;
+  const [open, setOpen] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [parseForm, setParseForm] = useState<OutlineParseForm>(() => buildFreshParseForm());
+  const [parseProgress, setParseProgress] = useState<OutlineParseProgress | null>(null);
+  const [parseResult, setParseResult] = useState<OutlineParseResult | null>(null);
+  const [activeTab, setActiveTab] = useState<ParseTab>("outline");
+
+  const streamClientRef = useRef<SSEPostClient | null>(null);
+  const streamHasProgressRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      streamClientRef.current?.abort();
+    };
+  }, []);
+
+  const openParseModal = useCallback(() => {
+    setOpen(true);
+  }, []);
+
+  const closeParseModal = useCallback(() => {
+    streamClientRef.current?.abort();
+    streamClientRef.current = null;
+    streamHasProgressRef.current = false;
+    setOpen(false);
+    setParsing(false);
+    setParseForm(buildFreshParseForm());
+    setParseProgress(null);
+    setParseResult(null);
+    setActiveTab("outline");
+  }, []);
+
+  const handleContentChange = useCallback((value: string) => {
+    setParseForm((prev) => ({ ...prev, content: value }));
+  }, []);
+
+  const handleAgentConfigChange = useCallback((patch: Partial<OutlineParseAgentConfig>) => {
+    setParseForm((prev) => ({ ...prev, agent_config: { ...prev.agent_config, ...patch } }));
+  }, []);
+
+  const handleFileUpload = useCallback(
+    async (file: File | null) => {
+      if (!file) {
+        setParseForm((prev) => ({ ...prev, file_content: null, file_name: null }));
+        return;
+      }
+
+      try {
+        const contentBase64 = await fileToBase64(file);
+        const safeName = sanitizeFilename(file.name) || "outline.txt";
+        setParseForm((prev) => ({ ...prev, file_content: contentBase64, file_name: safeName }));
+      } catch (error) {
+        toast.toastError("读取文件失败");
+      }
+    },
+    [toast],
+  );
+
+  const cancelParse = useCallback(() => {
+    streamClientRef.current?.abort();
+  }, []);
+
+  const startParse = useCallback(async () => {
+    if (!projectId || !preset) return;
+
+    const hasContent = Boolean((parseForm.content ?? "").trim());
+    const hasFile = Boolean((parseForm.file_content ?? "").trim());
+    if (!hasContent && !hasFile) {
+      toast.toastError("请输入内容或上传文件");
+      return;
+    }
+
+    setParsing(true);
+    streamClientRef.current = null;
+    streamHasProgressRef.current = false;
+    setParseResult(null);
+    setParseProgress({ message: "准备解析...", progress: 0, status: "processing" });
+
+    try {
+      const headers: Record<string, string> = { "X-LLM-Provider": preset.provider };
+      const payload: OutlineParseForm = {
+        content: parseForm.content,
+        file_content: parseForm.file_content,
+        file_name: parseForm.file_name,
+        agent_config: parseForm.agent_config,
+      };
+
+      const isTransientStreamError = (error: unknown): error is SSEError =>
+        error instanceof SSEError && error.code !== "SSE_SERVER_ERROR" && error.code !== "ABORTED";
+
+      let streamResult: OutlineParseResult | null = null;
+      let retryCount = 0;
+      let done: { requestId?: string; result?: unknown; accumulatedContent: string } | null = null;
+
+      while (retryCount <= STREAM_CONNECT_MAX_RETRIES) {
+        const client = new SSEPostClient(`/api/projects/${projectId}/outline/parse-stream`, payload, {
+          headers,
+          onProgress: ({ message, progress, status }) => {
+            streamHasProgressRef.current = true;
+            setParseProgress({ message, progress, status });
+          },
+          onResult: (data) => {
+            const typed = data as OutlineParseResult;
+            streamResult = typed;
+            setParseResult(typed);
+            setActiveTab("outline");
+          },
+        });
+        streamClientRef.current = client;
+
+        try {
+          done = await client.connect();
+          break;
+        } catch (error) {
+          if (isTransientStreamError(error) && !streamHasProgressRef.current && retryCount < STREAM_CONNECT_MAX_RETRIES) {
+            retryCount += 1;
+            const delayMs = STREAM_CONNECT_RETRY_BASE_DELAY_MS * retryCount;
+            setParseProgress((prev) => ({
+              message: `连接中断，${Math.ceil(delayMs / 1000)} 秒后自动重连（${retryCount}/${STREAM_CONNECT_MAX_RETRIES}）...`,
+              progress: prev?.progress ?? 0,
+              status: "processing",
+            }));
+            await waitMs(delayMs);
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (!done) {
+        throw new SSEError({ code: "SSE_STREAM_ERROR", message: "流式重连后仍失败" });
+      }
+
+      if (!streamResult && done.result) {
+        const typed = done.result as OutlineParseResult;
+        streamResult = typed;
+        setParseResult(typed);
+      }
+
+      setParseProgress((prev) =>
+        prev ? { ...prev, message: OUTLINE_PARSING_COPY.parseDone, progress: 100, status: "success" } : prev,
+      );
+      toast.toastSuccess(OUTLINE_PARSING_COPY.parseDone);
+    } catch (error) {
+      if (error instanceof SSEError && error.code === "ABORTED") {
+        setParseProgress(null);
+        toast.toastSuccess("已取消解析");
+        return;
+      }
+
+      if (error instanceof SSEError) {
+        setParseProgress((prev) => ({
+          message: OUTLINE_PARSING_COPY.parseFailed,
+          progress: prev?.progress ?? 0,
+          status: "error",
+        }));
+        toast.toastError(`${error.message} (${error.code})`, error.requestId);
+        return;
+      }
+
+      if (error instanceof ApiError) {
+        setParseProgress((prev) => ({
+          message: OUTLINE_PARSING_COPY.parseFailed,
+          progress: prev?.progress ?? 0,
+          status: "error",
+        }));
+        toast.toastError(`${error.message} (${error.code})`, error.requestId);
+        return;
+      }
+
+      setParseProgress((prev) => ({
+        message: OUTLINE_PARSING_COPY.parseFailed,
+        progress: prev?.progress ?? 0,
+        status: "error",
+      }));
+      toast.toastError(OUTLINE_PARSING_COPY.parseFailed);
+    } finally {
+      streamClientRef.current = null;
+      setParsing(false);
+    }
+  }, [parseForm, preset, projectId, toast]);
+
+  const applyOutline = useCallback(async () => {
+    if (!projectId || !parseResult) return false;
+
+    const chapters = Array.isArray(parseResult.outline?.chapters) ? parseResult.outline.chapters : [];
+    const outlineMd = String(parseResult.outline?.outline_md ?? "");
+
+    if (!dirty) {
+      return await save(outlineMd, { chapters });
+    }
+
+    const choice = await confirm.choose({
+      title: "应用解析大纲？",
+      description: "当前大纲有未保存修改。覆盖会替换当前大纲；另存会先保存当前大纲，再创建新大纲并切换（更安全）。",
+      confirmText: "覆盖当前",
+      secondaryText: "另存为新大纲",
+      cancelText: "取消",
+      danger: true,
+    });
+    if (choice === "cancel") return false;
+    if (choice === "confirm") {
+      return await save(outlineMd, { chapters });
+    }
+
+    const savedOk = await save();
+    if (!savedOk) return false;
+    await createOutline("解析大纲", outlineMd, { chapters });
+    return true;
+  }, [confirm, createOutline, dirty, parseResult, projectId, save]);
+
+  const applyCharacters = useCallback(async () => {
+    if (!projectId || !parseResult) return false;
+    const characters = Array.isArray(parseResult.characters) ? parseResult.characters : [];
+    const payloads = characters
+      .map((c) => ({
+        name: String(c.name ?? "").trim(),
+        role: String(c.role ?? "").trim() || null,
+        profile: (c.profile ?? null) ? String(c.profile ?? "") : null,
+        notes: (c.notes ?? null) ? String(c.notes ?? "") : null,
+      }))
+      .filter((c) => c.name);
+
+    if (payloads.length === 0) return true;
+
+    try {
+      for (const payload of payloads) {
+        await apiJson(`/api/projects/${projectId}/characters`, { method: "POST", body: JSON.stringify(payload) });
+      }
+      toast.toastSuccess(OUTLINE_PARSING_COPY.parseApplied);
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        toast.toastError(`${error.message} (${error.code})`, error.requestId);
+      } else {
+        toast.toastError("创建角色失败");
+      }
+      return false;
+    }
+  }, [parseResult, projectId, toast]);
+
+  const applyEntries = useCallback(async () => {
+    if (!projectId || !parseResult) return false;
+    const entries = Array.isArray(parseResult.entries) ? parseResult.entries : [];
+    const payloads = entries
+      .map((e) => ({
+        title: String(e.title ?? "").trim(),
+        content: String(e.content ?? ""),
+        tags: Array.isArray(e.tags) ? e.tags.map((t) => String(t)).filter(Boolean) : [],
+      }))
+      .filter((e) => e.title);
+
+    if (payloads.length === 0) return true;
+
+    try {
+      for (const payload of payloads) {
+        await createEntry(projectId, payload);
+      }
+      toast.toastSuccess(OUTLINE_PARSING_COPY.parseApplied);
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        toast.toastError(`${error.message} (${error.code})`, error.requestId);
+      } else {
+        toast.toastError("创建条目失败");
+      }
+      return false;
+    }
+  }, [parseResult, projectId, toast]);
+
+  const applyAll = useCallback(async () => {
+    const outlineApplied = await applyOutline();
+    if (!outlineApplied) return;
+
+    const charactersApplied = await applyCharacters();
+    if (!charactersApplied) return;
+
+    await applyEntries();
+  }, [applyCharacters, applyEntries, applyOutline]);
+
+  return {
+    open,
+    parsing,
+    parseForm,
+    parseProgress,
+    parseResult,
+    activeTab,
+    setActiveTab,
+    openParseModal,
+    closeParseModal,
+    cancelParse,
+    handleContentChange,
+    handleAgentConfigChange,
+    handleFileUpload,
+    startParse,
+    applyOutline,
+    applyCharacters,
+    applyEntries,
+    applyAll,
+  };
+}

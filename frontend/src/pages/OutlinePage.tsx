@@ -5,6 +5,7 @@ import {
   OutlineActionsBar,
   OutlineEditorSection,
   OutlineGenerationModal,
+  OutlineParsingModal,
   OutlineGuideSection,
   OutlineHeaderSection,
   OutlineTitleModal,
@@ -26,6 +27,7 @@ export function OutlinePage() {
       <OutlineEditorSection {...state.editorProps} />
       <OutlineTitleModal {...state.titleModalProps} />
       <OutlineGenerationModal {...state.generationModalProps} />
+      <OutlineParsingModal {...state.parsingModalProps} />
       <WizardNextBar {...state.wizardBarProps} />
     </div>
   );
