@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "name": "Default content_optimize v1",
-  "category": "姝ｆ枃浼樺寲",
+  "name": "默认·正文优化 v1",
+  "category": "正文优化",
   "scope": "project",
   "version": 1,
   "activation_tasks": [

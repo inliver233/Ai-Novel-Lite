@@ -1,0 +1,364 @@
+[
+    {
+        "id": "12bb2f92-21c0-4998-ac03-99004f9ddfae",
+        "scriptName": "【0】抗截断",
+        "disabled": false,
+        "runOnEdit": false,
+        "findRegex": "<math>([\\s\\S]*?)<\\/math>",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null,
+        "markdownOnly": true,
+        "promptOnly": true
+    },
+    {
+        "id": "608cb77e-95f3-4f48-ad86-bda26a137afa",
+        "scriptName": "MoM-双人成行-I.清除多余内容 - 03.07",
+        "findRegex": "/死死[的地]?|一抹|极其|由于|病态的|舐|生理性的?|霸道的?地?|<VariableCheck>[\\s\\S]*<\\/VariableCheck>|(?<=<p style)-|\\s<finish>(?!.+<finish>).*$/gis",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "f4c1a60b-3b65-4b26-9d6b-019467ba9dad",
+        "scriptName": "MoM-双人成行II.不发送一堆 -  03.07",
+        "findRegex": "/^[\\s\\S]+</think(?:ing)?>|<quote>.+?</[^>]+>|<Shiosai.+?</Shiosai>|<branches>.+$|<snow>.+$/gis",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": false,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "fd67a8e0-ae79-4cff-b101-241e045fabf0",
+        "scriptName": "MoM-双人成行-III.5楼外只发送摘要 - 12.30",
+        "findRegex": "/^.+(<meow_FM>.+</meow_FM>).*$/is",
+        "replaceString": "$1",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": false,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": 5,
+        "maxDepth": null
+    },
+    {
+        "id": "f2c966ce-403a-45b3-846f-94ec98271ac3",
+        "scriptName": "MoM-双人成行-IV.10楼外伏笔不发送 - 12.30",
+        "findRegex": "/(?<=<meow_FM>[\\s\\S]+?)seeds[:：][\\s\\S]+?(?=seri[\\w]{0,4}[:：]\\s*no\\..+)/i",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": false,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": 10,
+        "maxDepth": null
+    },
+    {
+        "id": "64fffc7b-fe1d-4921-9609-45395aeca346",
+        "scriptName": "返空回去除",
+        "findRegex": "<Q>([\\s\\S]*?)<\\/WF>",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "da45d379-c487-4c1f-84eb-1c9b36a545d6",
+        "scriptName": "去变量更新",
+        "findRegex": "<update>([\\s\\S]*?)<\\/update>",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            1,
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "12310731-baa8-4537-9800-1691c031a4cf",
+        "scriptName": "去除html注释",
+        "findRegex": "<!-- ([\\s\\S]*?) -->",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": true,
+        "runOnEdit": false,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "230a170f-2d7b-4a61-a09c-d932dc275456",
+        "scriptName": "Top.美化",
+        "findRegex": "\\s{0}",
+        "replaceString": "\n<style>\n:root {\n    interpolate-size: allow-keywords;\n}\n\ndetails::details-content {\n    opacity: 0;\n    block-size: 0;\n    transition: block-size 0.4s, opacity 0.2s, content-visibility 0.4s allow-discrete;\n    transition-timing-function: ease-out;\n    transition-delay: 0.1s;\n}\n\ndetails[open]::details-content {\n    opacity: 1;\n    transition: block-size 0.4s, opacity 0.8s, content-visibility 0.6s allow-discrete;\n    block-size: auto;\n    transition-timing-function: ease-in-out;\n    transition-delay: 0.2s;\n}\n\n.meow_FM {\n    width: 95%;\n    margin: 0 auto;\n    -webkit-overflow-scrolling: touch;\n}\n\n.meow_FM::-webkit-scrollbar {\n    width: 6px;\n    height: 3px;\n    border-radius: 6px;\n    background: transparent;\n}\n\n.meow_FM::-webkit-scrollbar-track:hover {\n    border-radius: 6px;\n}\n\n.meow_FM::-webkit-scrollbar-thumb {\n    background: currentColor;\n    border-radius: 6px;\n    -webkit-backdrop-filter: blur(4px);\n    border: 1px solid transparent;\n    background-clip: padding-box;\n}\n\n.meow_FM>summary {\n    display: flex;\n    list-style: none;\n    justify-content: center;\n}\n\n.meow_FM-trigger {\n    position: relative;\n    cursor: pointer;\n    padding: 10px;\n    font-size: 1.2em;\n    border-radius: 8px;\n    color: var(--SmartThemeQuoteColor);\n    animation: border_pulse 4s 0.4s infinite ease-in-out;\n    transition: padding-top 0.2s, width 0.4s, box-shadow 0.5s;\n}\n\ndetails[open]>summary>.meow_FM-trigger {\n    animation: none;\n    box-shadow: inset 0 12px 10px -12px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor) 20%);\n    width: 100%;\n    padding-left: 20px;\n}\n\n.meow_FM-panel {\n    border-radius: 6px;\n    animation: panel_pulse 4s ease-in-out infinite;\n}\n\n.meow_FM-panel-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    position: relative;\n    white-space: nowrap;\n    overflow: hidden;\n}\n\n.meow_FM-panel-left {\n    align-items: center;\n    margin-left: 15px;\n    font-size: 1.05em;\n    width: 50%;\n    overflow-x: auto;\n}\n\n.meow_FM-panel-right {\n    display: grid;\n    grid-template-rows: 1fr 0.5fr 1fr;\n    align-items: center;\n    margin-right: 15px;\n    font-size: 0.8em;\n    width: 40%;\n    overflow-x: auto;\n}\n\n.meow_FM-right-primary {\n    color: var(--SmartThemeUnderlineColor);\n    justify-self: start;\n    margin-right: 20%;\n}\n\n.meow_FM-right-line {\n    width: 100%;\n    height: 1px;\n    background: linear-gradient(to right, var(--SmartThemeQuoteColor), transparent);\n    opacity: 0.3;\n}\n\n.meow_FM-right-secondary {\n    justify-self: end;\n    margin-left: 20%;\n    color: var(--SmartThemeEmColor);\n}\n\n.meow_FM-panel-body {\n    padding: 15px;\n    padding-top: 0;\n}\n\n.meow_FM-data {\n    display: flex;\n    position: relative;\n    justify-content: center;\n    margin: 20px;\n}\n\n.meow_FM.data-details {\n    position: relative;\n    width: 120px;\n    max-height: 40px;\n    border-radius: 6px;\n    margin-bottom: 30px;\n    box-shadow: inset 0 0 1px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor)50%);\n    transition: width 0.4s ease 0.4s, max-height 0.4s ease 0s, box-shadow 0.4s;\n}\n\n.meow_FM.data-details[open] {\n    width: calc(100% - 160px);\n    max-height: 240px;\n    box-shadow: inset 0 4px 8px -4px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor)50%);\n    transition: width 0.4s ease 0s, max-height 0.4s ease 0.4s, box-shadow 0s ease 0.4s;\n}\n\n.meow_FM.data1 {\n    font-size: 0.85em;\n    margin-right: 2px;\n    color: var(--SmartThemeEmColor);\n}\n\n.meow_FM.data2 {\n    font-size: 0.85em;\n    margin-left: 2px;\n    color: var(--SmartThemeShadowColor);\n}\n\n.__data-trigger {\n    cursor: pointer;\n    font-size: 1.2em;\n    padding: 6px;\n}\n\n\n\n.__data-scroll {\n    margin-right: 1%;\n    box-shadow: inset -4px 0 8px -4px var(--SmartThemeUnderlineColor);\n    padding: 5px;\n    border-radius: 6px;\n    max-height: 120px;\n    margin-bottom: 10px;\n    transition: all 0.8s ease;\n    overflow-y: auto;\n}\n\n.__data-scroll-left {\n    margin-left: 1%;\n    box-shadow: inset 4px 0 8px -4px var(--SmartThemeUnderlineColor);\n    padding: 5px;\n    border-radius: 6px;\n    max-height: 120px;\n    margin-bottom: 10px;\n    transition: all 0.8s ease;\n    overflow-y: auto;\n    direction: rtl;\n}\n\n.__data1--content {\n    text-align: center;\n    white-space: pre-line;\n\n}\n\n.__data2--content {\n    text-align: center;\n    white-space: pre-line;\n    filter: blur(4px);\n    opacity: 0.8;\n    user-select: none;\n    direction: ltr;\n}\n\n.__data2--content:hover {\n    filter: blur(0);\n    opacity: 1;\n    user-select: text;\n}\n\n.meow_FM_position {\n    margin-right: 2px;\n    color: var(--SmartThemeUnderlineColor);\n    text-shadow: 0 0 4px currentColor;\n    animation: flicker 2s infinite;\n}\n\n/* logo 动画 */\n.meow_FM_footer {\n    position: relative;\n    font-style: italic;\n    display: flex;\n    justify-self: end;\n    white-space: nowrap;\n    margin-right: 2.5%;\n    color: var(--SmartThemeUnderlineColor);\n}\n\n.f_main-text {\n    position: relative;\n    font-weight: bold;\n    text-shadow: 0 0 4px currentColor;\n    animation: glitch 14s infinite, flicker 1s infinite;\n    cursor: default;\n    z-index: 10;\n}\n\n.f_glitch-layer {\n    position: absolute;\n    bottom: 15px;\n    right: 40px;\n    z-index: 1;\n    font-size: 0.8em;\n    font-weight: 500;\n    opacity: 0;\n}\n\n.f_glitch-layer::before {\n    content: attr(data-text);\n}\n\n.f_layer-1 {\n    color: color-mix(in srgb, transparent, var(--SmartThemeBodyColor)30%);\n    text-shadow: 1px 0 0 rgba(32, 202, 117, 0.2);\n    mix-blend-mode: hard-light;\n    animation: brownout 16s infinite steps(1);\n}\n\n.f_layer-2 {\n    color: rgba(255, 89, 144, 0.6);\n    text-shadow: -1px 2px 0 rgba(255, 60, 180, 0.6);\n    mix-blend-mode: screen;\n    animation: jump-1 16s infinite steps(1);\n}\n\n.f_layer-3 {\n    color: rgba(43, 153, 255, 0.6);\n    text-shadow: 2px -1px 0 rgba(80, 61, 255, 0.6);\n    mix-blend-mode: screen;\n    animation: jump-2 16s infinite steps(1);\n}\n\n@keyframes glitch {\n\n    0%,\n    100% {\n        transform: none;\n        opacity: 1;\n        filter: brightness(1);\n    }\n\n    11.2% {\n        transform: translateX(-1px) skewX(-20deg);\n        text-shadow: -5px 0 5px currentColor;\n    }\n\n    12% {\n        transform: translateX(5px);\n        opacity: 0.85;\n    }\n\n    12.8% {\n        transform: translateX(-1px) skewX(2deg);\n        text-shadow: 0 0 0 currentColor;\n    }\n\n    13.2% {\n        transform: translateX(5px);\n        opacity: 0.85;\n    }\n\n    13.6% {\n        transform: translateX(-1px) skewX(-30deg);\n        text-shadow: -5px -5px 5px currentColor;\n    }\n\n    14% {\n\n        opacity: 1;\n    }\n\n    22% {\n        filter: brightness(1.1);\n    }\n\n    23% {\n        filter: brightness(0.2);\n    }\n\n    24% {\n        filter: brightness(1);\n    }\n\n    34.8% {\n        transform: none;\n        text-shadow: 0 0 4px currentColor;\n    }\n\n    35% {\n        transform: translateY(-5px) skewX(-10deg);\n    }\n\n    35.5% {\n        transform: translateY(3px);\n    }\n\n    39% {\n        transform: none;\n    }\n\n    42% {\n        opacity: 0.9;\n    }\n\n    43% {\n        opacity: 0.6;\n    }\n\n    44% {\n        opacity: 0.95;\n    }\n\n    45% {\n\n        opacity: 1;\n    }\n\n    55% {\n        filter: brightness(0.8);\n    }\n\n    56% {\n        filter: brightness(1.15);\n    }\n\n    57% {\n        filter: brightness(0.9);\n    }\n\n    58% {\n        filter: brightness(1);\n        transform: none;\n    }\n\n    60% {\n        transform: translateX(-3px), translateY(-6px);\n    }\n\n    62% {\n        transform: translateX(2px);\n        opacity: 0.2;\n    }\n\n    64% {\n        transform: none;\n        opacity: 1;\n    }\n\n    72% {\n        opacity: 0.85;\n    }\n\n    73% {\n        opacity: 1;\n    }\n\n    78% {\n        filter: brightness(0.2);\n    }\n\n    79% {\n        filter: brightness(1.2);\n    }\n\n    80% {\n        filter: brightness(1);\n    }\n\n    85% {\n        transform: skewX(-18deg);\n    }\n\n    87% {\n        transform: none;\n    }\n\n    92% {\n        opacity: 0.7;\n        filter: brightness(0.75);\n    }\n\n    93% {\n        opacity: 0.9;\n        filter: brightness(1.8);\n    }\n\n    94% {\n        opacity: 0.5;\n    }\n\n    95% {\n        opacity: 1;\n        filter: brightness(1);\n    }\n}\n\n@keyframes flicker {\n\n    0%,\n    19%,\n    21%,\n    23%,\n    55%,\n    57%,\n    100% {\n        opacity: 1;\n        text-shadow: 0 0 4px currentColor;\n    }\n\n    20%,\n    22% {\n        opacity: 0.4;\n        text-shadow: none;\n    }\n\n    56% {\n        opacity: 0.6;\n        text-shadow: -6px 0 2px currentColor;\n    }\n}\n\n@keyframes brownout {\n\n    0%,\n    5%,\n    10%,\n    15%,\n    20%,\n    30%,\n    40%,\n    50%,\n    60% {\n        opacity: 0.8;\n        transform: translate(0, 0);\n    }\n\n    75%,\n    80%,\n    95% {\n        opacity: 0;\n    }\n\n    2%,\n    12%,\n    55% {\n        opacity: 0.3;\n        transform: translate(-1px, 0);\n    }\n\n    25%,\n    65% {\n        opacity: 1;\n    }\n\n    81% {\n        opacity: 0.8;\n    }\n\n    83% {\n        opacity: 0;\n    }\n\n    83.1% {\n        opacity: 1;\n        transform: skewX(-10deg);\n    }\n\n    84% {\n        opacity: 0.8;\n        transform: none;\n    }\n\n    99.1% {\n        opacity: 0.2;\n    }\n\n    100% {\n        opacity: 0.5;\n    }\n}\n\n@keyframes jump-1 {\n\n    0%,\n    75%,\n    80%,\n    100% {\n        opacity: 0;\n    }\n\n    75.1% {\n        opacity: 1;\n        transform: translate(2px, -2px);\n    }\n\n    76% {\n        opacity: 0;\n    }\n\n    77.7% {\n        opacity: 1;\n        transform: translate(-2px, 2px) skewX(20deg);\n    }\n\n    78.2% {\n        opacity: 0;\n    }\n\n    79.5% {\n        opacity: 1;\n        transform: scale(1.1);\n        filter: invert(1);\n    }\n}\n\n@keyframes jump-2 {\n\n    0%,\n    95%,\n    100% {\n        opacity: 0;\n    }\n\n    95.2% {\n        opacity: 1;\n        transform: translate(-5px, 0);\n    }\n\n    96.5% {\n        opacity: 0;\n    }\n\n    99% {\n        opacity: 1;\n        transform: translate(5px, 0) skewX(-20deg);\n    }\n\n}\n\n@keyframes border_pulse {\n\n    0%,\n    100% {\n        box-shadow: inset 0 0 1px 1px color-mix(in srgb, transparent, var(--SmartThemeBodyColor) 20%);\n    }\n\n    35% {\n        box-shadow: inset 0 0 1.5px 1px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor) 50%)\n    }\n}\n\n@keyframes panel_pulse {\n\n    0%,\n    100% {\n        box-shadow: inset 0 -8px 6px -8px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor) 20%);\n    }\n\n    35% {\n        box-shadow: inset 0 -12px 6px -8px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor) 50%)\n    }\n}\n\nhr {\n    margin: 10px auto;\n    height: 1px;\n    max-width: 93%;\n    border: none;\n    background: linear-gradient(to right, transparent, var(--SmartThemeUnderlineColor), transparent);\n    position: relative;\n    animation: hr_pulse 4s ease-in-out infinite;\n}\n\n@keyframes hr_pulse {\n\n    0%,\n    100% {\n        opacity: 1;\n        transform: scale(1.05);\n    }\n\n    35% {\n        opacity: 0.2;\n        transform: scale(1);\n    }\n}\n\n/* 思考动画 */\n.meow_FM_thought {\n    display: flex;\n    justify-content: center;\n    gap: 2px;\n    cursor: pointer;\n}\n\n.meow_FM_thought-box {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    position: relative;\n    justify-content: flex-end;\n}\n\n.meow_FM_thought-dot {\n    position: absolute;\n    bottom: 26px;\n    width: 12px;\n    height: 12px;\n    background-color: var(--SmartThemeQuoteColor);\n    border-radius: 50%;\n    box-shadow: 0 0 6px var(--SmartThemeUnderlineColor);\n    transform-origin: bottom;\n    vertical-align: bottom;\n    animation: dotBounce 2s ease-in-out infinite;\n}\n\n.meow_FM_thought-char {\n    font-family: \"Modak\";\n    font-weight: 400;\n    font-style: normal;\n    font-display: swap;\n    font-size: 2.5em;\n    color: var(--SmartThemeQuoteColor);\n    transform-origin: bottom;\n    animation: charStretch 2s ease-in-out infinite;\n    vertical-align: bottom;\n}\n\n.meow_FM_thought-box:nth-child(1) .meow_FM_thought-dot,\n.meow_FM_thought-box:nth-child(1) .meow_FM_thought-char {\n    animation-delay: 0.1s;\n}\n\n.meow_FM_thought-box:nth-child(2) .meow_FM_thought-char {\n    animation-delay: 0.2s;\n}\n\n.meow_FM_thought-box:nth-child(3) .meow_FM_thought-char {\n    animation-delay: 0.3s;\n}\n\n.meow_FM_thought-box:nth-child(4) .meow_FM_thought-char {\n    animation-delay: 0.4s;\n}\n\n.meow_FM_thought-box:nth-child(5) .meow_FM_thought-char {\n    animation-delay: 0.5s;\n}\n\n.meow_FM_thought-box:nth-child(6) .meow_FM_thought-char {\n    animation-delay: 0.6s;\n}\n\n.meow_FM_thought-box:nth-child(7) .meow_FM_thought-dot,\n.meow_FM_thought-box:nth-child(7) .meow_FM_thought-char {\n    animation-delay: 0.7s;\n}\n\n@keyframes charStretch {\n\n    0%,\n    5%,\n    90% {\n        transform: scaleY(1);\n    }\n\n    20% {\n        transform: scaleY(0.6) scaleX(1.2);\n    }\n\n    24% {\n\n        text-shadow: none;\n    }\n\n    25% {\n        transform: scaleY(1.5) scaleX(0.8);\n        text-shadow: 0 0 6px var(--SmartThemeUnderlineColor);\n    }\n\n    60% {\n        transform: none;\n    }\n}\n\n@keyframes dotBounce {\n\n    0%,\n    25%,\n    100% {\n        transform: translateY(0);\n    }\n\n    35% {\n        transform: translateY(-40px) scaleY(1.8)scaleX(0.6);\n        animation-timing-function: ease-out;\n    }\n\n    50% {\n        transform: translateY(0) scaleY(0.8)scaleX(1.2);\n        animation-timing-function: ease-in;\n    }\n\n    65% {\n        transform: translateY(-12px) scaleY(1.2)scaleX(0.8);\n        animation-timing-function: ease-out;\n    }\n\n    85% {\n        transform: translateY(0);\n    }\n}\n\n@keyframes thought-fade-in {\n    0% {\n        opacity: 0;\n        transform: translateY(-10px);\n    }\n\n    100% {\n        opacity: 1;\n    }\n}\n\n\n.meow__thinking {\n    display: grid;\n    width: 100%;\n    place-items: center;\n    position: relative;\n    cursor: pointer;\n}\n\n.meow__thinking>.meow_FM_thought {\n    transition: opacity 0.6s ease, transform 0.6s ease, visibility 0.6s;\n}\n\n.meow__thinking>.meow_FM_thought,\n.meow__thinking>.meow_FM_thought-trigger {\n    grid-area: 1 / 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\ndetails:not([open]) .meow_FM_thought {\n    opacity: 1;\n    transform: scale(1);\n}\n\ndetails:not([open]) .meow_FM_thought-trigger {\n    opacity: 0;\n    transform: scale(1.2);\n    position: relative;\n}\n\ndetails[open] .meow_FM_thought {\n    opacity: 0;\n    transform: scale(0.6);\n}\n\ndetails[open] .meow_FM_thought-trigger {\n    pointer-events: auto;\n    opacity: 1;\n    font-size: 1.2em;\n    width: 100%;\n    height: 100%;\n    border-radius: 8px;\n    color: var(--SmartThemeQuoteColor);\n    box-shadow: inset 0 12px 10px -12px color-mix(in srgb, transparent, var(--SmartThemeUnderlineColor) 20%);\n    transform: scale(1);\n    transition: opacity 0.6s ease-in, transform 0.6s ease, visibility 0.6s, box-shadow 0.5s;\n}\n</style>\n",
+        "trimStrings": [],
+        "placement": [
+            1,
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": 0
+    },
+    {
+        "id": "ba082c47-d25e-4aeb-894a-274a2c57c7f1",
+        "scriptName": "Fin.CoT",
+        "findRegex": "/^([\\s\\S]+</thinking(?:ing)?>)/i",
+        "replaceString": "<details class=\"meow_FM\" style=\"margin-top:80px\"><summary><div class=\"meow__thinking\"><div class=\"meow_FM_thought\"><div class=\"meow_FM_thought-box\"><div class=\"meow_FM_thought-dot\"></div><span class=\"meow_FM_thought-char\">T</span></div><div class=\"meow_FM_thought-box\"><span class=\"meow_FM_thought-char\">H</span></div><div class=\"meow_FM_thought-box\"><span class=\"meow_FM_thought-char\">O</span></div><div class=\"meow_FM_thought-box\"><span class=\"meow_FM_thought-char\">U</span></div><div class=\"meow_FM_thought-box\"><span class=\"meow_FM_thought-char\">G</span></div><div class=\"meow_FM_thought-box\"><span class=\"meow_FM_thought-char\">H</span></div><div class=\"meow_FM_thought-box\"><div class=\"meow_FM_thought-dot\"></div><span class=\"meow_FM_thought-char\">T</span></div></div><span class=\"meow_FM_thought-trigger\" style=\"padding-top:10px\">· Thought ·</span></div></summary>\n\n<div markdown=\"1\" class=\"meow_FM-panel\" style=\"padding: 15px\">$1</div>\n\n</details>",
+        "trimStrings": [
+            "<thinking>",
+            "</thinking>",
+            "<think>",
+            "</think>",
+            "### 正文"
+        ],
+        "placement": [
+            2
+        ],
+        "disabled": true,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "bb914469-aa09-4e96-8b85-13086b99cc6c",
+        "scriptName": "双人成行-简洁.CoT",
+        "findRegex": "/^([\\s\\S]+<\\/thinking(?:ing)?>)/i",
+        "replaceString": "<details class=\"ink-cot\"><summary class=\"ink-cot-h\"><h1>双人成行</h1><div class=\"ink-st\">CLICK</div></summary><div class=\"ink-cot-c\" markdown=\"1\">$1</div></details><style>.ink-cot{border:1px solid currentColor;background:transparent;width:100%;box-sizing:border-box;font-family:serif;margin-top:10px;}.ink-cot-h{display:flex;justify-content:center;align-items:center;gap:8px;padding:10px;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;}.ink-cot-h::-webkit-details-marker{display:none;}.ink-cot[open] .ink-cot-h{border-bottom:1px solid currentColor;}.ink-cot-h h1{margin:0;font-size:14px;letter-spacing:2px;font-weight:bold;}.ink-st{font-size:8px;border:1px solid currentColor;padding:0 4px;font-family:monospace;}.ink-cot-c{padding:12px;font-size:13px;line-height:1.5;max-height:220px;overflow-y:auto;-ms-overflow-style:none;scrollbar-width:none;}.ink-cot-c::-webkit-scrollbar{display:none;}</style>",
+        "trimStrings": [
+            "<thinking>",
+            "</thinking>",
+            "<think>",
+            "</think>",
+            "### 正文"
+        ],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "d8b6ba9a-1106-48b5-849b-0e7618637ffe",
+        "scriptName": "双人成行-简洁.CoT（全展开版）",
+        "findRegex": "/^([\\s\\S]+<\\/thinking(?:ing)?>)/i",
+        "replaceString": "<details class=\"ink-cot\"><summary class=\"ink-cot-h\"><h1>双人成行</h1><div class=\"ink-st\">CLICK</div></summary><div class=\"ink-cot-c\" markdown=\"1\">$1</div></details><style>.ink-cot{border:1px solid currentColor;background:transparent;width:100%;box-sizing:border-box;font-family:serif;margin-top:10px;}.ink-cot-h{display:flex;justify-content:center;align-items:center;gap:8px;padding:10px;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;}.ink-cot-h::-webkit-details-marker{display:none;}.ink-cot[open] .ink-cot-h{border-bottom:1px solid currentColor;}.ink-cot-h h1{margin:0;font-size:14px;letter-spacing:2px;font-weight:bold;}.ink-st{font-size:8px;border:1px solid currentColor;padding:0 4px;font-family:monospace;}.ink-cot-c{padding:12px;font-size:13px;line-height:1.5;}</style>",
+        "trimStrings": [
+            "<thinking>",
+            "</thinking>",
+            "<think>",
+            "</think>",
+            "### 正文"
+        ],
+        "placement": [
+            2
+        ],
+        "disabled": true,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "a6dbd085-818b-4758-811d-9f58e3082727",
+        "scriptName": "Fin.隐藏CoT",
+        "findRegex": "^[\\s\\S]*?### 正文",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": true,
+        "markdownOnly": true,
+        "promptOnly": true,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "4faa2609-992a-4dbf-ade3-94f81e97e260",
+        "scriptName": "Fin.时间格式美化",
+        "findRegex": "/\\n*<time_format>\\s*([\\s\\S]+?)\\s*<\\/time_format>\\n*/ig",
+        "replaceString": "<details class=\"meow_FM\" style=\"margin-bottom: 15px; max-width: 85%;\"><summary><span class=\"meow_FM-trigger\"> ✧ Time Format ✧ </span></summary><div markdown=\"1\" class=\"meow_FM-panel\" style=\"padding: 15px; font-size: 0.9em; opacity: 0.9;\">$1</div></details>",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "26cce277-b385-41e0-a02c-121df6c101ba",
+        "scriptName": "Fin.摘要",
+        "findRegex": "/(?:```)?\\n<meow_FM>(?![\\s\\S]+<meow_FM>)\\s*time[:：]\\s*(.+)☆(.+)\\s*scene[:：]\\s*(.+)\\s*chars[:：]\\s*([\\s\\S]+)\\s*plot[:：]\\s*([\\s\\S]+?)(?:\\s*seeds[:：]\\s*([\\s\\S]+))?\\s+seri[\\w]{0,4}[:：]\\s*(.+)\\s*</[^>]*>(?:\\n```)?/i",
+        "replaceString": "<details class=\"meow_FM\" style=\"margin-bottom:40px\"><summary><span class=\"meow_FM-trigger\"> ˹ ˻ $7 ˼ ˺ </span></summary>\n<div class=\"meow_FM-panel\">\n<div class=\"meow_FM-panel-header\">\n<div class=\"meow_FM meow_FM-panel-left\">\n<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"class=\"meow_FM_position\">\n<path d=\"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z\"></path>\n<circle cx=\"12\" cy=\"10\" r=\"3\"></circle>\n</svg>\n$3\n</div>\n<div class=\"meow_FM meow_FM-panel-right\">\n<span class=\"meow_FM-right-primary\">$1</span>\n<div class=\"meow_FM-right-line\"></div>\n<span class=\"meow_FM-right-secondary\">$2</span>\n</div>\n</div>\n<hr>\n<div class=\"meow_FM-panel-body\">$5</div>\n</div>\n<div class=\"meow_FM-data\">\n<details class=\"meow_FM data-details data1\"><summary><span class=\"__data-trigger\">Cha.</span></summary>\n<div class=\"meow_FM __data-scroll\"><div markdown=\"1\" class=\"__data1--content\">$4</div></div>\n</details>\n<details class=\"meow_FM data-details data2\"><summary><span class=\"__data-trigger\">Sec.</span></summary>\n<div class=\"meow_FM __data-scroll-left\"><div markdown=\"1\" class=\"__data2--content\">$6</div></div>\n</details>\n</div>\n<div class=\"meow_FM_footer\">\n<span class=\"f_glitch-layer f_layer-1\" data-text=\"VER. ᴘʀɪsᴍ//ғᴏx\"></span>\n<span class=\"f_glitch-layer f_layer-2\" data-text=\"ᴘʀɪsᴍ//ғᴏx\"></span>\n<span class=\"f_glitch-layer f_layer-3\" data-text=\"ᴘʀɪsᴍ//ғᴏx⠀⠀⠀⠀⠀⠀⠀⠀\"></span>\n<span class=\"f_main-text\">— 双人成行</span>\n</div>\n</details>",
+        "trimStrings": [
+            "**"
+        ],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "30539e6f-a762-453e-84df-730069367e58",
+        "scriptName": "Fin.昼夜摘要栏",
+        "findRegex": "/<meow_FM>\\s*time:\\s*(.*?)\\s*scene:\\s*(.*?)\\s*chars:\\s*(.*?)\\s*plot:\\s*(.*?)\\s*(?:seeds:\\s*(.*?)\\s*)?serial:\\s*(\\d+)\\s*<\\/meow_FM>/s",
+        "replaceString": "```html\n<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n</head>\n<body>\n    <style>\n        /* --- 全局变量与孟菲斯基础 --- */\n        .memphis-root {\n            --m-blue: #A2D2FF;\n            --m-pink: #FFC2D1;\n            --m-yellow: #FAF3DD;\n            --m-white: #FFFFFF;\n            --m-text: #5A5A5A;\n            --m-accent: #B8C1EC;\n            \n            font-family: 'Segoe UI', system-ui, sans-serif;\n            color: var(--m-text);\n            max-width: 750px;\n            margin: 25px auto;\n            position: relative;\n            z-index: 1;\n        }\n\n        /* --- 漂浮流光羽毛背景 --- */\n        .m-bg-shapes {\n            position: absolute;\n            top: 0; left: 0; width: 100%; height: 100%;\n            overflow: hidden;\n            z-index: -1;\n            pointer-events: none;\n        }\n        .m-feather {\n            position: absolute;\n            background: rgba(255, 255, 255, 0.6);\n            backdrop-filter: blur(2px);\n            border-radius: 100% 0% 100% 0% / 100% 0% 100% 0%;\n            box-shadow: 0 0 15px rgba(255,255,255,0.8);\n            animation: floatFeather 10s infinite linear;\n        }\n        @keyframes floatFeather {\n            0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }\n            20% { opacity: 0.8; }\n            80% { opacity: 0.8; }\n            100% { transform: translate(100px, -200px) rotate(360deg); opacity: 0; }\n        }\n\n        /* --- 几何卡片结构 --- */\n        .m-main-card {\n            background: var(--m-white);\n            border-radius: 24px;\n            padding: 20px;\n            box-shadow: 12px 12px 0px var(--m-blue); /* 孟菲斯经典硬阴影 */\n            border: 2px solid #EEE;\n            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);\n        }\n\n        /* 顶部装饰条 */\n        .m-header {\n            display: flex;\n            align-items: center;\n            justify-content: space-between;\n            margin-bottom: 15px;\n            cursor: pointer;\n        }\n        .m-badge {\n            background: var(--m-pink);\n            color: white;\n            padding: 5px 15px;\n            border-radius: 50px;\n            font-weight: 900;\n            font-size: 0.9em;\n            transform: rotate(-2deg); /* 倾斜打破常规 */\n            box-shadow: 4px 4px 0px #F9A8BB;\n        }\n        .m-title-group {\n            text-align: right;\n        }\n        .m-main-title {\n            display: block;\n            font-size: 1.2em;\n            font-weight: 800;\n            letter-spacing: 2px;\n            color: var(--m-blue);\n        }\n\n        /* --- 动态排版网格 --- */\n        .m-body {\n            display: none; /* 默认折叠 */\n            animation: slideUp 0.4s ease-out;\n        }\n        @keyframes slideUp {\n            from { opacity: 0; transform: translateY(15px); }\n            to { opacity: 1; transform: translateY(0); }\n        }\n\n        .m-grid {\n            display: grid;\n            grid-template-columns: 1fr 1.2fr;\n            gap: 15px;\n            margin-top: 20px;\n        }\n\n        /* 状态小方块 */\n        .m-stat-box {\n            padding: 15px;\n            border-radius: 18px;\n            position: relative;\n            overflow: hidden;\n        }\n        .m-blue-box { background: #E1F1FF; }\n        .m-pink-box { background: #FFE5EC; }\n        .m-yellow-box { background: #FEF9EF; }\n\n        .m-label {\n            font-size: 0.7em;\n            text-transform: uppercase;\n            font-weight: 800;\n            margin-bottom: 8px;\n            display: block;\n            opacity: 0.6;\n        }\n        .m-val {\n            font-size: 0.85em;\n            font-weight: 600;\n            white-space: pre-wrap; /* 允许换行 */\n            line-height: 1.5;\n        }\n\n        /* 总结区：打破边框 */\n        .m-plot-card {\n            grid-column: 1 / -1;\n            background: var(--m-yellow);\n            padding: 20px;\n            border-radius: 20px;\n            border-left: 6px solid var(--m-blue);\n            box-shadow: inset 5px 5px 15px rgba(0,0,0,0.02);\n        }\n\n        /* 伏笔区：贴纸风格 */\n        .m-seeds-trigger {\n            margin-top: 15px;\n            background: var(--m-pink);\n            padding: 12px;\n            border-radius: 15px;\n            cursor: pointer;\n            color: white;\n            font-weight: 800;\n            text-align: center;\n            transition: transform 0.2s;\n            box-shadow: 0 4px 0 #F9A8BB;\n        }\n        .m-seeds-trigger:hover { transform: scale(1.02); }\n        .m-seeds-content {\n            display: none;\n            margin-top: 10px;\n            padding: 15px;\n            background: white;\n            border: 2px dashed var(--m-pink);\n            border-radius: 15px;\n            font-size: 0.85em;\n            white-space: pre-wrap;\n            line-height: 1.6;\n        }\n\n        /* 几何装饰圆球 */\n        .decor-circle {\n            position: absolute;\n            width: 40px; height: 40px;\n            border-radius: 50%;\n            background: var(--m-blue);\n            top: -20px; right: -10px;\n            opacity: 0.3;\n        }\n\n        @media (max-width: 500px) {\n            .m-grid { grid-template-columns: 1fr; }\n        }\n    </style>\n\n    <div class=\"memphis-root\">\n        <!-- 装饰背景 -->\n        <div class=\"m-bg-shapes\">\n            <div class=\"m-feather\" style=\"width:20px; height:40px; left:10%; top:80%; animation-delay: 0s;\"></div>\n            <div class=\"m-feather\" style=\"width:15px; height:30px; left:80%; top:20%; animation-delay: 2s;\"></div>\n            <div class=\"m-feather\" style=\"width:25px; height:50px; left:40%; top:50%; animation-delay: 4s;\"></div>\n        </div>\n\n        <div class=\"m-main-card\">\n            <!-- 头部 -->\n            <div class=\"m-header\" onclick=\"m_toggleMain(this)\">\n                <div class=\"m-badge\">NO.$6</div>\n                <div class=\"m-title-group\">\n                    <span class=\"m-main-title\">DATA SUMMARY</span>\n                    <span style=\"font-size: 10px; opacity: 0.5;\">▼ CLICK TO UNFOLD</span>\n                </div>\n            </div>\n\n            <!-- 折叠内容 -->\n            <div class=\"m-body\">\n                <div class=\"m-grid\">\n                    <div class=\"m-stat-box m-blue-box\">\n                        <span class=\"m-label\">TIME & SPACE</span>\n                        <div class=\"m-val\">$1</div>\n                    </div>\n                    <div class=\"m-stat-box m-pink-box\">\n                        <span class=\"m-label\">CHARACTERS</span>\n                        <div class=\"m-val\">$3</div>\n                    </div>\n                    \n                    <div class=\"m-plot-card\">\n                        <span class=\"m-label\" style=\"color:var(--m-blue)\">CURRENT PLOT</span>\n                        <div class=\"m-val\" style=\"font-size: 0.9em;\">$4</div>\n                    </div>\n\n                    <div style=\"grid-column: 1/-1;\">\n                        <div class=\"m-seeds-trigger\" onclick=\"m_toggleSeeds(this)\">\n                            ✦ 埋下的伏笔 (SEEDS) ✦\n                        </div>\n                        <div class=\"m-seeds-content\">\n                            <div class=\"m-seeds-inner\">$5</div>\n                        </div>\n                    </div>\n                </div>\n            </div>\n            <!-- 装饰球 -->\n            <div class=\"decor-circle\"></div>\n        </div>\n\n        <!-- 环境提示(独立小卡片) -->\n        <div style=\"margin-top: 10px; padding: 0 10px; display: flex; justify-content: flex-end;\">\n            <div style=\"background:var(--m-accent); color:white; padding:4px 12px; border-radius:10px; font-size:11px; font-weight:bold; box-shadow: 3px 3px 0 rgba(0,0,0,0.1);\">\n                SCENE: $2\n            </div>\n        </div>\n    </div>\n\n    <!-- 逻辑触发器 -->\n    <img src=\"data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=\" style=\"display:none\" onload=\"m_initLogic(this)\">\n\n    <script>\n        // 初始化逻辑\n        function m_initLogic(img) {\n            const root = img.closest('.memphis-root');\n            const seedInner = root.querySelector('.m-seeds-inner');\n            // 清理未匹配的占位符\n            if (seedInner) {\n                const txt = seedInner.innerText.trim();\n                if (txt === '$' + '5' || txt === '' || txt === 'undefined') {\n                    seedInner.innerHTML = '<span style=\"opacity:0.5; font-style:italic;\">暂无波动伏笔。</span>';\n                }\n            }\n        }\n\n        // 切换主面板：使用最安全的选择器，防止换行节点干扰\n        function m_toggleMain(header) {\n            const root = header.closest('.memphis-root');\n            const body = root.querySelector('.m-body');\n            const isVisible = body.style.display === 'block';\n            \n            body.style.display = isVisible ? 'none' : 'block';\n            header.closest('.m-main-card').style.boxShadow = isVisible \n                ? '12px 12px 0px var(--m-blue)' \n                : '6px 6px 0px var(--m-blue)';\n        }\n\n        // 切换伏笔区\n        function m_toggleSeeds(btn) {\n            const root = btn.closest('.memphis-root');\n            const content = root.querySelector('.m-seeds-content');\n            const isVisible = content.style.display === 'block';\n            \n            content.style.display = isVisible ? 'none' : 'block';\n            btn.style.transform = isVisible ? 'scale(1)' : 'scale(0.98)';\n            btn.style.boxShadow = isVisible ? '0 4px 0 #F9A8BB' : 'none';\n        }\n    </script>\n</body>\n</html>\n```\n",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": true,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "51f055f6-abb2-409e-b1a6-8184b3ee9b72",
+        "scriptName": "Fin.心理描写",
+        "findRegex": "/(?<=<p style=\")(color:\\s*#[\\dA-Z]+?;)/gi",
+        "replaceString": "$1font-style: italic;",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    },
+    {
+        "id": "8d377da8-4f7d-4615-a432-046e7bc33b0e",
+        "scriptName": "fin.选项美化-不透明",
+        "findRegex": "/<branches>(?!.*<branches>)\\s*(?:<details>.*?</summary>\\s*)?(.+?)(?:</details>\\s*)?</[^>]*>/is",
+        "replaceString": "```html\n<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>选项美化 - 双人成行主题款</title>\n    \n    <style>\n        /* ---------------------------------- */\n        /* --- 🎨 ᴘʀɪsᴍ//ғᴏx x 双人成行 专属配置 --- */\n        /* ---------------------------------- */\n        :root {\n            /* 颜色板 */\n            --card-bg-color: #1a1a1a;        /* 极暗深灰底色 */\n            --text-color: #e0e0e0;           /* 清晰的主文字色 */\n            --text-muted: #888888;           /* 柔和的次要文字色 */\n            --border-color: #333333;         /* 面板边框 */\n            --divider-color: rgba(255, 255, 255, 0.15); /* 虚线分割线 */\n            --inner-bg-color: rgba(255, 255, 255, 0.03);/* 选项默认底色 */\n            --hover-bg-color: rgba(255, 255, 255, 0.08);/* 选项悬停底色 */\n            \n            /* 🎮 双人成行 专属主题色 */\n            --may-blue: #4da6ff;   /* 小梅蓝 */\n            --cody-green: #8ceb4d; /* 科迪绿 */\n            \n            /* 尺寸与动画 */\n            --container-width: 550px;\n            --transition-speed: 0.3s;\n            --collapse-speed: 0.4s;\n        }\n\n        body {\n            display: flex;\n            justify-content: center;\n            padding: 2em 20px;\n            margin: 0;\n            /* 换成干净利落的系统无衬线字体 */\n            font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n            background-color: transparent;\n            color: var(--text-color);\n        }\n\n        /* --------------------------------------- */\n        /* --- 🃏 科技风面板布局 --- */\n        /* --------------------------------------- */\n        .post-it-container {\n            max-width: var(--container-width);\n            width: 100%;\n            background-color: var(--card-bg-color);\n            border: 1px solid var(--border-color);\n            border-radius: 8px;\n            padding: 20px;\n            cursor: pointer;\n            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);\n            transition: border-color var(--transition-speed), box-shadow var(--transition-speed);\n            position: relative;\n            overflow: hidden;\n        }\n\n        .post-it-container:hover {\n            border-color: #555;\n            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);\n        }\n\n        /* --------------------------------------- */\n        /* --- 🕹️ meow.FM 风格头部 --- */\n        /* --------------------------------------- */\n        .meow-header {\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n            font-size: 13px;\n            font-weight: 600;\n            letter-spacing: 1px;\n            user-select: none;\n        }\n\n        .meow-left {\n            display: flex;\n            align-items: center;\n            gap: 8px;\n            color: var(--text-color);\n        }\n\n        .meow-right {\n            display: flex;\n            align-items: center;\n            gap: 10px;\n        }\n\n        .meow-line {\n            width: 24px;\n            height: 1px;\n            background-color: var(--border-color);\n        }\n\n        .meow-primary { color: var(--text-color); }\n        .meow-secondary { color: var(--text-muted); }\n\n        /* -------------------------------------- */\n        /* --- 📜 可折叠内容区域 --- */\n        /* -------------------------------------- */\n        .post-it-collapsible {\n            display: grid;\n            grid-template-rows: 0fr;\n            transition: grid-template-rows var(--collapse-speed) ease-out;\n        }\n\n        .post-it-collapsible.open {\n            grid-template-rows: 1fr;\n        }\n\n        .content-wrapper {\n            overflow: hidden;\n            min-height: 0;\n            padding-top: 15px;\n            margin-top: 15px;\n            border-top: 1px dashed var(--divider-color);\n        }\n\n        #options-container {\n            display: flex;\n            flex-direction: column;\n            gap: 8px;\n        }\n\n        /* -------------------------------------- */\n        /* --- ✨ 选项列表科幻样式 --- */\n        /* -------------------------------------- */\n        .clickable-text {\n            cursor: pointer;\n            padding: 12px 16px;\n            border: 1px solid var(--border-color);\n            border-radius: 6px;\n            background-color: var(--inner-bg-color);\n            font-size: 14px;\n            color: var(--text-color);\n            \n            /* 初始隐藏，用于展开时的飞入动画 */\n            opacity: 0;\n            transform: translateY(-8px);\n            pointer-events: none;\n            \n            transition: all 0.3s ease;\n            position: relative;\n            overflow: hidden;\n        }\n\n        .clickable-text li {\n            list-style: none;\n            margin: 0;\n            padding: 0;\n            position: relative;\n            z-index: 2;\n        }\n\n        /* 展开时的动画恢复 */\n        .post-it-collapsible.open .clickable-text {\n            opacity: 1;\n            transform: translateY(0);\n            pointer-events: auto;\n        }\n\n        /* 级联延迟，让选项逐个顺滑飞入 */\n        .post-it-collapsible.open .clickable-text:nth-child(1) { transition-delay: 0.05s; }\n        .post-it-collapsible.open .clickable-text:nth-child(2) { transition-delay: 0.10s; }\n        .post-it-collapsible.open .clickable-text:nth-child(3) { transition-delay: 0.15s; }\n        .post-it-collapsible.open .clickable-text:nth-child(4) { transition-delay: 0.20s; }\n        .post-it-collapsible.open .clickable-text:nth-child(5) { transition-delay: 0.25s; }\n        .post-it-collapsible.open .clickable-text:nth-child(6) { transition-delay: 0.30s; }\n\n        /* 🎮 专属交互彩蛋：奇数蓝(小梅)，偶数绿(科迪) */\n        .clickable-text:hover {\n            background-color: var(--hover-bg-color);\n            border-color: #555;\n            transform: translateX(6px) !important;\n            box-shadow: -4px 0 0 var(--may-blue);\n        }\n        .clickable-text:nth-child(even):hover {\n            box-shadow: -4px 0 0 var(--cody-green);\n        }\n\n        /* -------------------------------------- */\n        /* --- 🐾 底部署名 --- */\n        /* -------------------------------------- */\n        .meow-footer {\n            margin-top: 16px;\n            padding-top: 12px;\n            border-top: 1px solid var(--border-color);\n            text-align: right;\n            font-size: 11px;\n            color: var(--text-muted);\n            letter-spacing: 0.5px;\n            opacity: 0;\n            transition: opacity 0.5s ease;\n        }\n\n        .post-it-collapsible.open .meow-footer {\n            opacity: 1;\n            transition-delay: 0.3s;\n        }\n    </style>\n</head>\n<body>\n\n<div class=\"post-it-container\" id=\"post-it-card\">\n    \n    <div class=\"meow-header\">\n        <div class=\"meow-left\">\n            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\">\n                <path d=\"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z\"></path>\n                <circle cx=\"12\" cy=\"10\" r=\"3\"></circle>\n            </svg>\n            <span>ᴘʀɪsᴍ//ғᴏx</span>\n        </div>\n        <div class=\"meow-right\">\n            <span class=\"meow-primary\">OPTIONS</span>\n            <div class=\"meow-line\"></div>\n            <span class=\"meow-secondary\">双人成行</span>\n        </div>\n    </div>\n\n    <div class=\"post-it-collapsible\" id=\"collapsible-content\">\n        <div class=\"content-wrapper\">\n            <div id=\"options-container\"></div>\n            \n            <div class=\"meow-footer\">\n                VER. ᴘʀɪsᴍ//ғᴏx — 双人成行\n            </div>\n        </div>\n    </div>\n</div>\n\n<div id=\"raw-options-data\" style=\"display:none;\">$1</div>\n\n<script>\ndocument.addEventListener('DOMContentLoaded', function() {\n    \n    function initPostItCard() {\n        const elements = {\n            card: document.getElementById('post-it-card'),\n            collapsibleContent: document.getElementById('collapsible-content'),\n            optionsContainer: document.getElementById('options-container'),\n            rawData: document.getElementById('raw-options-data')\n        };\n\n        if (!elements.card || !elements.rawData || !elements.optionsContainer) {\n            console.error(\"Post-it card essential elements not found.\");\n            return;\n        }\n\n        setupOptionList(elements.rawData, elements.optionsContainer);\n        setupCollapsible(elements);\n    }\n\n    function setupOptionList(dataEl, targetContainer) {\n        const rawText = dataEl.textContent.trim();\n        const lines = rawText.split(/\\r?\\n/).filter(line => line.trim() !== '');\n\n        lines.forEach(line => {\n            const cleanText = line.trim().replace(/^[A-Z]\\.\\s*/i, '');\n            if (!cleanText) return;\n\n            const optionDiv = document.createElement('div');\n            optionDiv.className = 'clickable-text';\n            optionDiv.setAttribute('data-action', cleanText);\n            optionDiv.innerHTML = `<li>${cleanText}</li>`;\n            \n            optionDiv.addEventListener('click', function() {\n                const textToSend = this.getAttribute('data-action');\n                try {\n                    const input = window.parent.document.querySelector('#send_textarea');\n                    const trigger = window.parent.triggerSlash;\n                    if (input) {\n                        const newValue = input.value + textToSend;\n                        if (trigger) {\n                            trigger(`/setinput ${newValue}`);\n                        } else {\n                            input.value = newValue;\n                            input.dispatchEvent(new Event('input', { bubbles: true }));\n                        }\n                    } else if (trigger) {\n                        trigger(`/setinput ${textToSend}`);\n                    }\n                } catch (e) {\n                    console.error('Error setting input text:', e);\n                }\n            });\n            targetContainer.appendChild(optionDiv);\n        });\n    }\n\n    function setupCollapsible(elements) {\n        const { card, collapsibleContent, optionsContainer } = elements;\n\n        card.addEventListener('click', (event) => {\n            const interactiveElements = [\n                ...optionsContainer.querySelectorAll('.clickable-text')\n            ];\n            \n            const isClickOnInteractiveChild = interactiveElements.some(el => el && el.contains(event.target));\n\n            if (!isClickOnInteractiveChild) {\n                collapsibleContent.classList.toggle('open');\n            }\n        });\n    }\n\n    initPostItCard();\n});\n</script>\n</body>\n</html>\n```",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": true,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": 2
+    },
+    {
+        "id": "8bc2b2aa-d0d5-46c3-afec-ab75131d4248",
+        "scriptName": "双人成行-简洁.选项栏",
+        "findRegex": "/<branches>(?!.*<branches>)\\s*(?:<details>.*?</summary>\\s*)?(.+?)(?:</details>\\s*)?</[^>]*>/is",
+        "replaceString": "```html\n<!DOCTYPE html>\n<html>\n<head>\n <meta charset=\"UTF-8\">\n <style>\n body { margin: 0; padding: 5px; background: transparent; display: flex; justify-content: center; transition: color 0.3s; }\n .ink-box { width: 100%; max-width: 500px; border: 1px solid currentColor; background: transparent; box-sizing: border-box; }\n .ink-h { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }\n .ink-h.open { border-bottom: 1px solid currentColor; }\n .ink-h h1 { margin: 0; font-size: 16px; letter-spacing: 2px; font-weight: bold; }\n .ink-st { font-size: 8px; border: 1px solid currentColor; padding: 0 4px; font-family: monospace; line-height: 1.2; }\n .ink-c { display: none; opacity: 0; transition: opacity 0.15s linear; }\n .ink-c.show { display: block; }\n .ink-c.fade-in { opacity: 1; }\n .ink-p { padding: 12px; }\n .opt { cursor: pointer; padding: 8px 12px; border: 1px solid currentColor; font-size: 13px; line-height: 1.4; background: transparent; color: currentColor; margin-bottom: 8px; -webkit-tap-highlight-color: transparent; transition: background 0.2s; }\n .opt:hover { background: rgba(127, 127, 127, 0.15); }\n .opt:active { opacity: 0.6; }\n .opt:last-child { margin-bottom: 0; }\n .ink-f { margin-top: 12px; padding-top: 6px; border-top: 1px dashed currentColor; text-align: right; font-size: 8px; opacity: 0.5; }\n </style>\n</head>\n<body>\n<div class=\"ink-box\">\n <div class=\"ink-h\" id=\"t\"><h1>人生几何</h1><div class=\"ink-st\" id=\"s\">CLOSED</div></div>\n <div class=\"ink-c\" id=\"b\"><div class=\"ink-p\"><div id=\"o\"></div><div class=\"ink-f\">CLICK TO SEND</div></div></div>\n</div>\n<div id=\"d\" style=\"display:none;\">$1</div>\n<script>\ndocument.addEventListener('DOMContentLoaded', () => {\n /*=== 核心功能：直接窃取并同步酒馆的主题颜色与字体 ===*/\n try {\n const pDoc = window.parent.document;\n const mesText = pDoc.querySelector('.mes_text') || pDoc.body;\n const syncStyle = () => {\n const st = window.parent.getComputedStyle(mesText);\n document.body.style.color = st.color; // 同步文字颜色\n document.body.style.fontFamily = st.fontFamily; // 同步自定义字体\n };\n syncStyle(); // 立即同步一次\n \n // 设立监控：当你在酒馆设置里更改主题时，它立刻跟着变\n const obs = new MutationObserver(syncStyle);\n obs.observe(pDoc.body, { attributes: true, attributeFilter: ['data-theme', 'style', 'class'] });\n } catch(e){ console.warn(\"Theme sync failed\", e); }\n\n /*=== 原版的按钮与折叠逻辑 ===*/\n const t = document.getElementById('t'), b = document.getElementById('b'), s = document.getElementById('s'), d = document.getElementById('d'), o = document.getElementById('o');\n let isOpen = false;\n t.onclick = () => {\n isOpen = !isOpen;\n s.textContent = isOpen ? 'OPEN' : 'CLOSED';\n if (isOpen) {\n t.classList.add('open');\n b.classList.add('show');\n setTimeout(() => b.classList.add('fade-in'), 10);\n } else {\n t.classList.remove('open');\n b.classList.remove('fade-in');\n setTimeout(() => b.classList.remove('show'), 150);\n }\n };\n if (d && o) {\n d.textContent.trim().split(/\\r?\\n/).filter(l => l.trim()).forEach(l => {\n const txt = l.trim().replace(/^[A-Z]\\.\\s*/i, '');\n if (!txt) return;\n const i = document.createElement('div'); i.className = 'opt'; i.innerHTML = `<span>${txt}</span>`;\n i.onclick = (e) => {\n e.stopPropagation();\n const inp = window.parent.document.querySelector('#send_textarea'), tr = window.parent.triggerSlash;\n if (inp) {\n inp.value += txt;\n inp.dispatchEvent(new Event('input', { bubbles: true }));\n inp.focus(); // 自动聚焦输入框\n } else if (tr) tr(`/setinput ${txt}`);\n };\n o.appendChild(i);\n });\n }\n});\n</script>\n</body>\n</html>\n```",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": 2
+    },
+    {
+        "id": "48dacea7-ae6a-49f6-b4d1-654f0efbda9c",
+        "scriptName": "隐藏### 正文",
+        "findRegex": "/### 正文\\s*/g",
+        "replaceString": "",
+        "trimStrings": [],
+        "placement": [
+            2
+        ],
+        "disabled": false,
+        "markdownOnly": true,
+        "promptOnly": false,
+        "runOnEdit": true,
+        "substituteRegex": 0,
+        "minDepth": null,
+        "maxDepth": null
+    }
+]

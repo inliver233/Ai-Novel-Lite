@@ -380,6 +380,7 @@ def run_batch_generation_task(*, task_id: str) -> None:
             style_guide=style_guide,
             constraints=constraints,
             characters_text=characters_text,
+            entries_text="",
             outline_text=outline_text,
             instruction=instruction,
             target_word_count=params.target_word_count,

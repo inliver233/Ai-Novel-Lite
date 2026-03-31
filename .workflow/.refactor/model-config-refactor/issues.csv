@@ -1,0 +1,10 @@
+issue_id,title,phase,scope,dependencies,status,assignee,description
+MC-001,Update defaults + types cleanup,1,defaults+types,none,DONE,codex,"Update DEFAULT_LLM_FORM in models.ts: max_tokens='128000' timeout_seconds='600'. Simplify cardTypes.ts for new component structure. Update index.ts exports."
+MC-002,Rewrite LlmPresetPanel as unified main config block,2,main-config,MC-001,DONE,codex,"Complete rewrite of LlmPresetPanel.tsx as single unified block: config selector row + provider/url/key/model fields + collapsible params (temp/maxCtx/timeout/reasoning). Remove separate card imports."
+MC-003,Rewrite PromptsVectorRagSection with tab toggle,2,rag-config,MC-001,DONE,codex,"Complete rewrite of PromptsVectorRagSection.tsx: tab toggle embed/rerank in one panel + shared url/key/model fields + collapsible per-tab params. Save+Test buttons in top-right."
+MC-004,Simplify TaskOverrideSection,2,task-overrides,MC-001,DEFERRED,codex,"Simplify TaskOverrideSection.tsx: compact task cards with provider/url/key/model + collapsible params. 4 task types only. (Deferred: existing section works, low priority)"
+MC-005,Backend inline model fetch endpoint,2,backend,none,DEFERRED,codex,"Add POST /api/llm_models/fetch endpoint. (Deferred: existing profile-based fetch still works)"
+MC-006,Integration: update PromptsPage + usePromptsPageState,3,integration,MC-002;MC-003,DONE,codex,"PromptsPage.tsx unchanged (compatible). usePromptsPageState.ts unchanged (props interfaces preserved)."
+MC-007,Cleanup: remove old cards + update exports,3,cleanup,MC-006,DONE,codex,"Removed 6 old card files. Updated index.ts. Cleaned up cardTypes.ts."
+MC-008,Code review + build verification,4,review,MC-007,DONE,codex,"Full code review completed via Codex gpt-5.2. Issues found and fixed (MC-009). TypeScript PASS."
+MC-009,Fix critical issues from review,4,fixes,MC-008,DONE,codex,"Fixed: API Key save/clear buttons, profile name input, aria-labels, clear key in RAG, React.Dispatch consistency."

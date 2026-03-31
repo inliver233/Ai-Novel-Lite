@@ -68,10 +68,60 @@ def likely_truncated_json(text: str) -> bool:
     return text.count("{") > text.count("}") or text.count("[") > text.count("]")
 
 
+def _recover_partial_outline_chapters(text: str) -> list[dict[str, Any]]:
+    """Try to recover valid chapter objects from truncated/malformed JSON.
+
+    Scans for individual chapter-like JSON objects ({...number...title...beats...})
+    and extracts all fully parseable ones, even when the overall JSON is broken.
+    """
+    decoder = json.JSONDecoder()
+    chapters: list[dict[str, Any]] = []
+    # Look for chapter object patterns: {"number": ...}
+    for m in re.finditer(r'\{\s*"number"\s*:', text):
+        try:
+            value, _ = decoder.raw_decode(text, m.start())
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if not isinstance(value, dict):
+            continue
+        try:
+            number = int(value.get("number"))
+        except (TypeError, ValueError):
+            continue
+        title = str(value.get("title") or "")
+        beats_raw = value.get("beats") or []
+        beats = [str(b) for b in beats_raw if b is not None] if isinstance(beats_raw, list) else []
+        chapters.append({"number": number, "title": title, "beats": beats})
+    # Deduplicate by number (keep last occurrence)
+    seen: dict[int, dict[str, Any]] = {}
+    for ch in chapters:
+        seen[ch["number"]] = ch
+    return sorted(seen.values(), key=lambda c: c["number"])
+
+
 def parse_outline_output(text: str) -> tuple[dict[str, Any], list[str], dict[str, Any] | None]:
     warnings: list[str] = []
     value, raw_json = extract_json_value(text)
     if not isinstance(value, dict):
+        # Full JSON extraction failed. Try partial recovery of individual chapters.
+        recovered_chapters = _recover_partial_outline_chapters(text)
+        if recovered_chapters:
+            warnings.append("partial_json_recovery")
+            # Try to extract outline_md from the text (before first chapter object)
+            outline_md = ""
+            outline_match = re.search(r'"outline_md"\s*:\s*"', text)
+            if outline_match:
+                # Try to extract the outline_md string value
+                try:
+                    decoder = json.JSONDecoder()
+                    val, _ = decoder.raw_decode(text, outline_match.start() - 1 if text[outline_match.start() - 1] == '{' else outline_match.start())
+                    if isinstance(val, dict) and "outline_md" in val:
+                        outline_md = str(val["outline_md"])
+                except (json.JSONDecodeError, ValueError, IndexError):
+                    pass
+            data = {"outline_md": outline_md or text, "chapters": recovered_chapters, "raw_output": text}
+            return data, warnings, None
+
         parse_error: dict[str, Any] = {"code": "OUTLINE_PARSE_ERROR", "message": "无法从模型输出解析章节结构"}
         if likely_truncated_json(text):
             parse_error["hint"] = "输出疑似被截断（JSON 未闭合），可尝试增大 max_tokens 或降低目标字数/章节数"

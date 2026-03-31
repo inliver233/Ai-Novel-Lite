@@ -118,9 +118,10 @@ export function LlmPresetPanel(props: Props) {
             className="select"
             disabled={sharedSaving}
             value={props.llmForm.reasoning_effort}
-            onChange={(e) =>
-              props.setLlmForm((prev) => ({ ...prev, reasoning_effort: e.currentTarget.value }))
-            }
+            onChange={(e) => {
+              const value = e.currentTarget.value;
+              props.setLlmForm((prev) => ({ ...prev, reasoning_effort: value }));
+            }}
           >
             <option value="">默认</option>
             <option value="minimal">minimal</option>
@@ -140,12 +141,13 @@ export function LlmPresetPanel(props: Props) {
               type="checkbox"
               checked={props.llmForm.anthropic_thinking_enabled}
               disabled={sharedSaving}
-              onChange={(e) =>
+              onChange={(e) => {
+                const checked = e.currentTarget.checked;
                 props.setLlmForm((prev) => ({
                   ...prev,
-                  anthropic_thinking_enabled: e.currentTarget.checked,
-                }))
-              }
+                  anthropic_thinking_enabled: checked,
+                }));
+              }}
             />
             <span className="text-xs text-subtext">启用推理（thinking）</span>
           </label>
@@ -290,7 +292,10 @@ export function LlmPresetPanel(props: Props) {
             disabled={sharedSaving}
             placeholder="https://api.openai.com/v1"
             value={props.llmForm.base_url}
-            onChange={(e) => props.setLlmForm((v) => ({ ...v, base_url: e.currentTarget.value }))}
+            onChange={(e) => {
+              const value = e.currentTarget.value;
+              props.setLlmForm((v) => ({ ...v, base_url: value }));
+            }}
           />
         </label>
 
@@ -334,7 +339,10 @@ export function LlmPresetPanel(props: Props) {
               disabled={sharedSaving}
               list="main-module_models"
               value={props.llmForm.model}
-              onChange={(e) => props.setLlmForm((v) => ({ ...v, model: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                props.setLlmForm((v) => ({ ...v, model: value }));
+              }}
             />
             <datalist id="main-module_models">
               {props.mainModelList.options.map((o) => (
@@ -377,9 +385,10 @@ export function LlmPresetPanel(props: Props) {
               type="text"
               disabled={sharedSaving}
               value={props.llmForm.max_tokens}
-              onChange={(e) =>
-                props.setLlmForm((prev) => ({ ...prev, max_tokens: e.currentTarget.value }))
-              }
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                props.setLlmForm((prev) => ({ ...prev, max_tokens: value }));
+              }}
             />
             {capabilitiesHint ? (
               <div className="text-[11px] text-subtext">{capabilitiesHint}</div>
@@ -392,9 +401,10 @@ export function LlmPresetPanel(props: Props) {
               type="text"
               disabled={sharedSaving}
               value={props.llmForm.timeout_seconds}
-              onChange={(e) =>
-                props.setLlmForm((prev) => ({ ...prev, timeout_seconds: e.currentTarget.value }))
-              }
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                props.setLlmForm((prev) => ({ ...prev, timeout_seconds: value }));
+              }}
             />
           </label>
           {renderReasoningControl()}

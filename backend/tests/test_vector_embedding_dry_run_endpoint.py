@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import json
 import unittest
+from typing import Generator
 from unittest.mock import patch
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from starlette.testclient import TestClient
 
 from app.api.routes import vector as vector_routes
 from app.core.errors import AppError
 from app.db.base import Base
+from app.db.session import get_db
 from app.main import app_error_handler, validation_error_handler
 from app.models.project import Project
 from app.models.project_settings import ProjectSettings
@@ -35,7 +37,7 @@ def _collect_keys(value: object) -> set[str]:
     return set()
 
 
-def _make_test_app() -> FastAPI:
+def _make_test_app(SessionLocal: sessionmaker) -> FastAPI:
     app = FastAPI()
 
     @app.middleware("http")
@@ -51,6 +53,15 @@ def _make_test_app() -> FastAPI:
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.include_router(vector_routes.router, prefix="/api")
+
+    def _override_get_db() -> Generator[Session, None, None]:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = _override_get_db
     return app
 
 
@@ -72,7 +83,7 @@ class TestVectorEmbeddingDryRunEndpoint(unittest.TestCase):
             ],
         )
         self.SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-        self.app = _make_test_app()
+        self.app = _make_test_app(self.SessionLocal)
 
         self.secret = "sk-test-SECRET1234"
         with self.SessionLocal() as db:

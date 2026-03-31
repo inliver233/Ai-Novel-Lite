@@ -31,7 +31,7 @@ from app.services.embedding_service import (
 from app.services.project_task_event_service import emit_and_enqueue_project_task, reset_project_task_to_queued
 
 logger = logging.getLogger("ainovel")
-VectorSource = Literal["outline", "chapter", "story_memory"]
+VectorSource = Literal["worldbook", "outline", "chapter", "story_memory"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +41,7 @@ class VectorChunk:
     metadata: dict[str, Any]
 
 
-_ALL_SOURCES: list[VectorSource] = ["outline", "chapter", "story_memory"]
+_ALL_SOURCES: list[VectorSource] = ["worldbook", "outline", "chapter", "story_memory"]
 _PGVECTOR_TABLE = "vector_chunks"
 _PGVECTOR_READY_CACHE: tuple[bool, float] | None = None
 _PGVECTOR_READY_CACHE_TTL_SECONDS = 30.0

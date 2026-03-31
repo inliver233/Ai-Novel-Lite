@@ -217,6 +217,8 @@ def generate_outline_stream_events(
             "openai_responses",
             "openai_compatible",
             "openai_responses_compatible",
+            "anthropic",
+            "gemini",
         ):
             yield sse_progress(message="尝试修复 JSON...", progress=92)
             repair = build_repair_prompt_for_task("outline_generate", raw_output=raw_output)
@@ -226,7 +228,10 @@ def generate_outline_stream_events(
             if repair is None:
                 raise AppError(code="OUTLINE_FIX_UNSUPPORTED", message="该任务不支持输出修复", status_code=400)
             fix_system, fix_user, fix_run_type = repair
-            fix_call = with_param_overrides(llm_call, {"temperature": 0, "max_tokens": 1024})
+            # Use a generous max_tokens for repair — 1024 is far too small for multi-chapter outlines.
+            # Use the original max_tokens (clamped to a reasonable floor) so the repair can output the full JSON.
+            repair_max_tokens = max(int(llm_call.params.get("max_tokens") or 16384), 8192)
+            fix_call = with_param_overrides(llm_call, {"temperature": 0, "max_tokens": repair_max_tokens})
             try:
                 fixed = call_llm_and_record(
                     logger=logger,
