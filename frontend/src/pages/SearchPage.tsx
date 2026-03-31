@@ -21,7 +21,7 @@ type SearchQueryResponse = {
   fts_enabled?: boolean;
 };
 
-const ACTIVE_SOURCE_TYPES = new Set(["chapter", "outline", "character", "story_memory", "source_document"]);
+const ACTIVE_SOURCE_TYPES = new Set(["chapter", "outline", "character", "story_memory", "source_document", "entry"]);
 
 const SOURCE_OPTIONS: Array<{ key: string; label: string }> = [
   { key: "chapter", label: UI_COPY.search.sourceLabels.chapter },
@@ -29,6 +29,7 @@ const SOURCE_OPTIONS: Array<{ key: string; label: string }> = [
   { key: "character", label: UI_COPY.search.sourceLabels.character },
   { key: "story_memory", label: UI_COPY.search.sourceLabels.storyMemory },
   { key: "source_document", label: UI_COPY.search.sourceLabels.sourceDocument },
+  { key: "entry", label: UI_COPY.search.sourceLabels.entry },
 ];
 
 function filterActiveItems(items: SearchItem[]): SearchItem[] {
@@ -125,6 +126,8 @@ export function SearchPage() {
         return UI_COPY.search.sourceLabels.storyMemory;
       case "source_document":
         return UI_COPY.search.sourceLabels.sourceDocument;
+      case "entry":
+        return UI_COPY.search.sourceLabels.entry;
       default:
         return sourceType;
     }
@@ -136,7 +139,8 @@ export function SearchPage() {
       it.source_type === "chapter" ||
       it.source_type === "outline" ||
       it.source_type === "character" ||
-      it.source_type === "source_document"
+      it.source_type === "source_document" ||
+      it.source_type === "entry"
     );
   }, []);
 
@@ -160,6 +164,10 @@ export function SearchPage() {
       }
       if (it.source_type === "character") {
         navigate(`/projects/${projectId}/characters`);
+        return;
+      }
+      if (it.source_type === "entry") {
+        navigate(`/projects/${projectId}/entries`);
         return;
       }
       toast.toastWarning(`该来源暂不支持跳转：${it.source_type}`);

@@ -20,6 +20,7 @@ from app.models.outline import Outline
 from app.models.project_source_document import ProjectSourceDocument
 from app.models.search_index import SearchDocument
 from app.models.story_memory import StoryMemory
+from app.models.entry import Entry
 from app.services.project_task_event_service import emit_and_enqueue_project_task, reset_project_task_to_queued
 
 logger = logging.getLogger("ainovel")
@@ -506,7 +507,7 @@ def query_project_search(
     if not terms_lower:
         return {"items": [], "next_offset": None, "mode": "empty", "fts_enabled": False}
 
-    all_types = ["chapter", "outline", "character", "story_memory", "source_document"]
+    all_types = ["chapter", "outline", "character", "story_memory", "source_document", "entry"]
     if sources_norm:
         search_types = [s for s in sources_norm if s in all_types]
         if not search_types:
@@ -742,6 +743,44 @@ def query_project_search(
                         "snippet": _like_snippet(content=content, q=q_primary),
                         "jump_url": f"/projects/{pid}/import?docId={str(getattr(d, 'id', '') or '')}",
                         "locator_json": json.dumps({"document_id": str(getattr(d, "id", "") or "")}, ensure_ascii=False),
+                    },
+                }
+            )
+
+    if "entry" in search_types:
+        entry_expr = (
+            func.coalesce(Entry.title, "")
+            + "\n\n"
+            + func.coalesce(Entry.content, "")
+        )
+        entries = (
+            db.execute(
+                select(Entry)
+                .where(Entry.project_id == pid, *_like_all_terms(entry_expr))
+                .order_by(Entry.updated_at.desc(), Entry.id.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for e in entries:
+            title = _trim(getattr(e, "title", None)) or "条目"
+            content = _trim(getattr(e, "content", None))
+            full_content = (title + "\n\n" + content).strip()
+            if not full_content:
+                continue
+            updated_at = getattr(e, "updated_at", None)
+            updated_ts = float(updated_at.timestamp()) if updated_at is not None else 0.0
+            ranked.append(
+                {
+                    "title_hit": 0 if q_primary.lower() in title.lower() else 1,
+                    "updated_ts": updated_ts,
+                    "item": {
+                        "source_type": "entry",
+                        "source_id": str(getattr(e, "id", "") or ""),
+                        "title": title,
+                        "snippet": _like_snippet(content=full_content, q=q_primary),
+                        "jump_url": f"/projects/{pid}/entries",
+                        "locator_json": json.dumps({"entry_id": str(getattr(e, "id", "") or "")}, ensure_ascii=False),
                     },
                 }
             )

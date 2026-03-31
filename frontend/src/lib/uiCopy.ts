@@ -56,6 +56,7 @@ export const UI_COPY = {
       character: "角色",
       storyMemory: "剧情记忆",
       sourceDocument: "导入文档",
+      entry: "条目",
     },
     emptyHint: "暂无结果",
     loadMore: "加载更多",
