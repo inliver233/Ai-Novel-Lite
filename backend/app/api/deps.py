@@ -95,6 +95,24 @@ def require_character_editor(db: Session, *, character_id: str, user_id: str) ->
     return character
 
 
+def require_entry_viewer(db: Session, *, entry_id: str, user_id: str) -> 'Entry':
+    from app.models.entry import Entry
+    entry = db.get(Entry, entry_id)
+    if entry is None:
+        raise AppError.not_found()
+    require_project_viewer(db, project_id=entry.project_id, user_id=user_id)
+    return entry
+
+
+def require_entry_editor(db: Session, *, entry_id: str, user_id: str) -> 'Entry':
+    from app.models.entry import Entry
+    entry = db.get(Entry, entry_id)
+    if entry is None:
+        raise AppError.not_found()
+    require_project_editor(db, project_id=entry.project_id, user_id=user_id)
+    return entry
+
+
 def require_chapter_viewer(db: Session, *, chapter_id: str, user_id: str) -> Chapter:
     chapter = db.get(Chapter, chapter_id)
     if chapter is None:
@@ -170,5 +188,4 @@ def require_owned_outline(db: Session, *, outline_id: str, user_id: str) -> Outl
 
 def require_owned_generation_run(db: Session, *, run_id: str, user_id: str) -> GenerationRun:
     return require_generation_run_editor(db, run_id=run_id, user_id=user_id)
-
 

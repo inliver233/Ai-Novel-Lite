@@ -7,6 +7,7 @@ from app.api.routes import (
     batch_generation,
     chapters,
     characters,
+    entries,
     export,
     generation_runs,
     health,
@@ -42,6 +43,7 @@ api_router.include_router(search.router, tags=["search"])
 api_router.include_router(vector.router, tags=["vector"])
 api_router.include_router(settings.router, tags=["settings"])
 api_router.include_router(characters.router, tags=["characters"])
+api_router.include_router(entries.router, tags=["entries"])
 api_router.include_router(outline.router, tags=["outline"])
 api_router.include_router(chapters.router, tags=["chapters"])
 api_router.include_router(batch_generation.router, tags=["batch_generation"])
