@@ -383,24 +383,24 @@ export function usePromptsPageState(): PromptsPageState {
       setSavingPreset(true);
       try {
         if (selectedProfileId) {
-          const currentProvider = selectedProfile?.provider ?? null;
-          const currentModel = selectedProfile?.model ?? null;
-          const currentBaseUrl = (selectedProfile?.base_url ?? "").trim();
-          const needsProfileSync =
-            currentProvider !== payload.payload.provider ||
-            currentModel !== payload.payload.model ||
-            currentBaseUrl !== (payload.payload.base_url ?? "");
-          if (needsProfileSync) {
-            const res = await apiJson<{ profile: LLMProfile }>(`/api/llm_profiles/${selectedProfileId}`, {
-              method: "PUT",
-              body: JSON.stringify({
-                provider: payload.payload.provider,
-                base_url: payload.payload.base_url,
-                model: payload.payload.model,
-              }),
-            });
-            setProfiles((prev) => prev.map((p) => (p.id === res.data.profile.id ? res.data.profile : p)));
-          }
+          const res = await apiJson<{ profile: LLMProfile }>(`/api/llm_profiles/${selectedProfileId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              provider: payload.payload.provider,
+              base_url: payload.payload.base_url,
+              model: payload.payload.model,
+              temperature: payload.payload.temperature,
+              top_p: payload.payload.top_p,
+              max_tokens: payload.payload.max_tokens,
+              presence_penalty: payload.payload.presence_penalty,
+              frequency_penalty: payload.payload.frequency_penalty,
+              top_k: payload.payload.top_k,
+              stop: payload.payload.stop,
+              timeout_seconds: payload.payload.timeout_seconds,
+              extra: payload.payload.extra,
+            }),
+          });
+          setProfiles((prev) => prev.map((p) => (p.id === res.data.profile.id ? res.data.profile : p)));
         }
 
         if (presetDirty) {

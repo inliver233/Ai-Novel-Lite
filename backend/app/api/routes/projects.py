@@ -406,7 +406,7 @@ def update_project(request: Request, db: DbDep, user_id: UserIdDep, project_id: 
                     frequency_penalty=0.0,
                     top_k=None,
                     stop_json="[]",
-                    timeout_seconds=180,
+                    timeout_seconds=1200,
                     extra_json="{}",
                 )
                 db.add(preset)

@@ -11,7 +11,7 @@ from app.services.llm_contract_service import (
     normalize_provider_model,
 )
 
-DEFAULT_TIMEOUT_SECONDS = 180
+DEFAULT_TIMEOUT_SECONDS = 1200
 
 
 def decode_stop_json(raw: str | None) -> list[str]:

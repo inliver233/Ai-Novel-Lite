@@ -55,7 +55,7 @@ def _to_out(row: LLMProfile) -> dict:
         frequency_penalty=row.frequency_penalty,
         top_k=row.top_k,
         stop=decode_stop_json(row.stop_json),
-        timeout_seconds=int(row.timeout_seconds or DEFAULT_TIMEOUT_SECONDS),
+        timeout_seconds=int(row.timeout_seconds) if row.timeout_seconds is not None else DEFAULT_TIMEOUT_SECONDS,
         extra=decode_extra_json(row.extra_json),
         has_api_key=bool(row.api_key_ciphertext),
         masked_api_key=row.api_key_masked,
@@ -82,7 +82,7 @@ def _sync_bound_project_presets(db: DbDep, profile: LLMProfile) -> None:
                 frequency_penalty=0.0,
                 top_k=None,
                 stop_json="[]",
-                timeout_seconds=180,
+                timeout_seconds=1200,
                 extra_json="{}",
             )
             db.add(preset)
@@ -191,9 +191,7 @@ def update_profile(request: Request, db: DbDep, user_id: UserIdDep, profile_id: 
     row.provider = provider
     row.base_url = _normalize_profile(provider, base_url)
     row.model = model
-    row.max_tokens = normalize_max_tokens_for_provider(provider, model, row.max_tokens)
     row.stop_json = encode_stop_json(decode_stop_json(row.stop_json))
-    row.timeout_seconds = int(row.timeout_seconds or DEFAULT_TIMEOUT_SECONDS)
     row.extra_json = encode_extra_json(decode_extra_json(row.extra_json))
 
     _sync_bound_project_presets(db, row)
