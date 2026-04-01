@@ -485,6 +485,7 @@ export function useOutlinePageState(): OutlinePageState {
       parseForm: parsing.parseForm,
       parseProgress: parsing.parseProgress,
       parseResult: parsing.parseResult,
+      agentCards: parsing.agentCards,
       activeTab: parsing.activeTab,
       onClose: parsing.closeParseModal,
       onCancelParse: parsing.cancelParse,

@@ -25,9 +25,15 @@ export type SSEMessage =
 
 export type SSEClientOptions = {
   headers?: Record<string, string>;
-  onProgress?: (msg: { message: string; progress: number; status: string; charCount?: number }) => void;
+  onProgress?: (msg: {
+    message: string;
+    progress: number;
+    status: "processing" | "success" | "error";
+    charCount?: number;
+  }) => void;
   onChunk?: (content: string) => void;
   onResult?: (data: unknown) => void;
+  onCustomEvent?: (eventName: string, data: unknown) => void;
   onError?: (error: string, code?: number) => void;
   onDone?: () => void;
   onOpen?: (info: { requestId?: string }) => void;
@@ -71,6 +77,10 @@ function notifyUnauthorized(requestId?: string) {
   } catch {
     // ignore
   }
+}
+
+function isProgressStatus(value: unknown): value is "processing" | "success" | "error" {
+  return value === "processing" || value === "success" || value === "error";
 }
 
 export class SSEPostClient {
@@ -188,7 +198,7 @@ export class SSEPostClient {
           if (eventType === "start") {
             const message = typeof obj?.message === "string" ? obj.message : "开始生成...";
             const progress = typeof obj?.progress === "number" ? obj.progress : 0;
-            const status = typeof obj?.status === "string" ? obj.status : "processing";
+            const status = isProgressStatus(obj?.status) ? obj.status : "processing";
             this.options.onProgress?.({
               message,
               progress,
@@ -198,7 +208,7 @@ export class SSEPostClient {
           } else if (eventType === "progress") {
             if (typeof obj?.message !== "string") continue;
             if (typeof obj?.progress !== "number") continue;
-            if (typeof obj?.status !== "string") continue;
+            if (!isProgressStatus(obj?.status)) continue;
             this.options.onProgress?.({
               message: obj.message,
               progress: obj.progress,
@@ -222,6 +232,8 @@ export class SSEPostClient {
             doneReceived = true;
             this.options.onDone?.();
             return { requestId: this.requestId, result: this.resultData, accumulatedContent: this.accumulatedContent };
+          } else {
+            this.options.onCustomEvent?.(eventType, obj);
           }
         }
       }

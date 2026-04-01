@@ -8,7 +8,7 @@ class AgentPipelineConfig:
     """Configuration for the multi-agent outline parsing pipeline."""
 
     max_context_tokens: int = 200_000
-    timeout_seconds: int = 3600
+    timeout_seconds: int = 300
     chunk_size_tokens: int = 50_000
     chunk_overlap_tokens: int = 2_000
     parallel_extraction: bool = True
@@ -33,4 +33,3 @@ class AgentPipelineConfig:
         """Approximate overlap in characters."""
 
         return int(self.chunk_overlap_tokens * self.cjk_chars_per_token)
-

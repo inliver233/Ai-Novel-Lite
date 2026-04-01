@@ -23,6 +23,10 @@ export const OUTLINE_PARSING_COPY = {
   parseApplyEntries: "创建条目",
   parseDone: "解析完成",
   parseFailed: "解析失败",
+  agentDashboardTitle: "Agent 执行面板",
+  agentStatusPending: "等待中",
+  agentStatusRunning: "运行中",
+  agentStatusComplete: "已完成",
+  agentStatusError: "错误",
   parseApplied: "已应用到项目",
 } as const;
-

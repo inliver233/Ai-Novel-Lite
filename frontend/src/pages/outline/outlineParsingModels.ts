@@ -67,3 +67,83 @@ export const DEFAULT_PARSE_FORM: OutlineParseForm = {
   file_name: null,
   agent_config: DEFAULT_PARSE_AGENT_CONFIG,
 };
+
+export type AgentCardStatus = "pending" | "running" | "complete" | "error";
+
+export type AgentCardState = {
+  id: string;
+  displayName: string;
+  status: AgentCardStatus;
+  streamingText: string;
+  durationMs: number;
+  tokensUsed: number;
+  retryCount: number;
+  warnings: string[];
+  error: string | null;
+};
+
+export const INITIAL_AGENT_CARDS: AgentCardState[] = [
+  {
+    id: "analysis",
+    displayName: "分析引擎",
+    status: "pending",
+    streamingText: "",
+    durationMs: 0,
+    tokensUsed: 0,
+    retryCount: 0,
+    warnings: [],
+    error: null,
+  },
+  {
+    id: "structure",
+    displayName: "大纲骨架",
+    status: "pending",
+    streamingText: "",
+    durationMs: 0,
+    tokensUsed: 0,
+    retryCount: 0,
+    warnings: [],
+    error: null,
+  },
+  {
+    id: "character",
+    displayName: "角色卡",
+    status: "pending",
+    streamingText: "",
+    durationMs: 0,
+    tokensUsed: 0,
+    retryCount: 0,
+    warnings: [],
+    error: null,
+  },
+  {
+    id: "entry",
+    displayName: "世界条目",
+    status: "pending",
+    streamingText: "",
+    durationMs: 0,
+    tokensUsed: 0,
+    retryCount: 0,
+    warnings: [],
+    error: null,
+  },
+  {
+    id: "validation",
+    displayName: "校验合并",
+    status: "pending",
+    streamingText: "",
+    durationMs: 0,
+    tokensUsed: 0,
+    retryCount: 0,
+    warnings: [],
+    error: null,
+  },
+];
+
+export const AGENT_ICONS: Record<string, string> = {
+  analysis: "📊",
+  structure: "📋",
+  character: "👤",
+  entry: "🌍",
+  validation: "✅",
+};

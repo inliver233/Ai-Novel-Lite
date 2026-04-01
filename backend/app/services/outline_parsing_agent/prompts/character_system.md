@@ -19,3 +19,10 @@ Output ONLY a JSON object:
     {"name": "Name", "role": "主角", "profile": "Background...", "notes": "Arc notes..."}
   ]
 }
+
+IMPORTANT FORMAT RULES:
+- You MUST output ONLY valid JSON, no extra text before or after
+- If you wrap in code fences, use ```json ... ```
+- Ensure all strings are properly escaped
+- If no characters are found, return: {"characters": []}
+- Do NOT include trailing commas

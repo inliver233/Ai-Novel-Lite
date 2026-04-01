@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -112,6 +114,58 @@ class BaseExtractionAgent:
         tokens = getattr(result, "tokens_used", 0) or 0
         return result.text, tokens
 
+    def _call_llm_stream(
+        self,
+        user_prompt: str,
+        on_streaming: Callable[[str], None] | None = None,
+    ) -> tuple[str, int]:
+        """Call LLM with streaming and accumulate response."""
+
+        from app.llm.client import call_llm_stream_messages
+
+        messages = [
+            ChatMessage(role="system", content=self.system_prompt),
+            ChatMessage(role="user", content=user_prompt),
+        ]
+
+        try:
+            iterator, state = call_llm_stream_messages(
+                provider=self.provider,
+                base_url=self.base_url,
+                model=self.model,
+                api_key=self.api_key,
+                messages=messages,
+                params={"temperature": 0.2, "max_tokens": 16384},
+                timeout_seconds=self.config.timeout_seconds,
+                extra={"provider": self.provider},
+            )
+        except Exception:
+            # Fallback to sync if streaming is unavailable.
+            return self._call_llm(user_prompt)
+
+        accumulated: list[str] = []
+        try:
+            for delta in iterator:
+                accumulated.append(delta)
+                if on_streaming is not None:
+                    on_streaming(delta)
+        except Exception as exc:
+            if accumulated:
+                logger.warning(
+                    "%s: 流式传输中断，已接收 %d 段: %s",
+                    self.agent_name,
+                    len(accumulated),
+                    str(exc)[:200],
+                )
+            else:
+                raise
+
+        text = "".join(accumulated)
+        tokens = getattr(state, "tokens_used", 0) or 0
+        if not text.strip():
+            raise RuntimeError(f"{self.agent_name}: 流式响应为空")
+        return text, tokens
+
     def _parse_json_from_text(self, text: str) -> dict[str, Any] | list[Any] | None:
         """Extract JSON from LLM response text. Tries code fence first, then raw JSON."""
 
@@ -136,6 +190,20 @@ class BaseExtractionAgent:
                 except json.JSONDecodeError:
                     pass
 
+        # Try fixing common JSON issues: trailing commas, single quotes
+        import re as _re
+
+        # Remove trailing commas before } or ]
+        cleaned = _re.sub(r",\s*([}\]])", r"\1", trimmed)
+        for start_char, end_char in [("{", "}"), ("[", "]")]:
+            first = cleaned.find(start_char)
+            last = cleaned.rfind(end_char)
+            if first >= 0 and last > first:
+                try:
+                    return json.loads(cleaned[first : last + 1])
+                except json.JSONDecodeError:
+                    pass
+
         return None
 
     def parse_response(self, raw_json: Any) -> dict[str, Any]:
@@ -154,6 +222,7 @@ class BaseExtractionAgent:
         self,
         chunks: list[ChunkInfo],
         analysis_context: str = "",
+        on_streaming: Callable[[str], None] | None = None,
     ) -> AgentStepResult:
         """Run agent on all chunks and merge results."""
 
@@ -167,15 +236,23 @@ class BaseExtractionAgent:
             while retries <= self.config.max_retries_per_agent:
                 try:
                     user_prompt = self.build_user_prompt(chunk, analysis_context)
-                    raw_text, tokens = self._call_llm(user_prompt)
+                    raw_text, tokens = self._call_llm_stream(user_prompt, on_streaming=on_streaming)
                     total_tokens += tokens
 
                     parsed_json = self._parse_json_from_text(raw_text)
                     if parsed_json is None:
                         warnings.append(
-                            f"{self.agent_name}: chunk {chunk.chunk_index + 1} JSON parse failed"
+                            f"{self.agent_name}: 分块 {chunk.chunk_index + 1} JSON 解析失败"
                         )
                         if retries < self.config.max_retries_per_agent:
+                            backoff = min(8.0, 1.0 * (2**retries)) * (1.0 + random.uniform(-0.2, 0.2))
+                            logger.info(
+                                "%s: chunk %d JSON 解析失败，%.1f 秒后重试...",
+                                self.agent_name,
+                                chunk.chunk_index + 1,
+                                backoff,
+                            )
+                            time.sleep(backoff)
                             retries += 1
                             continue
                         break
@@ -194,10 +271,18 @@ class BaseExtractionAgent:
                         safe_error,
                     )
                     if retries < self.config.max_retries_per_agent:
+                        backoff = min(8.0, 1.0 * (2**retries)) * (1.0 + random.uniform(-0.2, 0.2))
+                        logger.info(
+                            "%s: chunk %d 调用失败，%.1f 秒后重试...",
+                            self.agent_name,
+                            chunk.chunk_index + 1,
+                            backoff,
+                        )
+                        time.sleep(backoff)
                         retries += 1
                         continue
                     warnings.append(
-                        f"{self.agent_name}: chunk {chunk.chunk_index + 1} failed after retries: {safe_error}"
+                        f"{self.agent_name}: 分块 {chunk.chunk_index + 1} 重试后仍失败: {safe_error}"
                     )
                     break
 
@@ -209,7 +294,7 @@ class BaseExtractionAgent:
                 status="error",
                 duration_ms=duration_ms,
                 tokens_used=total_tokens,
-                error_message=f"No successful results from {len(chunks)} chunks",
+                error_message=f"{len(chunks)} 个分块全部失败，无有效结果",
                 warnings=warnings,
             )
 

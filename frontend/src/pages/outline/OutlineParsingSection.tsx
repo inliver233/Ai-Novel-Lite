@@ -5,7 +5,15 @@ import { ProgressBar } from "../../components/ui/ProgressBar";
 
 import { OUTLINE_COPY } from "./outlineCopy";
 import { OUTLINE_PARSING_COPY } from "./outlineParsingCopy";
-import type { OutlineParseAgentConfig, OutlineParseForm, OutlineParseProgress, OutlineParseResult } from "./outlineParsingModels";
+import {
+  AGENT_ICONS,
+  type AgentCardState,
+  type AgentCardStatus,
+  type OutlineParseAgentConfig,
+  type OutlineParseForm,
+  type OutlineParseProgress,
+  type OutlineParseResult,
+} from "./outlineParsingModels";
 
 type ParseTab = "outline" | "characters" | "entries";
 
@@ -15,6 +23,7 @@ export type OutlineParsingModalProps = {
   parseForm: OutlineParseForm;
   parseProgress: OutlineParseProgress | null;
   parseResult: OutlineParseResult | null;
+  agentCards: AgentCardState[];
   activeTab: ParseTab;
   onClose: () => void;
   onCancelParse: () => void;
@@ -31,6 +40,124 @@ export type OutlineParsingModalProps = {
 
 function safeCount(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
+}
+
+function AgentStatusBadge({ status }: { status: AgentCardStatus }) {
+  const config: Record<AgentCardStatus, { text: string; className: string }> = {
+    pending: {
+      text: OUTLINE_PARSING_COPY.agentStatusPending,
+      className: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+    },
+    running: {
+      text: OUTLINE_PARSING_COPY.agentStatusRunning,
+      className: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse",
+    },
+    complete: {
+      text: OUTLINE_PARSING_COPY.agentStatusComplete,
+      className: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+    },
+    error: {
+      text: OUTLINE_PARSING_COPY.agentStatusError,
+      className: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+    },
+  };
+
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+        config[status].className,
+      )}
+    >
+      {config[status].text}
+    </span>
+  );
+}
+
+function AgentCard({ card }: { card: AgentCardState }) {
+  const icon = AGENT_ICONS[card.id] ?? "🔧";
+  const isRunning = card.status === "running";
+
+  return (
+    <div
+      className={clsx(
+        "panel rounded-atelier border p-3 transition-all duration-300",
+        isRunning && "border-blue-300 border-l-4 border-l-blue-400 dark:border-blue-700 dark:border-l-blue-500",
+        card.status === "complete" && "border-green-200 dark:border-green-800",
+        card.status === "error" && "border-red-200 dark:border-red-800",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-sm">
+          <span>{icon}</span>
+          <span className="font-medium text-ink">{card.displayName}</span>
+        </div>
+        <AgentStatusBadge status={card.status} />
+      </div>
+
+      {card.streamingText ? (
+        <div className="mt-2 max-h-[60px] overflow-hidden rounded bg-canvas p-1.5 font-mono text-[10px] leading-tight text-subtext opacity-100 transition-opacity duration-200">
+          {card.streamingText.slice(-200)}
+        </div>
+      ) : null}
+
+      {card.error ? <div className="mt-1.5 text-[10px] text-danger">{card.error}</div> : null}
+
+      {card.status === "complete" || card.status === "error" ? (
+        <>
+          <div className="mt-1.5 flex items-center gap-3 text-[10px] text-subtext">
+            {card.durationMs > 0 ? <span>{(card.durationMs / 1000).toFixed(1)}s</span> : null}
+            {card.tokensUsed > 0 ? <span>{card.tokensUsed.toLocaleString()} tokens</span> : null}
+            {card.warnings.length > 0 ? <span className="text-warning">{card.warnings.length} 警告</span> : null}
+          </div>
+          {card.status === "error" && card.warnings.length > 0 ? (
+            <details className="mt-1.5">
+              <summary className="cursor-pointer text-[10px] text-danger hover:underline">
+                查看错误详情 ({card.warnings.length})
+              </summary>
+              <ul className="mt-1 list-inside list-disc text-[10px] text-subtext">
+                {card.warnings.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function AgentDashboard({ cards }: { cards: AgentCardState[] }) {
+  if (cards.length === 0) return null;
+
+  const hasAnyActivity = cards.some((card) => card.status !== "pending");
+  if (!hasAnyActivity) return null;
+  const totalTokens = cards.reduce((sum, card) => sum + card.tokensUsed, 0);
+  const totalDuration = cards.reduce((sum, card) => sum + card.durationMs, 0);
+  const completedCount = cards.filter((card) => card.status === "complete").length;
+  const errorCount = cards.filter((card) => card.status === "error").length;
+
+  return (
+    <div className="mt-3">
+      <div className="mb-2 text-xs font-medium text-subtext">{OUTLINE_PARSING_COPY.agentDashboardTitle}</div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((card) => (
+          <AgentCard key={card.id} card={card} />
+        ))}
+      </div>
+      {completedCount > 0 || errorCount > 0 ? (
+        <div className="mt-2 flex items-center gap-4 text-[10px] text-subtext">
+          <span>
+            {completedCount}/{cards.length} 完成
+          </span>
+          {errorCount > 0 ? <span className="text-danger">{errorCount} 错误</span> : null}
+          {totalDuration > 0 ? <span>总耗时 {(totalDuration / 1000).toFixed(1)}s</span> : null}
+          {totalTokens > 0 ? <span>总 tokens {totalTokens.toLocaleString()}</span> : null}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function OutlineParsingModal(props: OutlineParsingModalProps) {
@@ -150,6 +277,8 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
         </div>
       ) : null}
 
+      <AgentDashboard cards={props.agentCards} />
+
       <div className="mt-5 flex justify-end gap-2">
         {props.parsing || props.parseProgress?.status === "processing" ? (
           <button className="btn btn-secondary" onClick={props.onCancelParse} type="button">
@@ -261,8 +390,42 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
             ) : null}
           </div>
 
+          {props.parseResult.agent_log?.length ? (
+            <details className="rounded-atelier border border-border bg-canvas p-3">
+              <summary className="cursor-pointer text-xs text-subtext hover:text-ink">
+                Agent 执行日志 ({props.parseResult.agent_log.length} 条)
+              </summary>
+              <div className="mt-2 grid gap-1">
+                {props.parseResult.agent_log.map((log, index) => (
+                  <div key={index} className="flex items-center gap-2 text-[10px]">
+                    <span
+                      className={clsx(
+                        "inline-block w-14 shrink-0 rounded px-1 py-0.5 text-center font-medium",
+                        log.status === "success" && "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+                        log.status === "error" && "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+                        log.status === "partial" &&
+                          "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
+                      )}
+                    >
+                      {log.status}
+                    </span>
+                    <span className="text-ink">{log.agent_name}</span>
+                    {log.duration_ms > 0 ? <span className="text-subtext">{(log.duration_ms / 1000).toFixed(1)}s</span> : null}
+                    {log.tokens_used > 0 ? <span className="text-subtext">{log.tokens_used} tok</span> : null}
+                    {log.error_message ? <span className="truncate text-danger">{log.error_message}</span> : null}
+                  </div>
+                ))}
+              </div>
+            </details>
+          ) : null}
+
           <div className="flex flex-wrap justify-end gap-2">
-            <button className="btn btn-secondary" disabled={!canApplyOutline} onClick={props.onApplyOutline} type="button">
+            <button
+              className="btn btn-secondary"
+              disabled={!canApplyOutline}
+              onClick={props.onApplyOutline}
+              type="button"
+            >
               {OUTLINE_PARSING_COPY.parseApplyOutline}
             </button>
             <button
@@ -273,7 +436,12 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
             >
               {OUTLINE_PARSING_COPY.parseApplyCharacters}
             </button>
-            <button className="btn btn-secondary" disabled={!canApplyEntries} onClick={props.onApplyEntries} type="button">
+            <button
+              className="btn btn-secondary"
+              disabled={!canApplyEntries}
+              onClick={props.onApplyEntries}
+              type="button"
+            >
               {OUTLINE_PARSING_COPY.parseApplyEntries}
             </button>
             <button className="btn btn-primary" disabled={!props.parseResult} onClick={props.onApplyAll} type="button">
@@ -285,4 +453,3 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
     </Modal>
   );
 }
-

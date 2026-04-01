@@ -56,7 +56,7 @@ def _normalize_entry_tags(value: Any, *, title: str, warnings: list[str]) -> lis
     if value is None:
         return []
     if not isinstance(value, list):
-        warnings.append(f"entry: tags is not a list on entry '{title or '<untitled>'}'")
+        warnings.append(f"条目: '{title or '（无标题）'}' 的标签格式错误（非列表）")
         return []
 
     tags: list[str] = []
@@ -67,7 +67,7 @@ def _normalize_entry_tags(value: Any, *, title: str, warnings: list[str]) -> lis
             continue
         if len(text) > MAX_ENTRY_TAG_CHARS:
             warnings.append(
-                f"entry: tag too long '{text[:32]}' on entry '{title or '<untitled>'}'"
+                f"条目: '{title or '（无标题）'}' 的标签过长: '{text[:32]}'"
             )
             continue
         key = text.casefold()
@@ -76,7 +76,7 @@ def _normalize_entry_tags(value: Any, *, title: str, warnings: list[str]) -> lis
         seen.add(key)
         tags.append(text)
         if len(tags) >= MAX_ENTRY_TAGS:
-            warnings.append(f"entry: too many tags on entry '{title or '<untitled>'}'")
+            warnings.append(f"条目: '{title or '（无标题）'}' 标签过多")
             break
     return tags
 
@@ -114,7 +114,7 @@ class ValidationAgent:
             status="success",
             duration_ms=duration_ms,
             tokens_used=0,
-            warnings=[w for w in warnings if w.startswith("validation:")],
+            warnings=[w for w in warnings if w.startswith("校验:")],
         )
 
         return ParseResult(
@@ -139,37 +139,37 @@ class ValidationAgent:
 
         outline_md = _clean_str(data.get("outline_md"))
         if not outline_md:
-            warnings.append("structure: outline_md is empty")
+            warnings.append("结构: 大纲摘要为空")
 
         chapters_raw = data.get("chapters")
         chapters: list[dict[str, Any]] = []
         if not isinstance(chapters_raw, list):
-            warnings.append("structure: chapters is not a list")
+            warnings.append("结构: 章节数据格式错误（非列表）")
             return ParsedOutline(outline_md=outline_md, chapters=[])
 
         for item in chapters_raw:
             if not isinstance(item, dict):
-                warnings.append("structure: invalid chapter entry (not an object)")
+                warnings.append("结构: 无效章节条目（非对象）")
                 continue
 
             number = _safe_int(item.get("number"))
             if number is None or number <= 0:
-                warnings.append(f"structure: chapter number must be positive integer, got {item.get('number')}")
+                warnings.append(f"结构: 章节编号必须为正整数，当前值: {item.get('number')}")
                 continue
 
             title = _clean_str(item.get("title"))
             if not title:
-                warnings.append(f"structure: chapter {number} missing title")
+                warnings.append(f"结构: 第 {number} 章缺少标题")
 
             beats = _clean_beats(item.get("beats"))
             if not beats:
-                warnings.append(f"structure: chapter {number} has no beats")
+                warnings.append(f"结构: 第 {number} 章没有情节节拍")
 
             chapters.append({"number": number, "title": title, "beats": beats})
 
         chapters.sort(key=lambda c: int(c.get("number") or 0))
         if not chapters:
-            warnings.append("structure: no chapters extracted")
+            warnings.append("结构: 未提取到任何章节")
 
         return ParsedOutline(outline_md=outline_md, chapters=chapters)
 
@@ -179,24 +179,24 @@ class ValidationAgent:
         data = character_result.data if isinstance(character_result.data, dict) else {}
         characters_raw = data.get("characters")
         if not isinstance(characters_raw, list):
-            warnings.append("character: characters is not a list")
+            warnings.append("角色: 角色数据格式错误（非列表）")
             return [], frozenset()
 
         characters: list[ParsedCharacter] = []
         known_names: set[str] = set()
         for item in characters_raw:
             if not isinstance(item, dict):
-                warnings.append("character: invalid character entry (not an object)")
+                warnings.append("角色: 无效角色条目（非对象）")
                 continue
 
             name = _clean_str(item.get("name"))
             if not name:
-                warnings.append("character: empty character name")
+                warnings.append("角色: 角色名称为空")
                 continue
 
             key = name.casefold()
             if key in known_names:
-                warnings.append(f"character: duplicate character name: {name}")
+                warnings.append(f"角色: 重复角色名: {name}")
             known_names.add(key)
 
             role = _clean_str(item.get("role")) or None
@@ -211,13 +211,13 @@ class ValidationAgent:
         data = entry_result.data if isinstance(entry_result.data, dict) else {}
         entries_raw = data.get("entries")
         if not isinstance(entries_raw, list):
-            warnings.append("entry: entries is not a list")
+            warnings.append("条目: 条目数据格式错误（非列表）")
             return []
 
         entries: list[ParsedEntry] = []
         for item in entries_raw:
             if not isinstance(item, dict):
-                warnings.append("entry: invalid entry (not an object)")
+                warnings.append("条目: 无效条目（非对象）")
                 continue
 
             title = _clean_str(item.get("title"))
@@ -225,10 +225,10 @@ class ValidationAgent:
             tags = _normalize_entry_tags(item.get("tags"), title=title, warnings=warnings)
 
             if not title:
-                warnings.append("entry: empty entry title")
+                warnings.append("条目: 条目标题为空")
                 continue
             if not content:
-                warnings.append(f"entry: entry '{title}' missing content")
+                warnings.append(f"条目: '{title}' 缺少内容")
                 continue
 
             entries.append(ParsedEntry(title=title, content=content, tags=tags))
@@ -245,10 +245,10 @@ class ValidationAgent:
         max_n = max(valid_numbers)
         missing = [n for n in range(1, max_n + 1) if n not in set(valid_numbers)]
         if missing:
-            warnings.append(f"validation: chapter numbers not continuous, missing: {missing}")
+            warnings.append(f"校验: 章节编号不连续，缺少: {missing}")
 
         if min(valid_numbers) != 1:
-            warnings.append(f"validation: chapter numbering does not start at 1 (min={min(valid_numbers)})")
+            warnings.append(f"校验: 章节编号未从 1 开始（最小值={min(valid_numbers)}）")
 
     def _validate_character_references(
         self,
@@ -265,7 +265,7 @@ class ValidationAgent:
         unknown = [n for n in unknown if n and not self._is_common_non_name(n)]
         if unknown:
             preview = sorted(unknown)[:30]
-            warnings.append(f"validation: possible missing characters referenced in beats: {preview}")
+            warnings.append(f"校验: 情节中引用了可能缺失的角色: {preview}")
 
     def _extract_candidate_names(self, outline: ParsedOutline) -> Counter[str]:
         counts: Counter[str] = Counter()

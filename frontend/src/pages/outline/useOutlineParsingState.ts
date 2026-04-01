@@ -11,6 +11,8 @@ import { OUTLINE_PARSING_COPY } from "./outlineParsingCopy";
 import {
   DEFAULT_PARSE_AGENT_CONFIG,
   DEFAULT_PARSE_FORM,
+  INITIAL_AGENT_CARDS,
+  type AgentCardState,
   type OutlineParseAgentConfig,
   type OutlineParseForm,
   type OutlineParseProgress,
@@ -60,6 +62,17 @@ function buildFreshParseForm(): OutlineParseForm {
   };
 }
 
+function buildInitialAgentCards(): AgentCardState[] {
+  return INITIAL_AGENT_CARDS.map((card) => ({
+    ...card,
+    warnings: [...card.warnings],
+  }));
+}
+
+function isCustomEventPayload(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function useOutlineParsingState(args: {
   projectId?: string;
   preset: LLMPreset | null;
@@ -76,6 +89,7 @@ export function useOutlineParsingState(args: {
   const [parseProgress, setParseProgress] = useState<OutlineParseProgress | null>(null);
   const [parseResult, setParseResult] = useState<OutlineParseResult | null>(null);
   const [activeTab, setActiveTab] = useState<ParseTab>("outline");
+  const [agentCards, setAgentCards] = useState<AgentCardState[]>([]);
 
   const streamClientRef = useRef<SSEPostClient | null>(null);
   const streamHasProgressRef = useRef(false);
@@ -99,6 +113,7 @@ export function useOutlineParsingState(args: {
     setParseForm(buildFreshParseForm());
     setParseProgress(null);
     setParseResult(null);
+    setAgentCards([]);
     setActiveTab("outline");
   }, []);
 
@@ -121,7 +136,7 @@ export function useOutlineParsingState(args: {
         const contentBase64 = await fileToBase64(file);
         const safeName = sanitizeFilename(file.name) || "outline.txt";
         setParseForm((prev) => ({ ...prev, file_content: contentBase64, file_name: safeName }));
-      } catch (error) {
+      } catch {
         toast.toastError("读取文件失败");
       }
     },
@@ -146,6 +161,7 @@ export function useOutlineParsingState(args: {
     streamClientRef.current = null;
     streamHasProgressRef.current = false;
     setParseResult(null);
+    setAgentCards(buildInitialAgentCards());
     setParseProgress({ message: "准备解析...", progress: 0, status: "processing" });
 
     try {
@@ -177,6 +193,79 @@ export function useOutlineParsingState(args: {
             setParseResult(typed);
             setActiveTab("outline");
           },
+          onCustomEvent: (eventName, data) => {
+            if (!isCustomEventPayload(data)) return;
+
+            if (eventName === "agent_start") {
+              const agentId = typeof data.agent === "string" ? data.agent : "";
+              if (!agentId) return;
+              const displayName =
+                typeof data.display_name === "string" && data.display_name.trim() ? data.display_name : agentId;
+              setAgentCards((prev) =>
+                prev.map((card) =>
+                  card.id === agentId
+                    ? {
+                        ...card,
+                        displayName,
+                        status: "running",
+                        streamingText: "",
+                        durationMs: 0,
+                        tokensUsed: 0,
+                        warnings: [],
+                        error: null,
+                        retryCount: card.status === "pending" ? card.retryCount : card.retryCount + 1,
+                      }
+                    : card,
+                ),
+              );
+              return;
+            }
+
+            if (eventName === "agent_streaming") {
+              const agentId = typeof data.agent === "string" ? data.agent : "";
+              if (!agentId) return;
+              const displayName =
+                typeof data.display_name === "string" && data.display_name.trim() ? data.display_name : agentId;
+              const text = typeof data.text === "string" ? data.text : "";
+              setAgentCards((prev) =>
+                prev.map((card) =>
+                  card.id === agentId
+                    ? {
+                        ...card,
+                        displayName,
+                        status: card.status === "complete" ? "complete" : "running",
+                        streamingText: text,
+                      }
+                    : card,
+                ),
+              );
+              return;
+            }
+
+            if (eventName === "agent_complete") {
+              const agentId = typeof data.agent === "string" ? data.agent : "";
+              if (!agentId) return;
+              const displayName =
+                typeof data.display_name === "string" && data.display_name.trim() ? data.display_name : agentId;
+              const finalStatus = data.status === "error" ? "error" : "complete";
+              setAgentCards((prev) =>
+                prev.map((card) =>
+                  card.id === agentId
+                    ? {
+                        ...card,
+                        displayName,
+                        status: finalStatus,
+                        durationMs: typeof data.duration_ms === "number" ? data.duration_ms : 0,
+                        tokensUsed: typeof data.tokens_used === "number" ? data.tokens_used : 0,
+                        warnings: Array.isArray(data.warnings) ? data.warnings.map((item) => String(item)) : [],
+                        error:
+                          typeof data.error === "string" ? data.error : finalStatus === "error" ? "执行失败" : null,
+                      }
+                    : card,
+                ),
+              );
+            }
+          },
         });
         streamClientRef.current = client;
 
@@ -184,7 +273,11 @@ export function useOutlineParsingState(args: {
           done = await client.connect();
           break;
         } catch (error) {
-          if (isTransientStreamError(error) && !streamHasProgressRef.current && retryCount < STREAM_CONNECT_MAX_RETRIES) {
+          if (
+            isTransientStreamError(error) &&
+            !streamHasProgressRef.current &&
+            retryCount < STREAM_CONNECT_MAX_RETRIES
+          ) {
             retryCount += 1;
             const delayMs = STREAM_CONNECT_RETRY_BASE_DELAY_MS * retryCount;
             setParseProgress((prev) => ({
@@ -356,6 +449,7 @@ export function useOutlineParsingState(args: {
     parseForm,
     parseProgress,
     parseResult,
+    agentCards,
     activeTab,
     setActiveTab,
     openParseModal,

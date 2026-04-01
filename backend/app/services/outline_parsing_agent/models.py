@@ -97,3 +97,18 @@ class ParseResult:
             "warnings": self.warnings,
         }
 
+
+# Agent display names (Chinese)
+AGENT_DISPLAY_NAMES: dict[str, str] = {
+    "analysis": "分析引擎",
+    "structure": "大纲骨架",
+    "character": "角色卡",
+    "entry": "世界条目",
+    "validation": "校验合并",
+}
+
+
+def get_agent_display_name(agent_name: str) -> str:
+    """Return Chinese display name for an agent."""
+
+    return AGENT_DISPLAY_NAMES.get(agent_name, agent_name)

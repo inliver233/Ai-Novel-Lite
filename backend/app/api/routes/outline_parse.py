@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import asyncio
+import json as _json
 from collections.abc import Iterator
 
 from fastapi import APIRouter, Header, Request
@@ -31,6 +32,13 @@ def _decode_outline_parse_content(body: OutlineParseRequest) -> str:
         except UnicodeDecodeError as exc:
             raise AppError.validation("file_content 不是 UTF-8 文本") from exc
     return body.content or ""
+
+
+def _sse_custom_event(event_name: str, data: dict) -> str:
+    """Format a named SSE event for the agent dashboard."""
+
+    payload = _json.dumps(data, ensure_ascii=False)
+    return f"event: {event_name}\ndata: {payload}\n\n"
 
 
 def _iter_outline_parse_stream_sse_events(
@@ -81,9 +89,47 @@ def _iter_outline_parse_stream_sse_events(
 
             if event_type == "agent_complete":
                 agent = str(event.get("agent") or "")
-                agent_progress = {"analysis": 20, "structure": 50, "character": 70, "entry": 90}.get(agent, progress)
+                display_name = str(event.get("display_name") or agent)
+                agent_progress = {"analysis": 20, "structure": 50, "character": 70, "entry": 90, "validation": 95}.get(
+                    agent, progress
+                )
                 progress = max(progress, agent_progress)
-                yield sse_progress(message=f"{agent} 完成" if agent else "完成", progress=progress)
+                yield sse_progress(message=f"{display_name} 完成" if display_name else "完成", progress=progress)
+                yield _sse_custom_event(
+                    "agent_complete",
+                    {
+                        "agent": agent,
+                        "display_name": display_name,
+                        "status": str(event.get("status") or "success"),
+                        "duration_ms": event.get("duration_ms", 0),
+                        "tokens_used": event.get("tokens_used", 0),
+                        "warnings": event.get("warnings", []),
+                    },
+                )
+                continue
+
+            if event_type == "agent_start":
+                agent = str(event.get("agent") or "")
+                display_name = str(event.get("display_name") or agent)
+                yield sse_progress(message=f"{display_name} 启动中...", progress=progress)
+                yield _sse_custom_event(
+                    "agent_start",
+                    {
+                        "agent": agent,
+                        "display_name": display_name,
+                    },
+                )
+                continue
+
+            if event_type == "agent_streaming":
+                yield _sse_custom_event(
+                    "agent_streaming",
+                    {
+                        "agent": str(event.get("agent") or ""),
+                        "display_name": str(event.get("display_name") or ""),
+                        "text": str(event.get("text") or ""),
+                    },
+                )
                 continue
 
             if event_type == "parse_complete":

@@ -29,3 +29,10 @@ Output ONLY a JSON object:
     {"title": "Title", "content": "Description...", "tags": ["设定", "世界观"]}
   ]
 }
+
+IMPORTANT FORMAT RULES:
+- You MUST output ONLY valid JSON, no extra text before or after
+- If you wrap in code fences, use ```json ... ```
+- Ensure all strings are properly escaped
+- If no entries are found, return: {"entries": []}
+- Do NOT include trailing commas

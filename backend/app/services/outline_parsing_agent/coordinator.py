@@ -30,7 +30,12 @@ from app.services.outline_parsing_agent.agents.structure_agent import StructureE
 from app.services.outline_parsing_agent.agents.validation_agent import ValidationAgent
 from app.services.outline_parsing_agent.chunker import TextChunker
 from app.services.outline_parsing_agent.config import AgentPipelineConfig
-from app.services.outline_parsing_agent.models import AgentStepResult, ParseResult
+from app.services.outline_parsing_agent.models import (
+    AGENT_DISPLAY_NAMES,
+    AgentStepResult,
+    ParseResult,
+    get_agent_display_name,
+)
 
 logger = logging.getLogger("ainovel.parsing_agent")
 
@@ -342,8 +347,22 @@ class OutlineParsingOrchestrator:
                 config=pipeline_config,
                 provider=llm_call.provider,
             )
+            yield {
+                "type": "agent_start",
+                "agent": "analysis",
+                "display_name": get_agent_display_name("analysis"),
+            }
             analysis_step = await asyncio.to_thread(analysis_agent.run_on_chunks, [chunks[0]])
-            yield {"type": "agent_complete", "agent": "analysis", "data": dict(analysis_step.data)}
+            yield {
+                "type": "agent_complete",
+                "agent": "analysis",
+                "display_name": get_agent_display_name("analysis"),
+                "data": dict(analysis_step.data) if analysis_step.data else {},
+                "status": analysis_step.status,
+                "duration_ms": analysis_step.duration_ms,
+                "tokens_used": analysis_step.tokens_used,
+                "warnings": analysis_step.warnings,
+            }
 
             analysis_context = _build_analysis_context(analysis_step)
 
@@ -375,40 +394,144 @@ class OutlineParsingOrchestrator:
 
             results: dict[str, AgentStepResult] = {}
             if pipeline_config.parallel_extraction:
+                import queue as _queue
                 from concurrent.futures import ThreadPoolExecutor
 
-                loop = asyncio.get_running_loop()
-                with ThreadPoolExecutor(max_workers=3) as executor:
-                    futures = {
-                        loop.run_in_executor(executor, structure_agent.run_on_chunks, chunks, analysis_context): "structure",
-                        loop.run_in_executor(executor, character_agent.run_on_chunks, chunks, analysis_context): "character",
-                        loop.run_in_executor(executor, entry_agent.run_on_chunks, chunks, analysis_context): "entry",
+                extract_agent_names = tuple(
+                    agent_name for agent_name in ("structure", "character", "entry") if agent_name in AGENT_DISPLAY_NAMES
+                )
+                for agent_name in extract_agent_names:
+                    yield {
+                        "type": "agent_start",
+                        "agent": agent_name,
+                        "display_name": get_agent_display_name(agent_name),
                     }
 
-                    pending = set(futures.keys())
-                    while pending:
-                        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-                        for fut in done:
-                            agent_name = futures.get(fut, "unknown")
-                            try:
-                                step = fut.result()
-                            except Exception as exc:
-                                step = _error_step(agent_name, str(exc))
-                            results[agent_name] = step
-                            yield {"type": "agent_complete", "agent": agent_name, "data": dict(step.data)}
+                event_queue: _queue.Queue[dict[str, Any]] = _queue.Queue()
+
+                def _make_streaming_cb(name: str):
+                    last_emit = [0.0]
+                    buffer = [""]
+
+                    def cb(delta: str) -> None:
+                        buffer[0] += delta
+                        now = time.time()
+                        if now - last_emit[0] >= 0.5:
+                            last_emit[0] = now
+                            event_queue.put(
+                                {
+                                    "type": "agent_streaming",
+                                    "agent": name,
+                                    "display_name": get_agent_display_name(name),
+                                    "text": buffer[0][-200:],
+                                }
+                            )
+
+                    return cb
+
+                def _run_agent(agent, name, _chunks, ctx):
+                    try:
+                        step = agent.run_on_chunks(_chunks, ctx, on_streaming=_make_streaming_cb(name))
+                        event_queue.put({"type": "_done", "agent": name, "result": step})
+                    except Exception as exc:
+                        event_queue.put({"type": "_done", "agent": name, "error": exc})
+
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    for _agent, _name in [
+                        (structure_agent, "structure"),
+                        (character_agent, "character"),
+                        (entry_agent, "entry"),
+                    ]:
+                        executor.submit(_run_agent, _agent, _name, chunks, analysis_context)
+
+                    done_count = 0
+                    while done_count < 3:
+                        try:
+                            ev = await asyncio.to_thread(event_queue.get, timeout=0.3)
+                        except Exception:
+                            await asyncio.sleep(0.1)
+                            continue
+
+                        if ev.get("type") == "_done":
+                            a_name = ev["agent"]
+                            done_count += 1
+                            if "error" in ev:
+                                step = _error_step(a_name, str(ev["error"]))
+                            else:
+                                step = ev["result"]
+                            results[a_name] = step
+                            yield {
+                                "type": "agent_complete",
+                                "agent": a_name,
+                                "display_name": get_agent_display_name(a_name),
+                                "data": dict(step.data) if step.data else {},
+                                "status": step.status,
+                                "duration_ms": step.duration_ms,
+                                "tokens_used": step.tokens_used,
+                                "warnings": step.warnings,
+                            }
+                        elif ev.get("type") == "agent_streaming":
+                            yield ev
             else:
+                yield {
+                    "type": "agent_start",
+                    "agent": "structure",
+                    "display_name": get_agent_display_name("structure"),
+                }
                 structure_step = await asyncio.to_thread(structure_agent.run_on_chunks, chunks, analysis_context)
                 results["structure"] = structure_step
-                yield {"type": "agent_complete", "agent": "structure", "data": dict(structure_step.data)}
+                yield {
+                    "type": "agent_complete",
+                    "agent": "structure",
+                    "display_name": get_agent_display_name("structure"),
+                    "data": dict(structure_step.data),
+                    "status": structure_step.status,
+                    "duration_ms": structure_step.duration_ms,
+                    "tokens_used": structure_step.tokens_used,
+                    "warnings": structure_step.warnings,
+                }
 
+                yield {
+                    "type": "agent_start",
+                    "agent": "character",
+                    "display_name": get_agent_display_name("character"),
+                }
                 character_step = await asyncio.to_thread(character_agent.run_on_chunks, chunks, analysis_context)
                 results["character"] = character_step
-                yield {"type": "agent_complete", "agent": "character", "data": dict(character_step.data)}
+                yield {
+                    "type": "agent_complete",
+                    "agent": "character",
+                    "display_name": get_agent_display_name("character"),
+                    "data": dict(character_step.data),
+                    "status": character_step.status,
+                    "duration_ms": character_step.duration_ms,
+                    "tokens_used": character_step.tokens_used,
+                    "warnings": character_step.warnings,
+                }
 
+                yield {
+                    "type": "agent_start",
+                    "agent": "entry",
+                    "display_name": get_agent_display_name("entry"),
+                }
                 entry_step = await asyncio.to_thread(entry_agent.run_on_chunks, chunks, analysis_context)
                 results["entry"] = entry_step
-                yield {"type": "agent_complete", "agent": "entry", "data": dict(entry_step.data)}
+                yield {
+                    "type": "agent_complete",
+                    "agent": "entry",
+                    "display_name": get_agent_display_name("entry"),
+                    "data": dict(entry_step.data),
+                    "status": entry_step.status,
+                    "duration_ms": entry_step.duration_ms,
+                    "tokens_used": entry_step.tokens_used,
+                    "warnings": entry_step.warnings,
+                }
             validator = ValidationAgent()
+            yield {
+                "type": "agent_start",
+                "agent": "validation",
+                "display_name": get_agent_display_name("validation"),
+            }
             parse_result = await asyncio.to_thread(
                 validator.validate,
                 results.get("structure") or _error_step("structure", "Missing structure result"),
@@ -421,6 +544,15 @@ class OutlineParsingOrchestrator:
             parse_result.total_tokens_used = sum(
                 step.tokens_used for step in parse_result.agent_log if isinstance(step.tokens_used, int)
             )
+            yield {
+                "type": "agent_complete",
+                "agent": "validation",
+                "display_name": get_agent_display_name("validation"),
+                "status": "success",
+                "duration_ms": 0,
+                "tokens_used": 0,
+                "warnings": [],
+            }
             yield {"type": "parse_complete", "data": parse_result.to_dict()}
         except AppError as exc:
             yield {"type": "error", "message": exc.message, "code": exc.status_code}

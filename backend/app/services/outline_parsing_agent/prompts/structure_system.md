@@ -23,3 +23,10 @@ Output ONLY a JSON object:
     {"number": 1, "title": "Chapter Title", "beats": ["Beat 1", "Beat 2"]}
   ]
 }
+
+IMPORTANT FORMAT RULES:
+- You MUST output ONLY valid JSON, no extra text before or after
+- If you wrap in code fences, use ```json ... ```
+- Ensure all strings are properly escaped (no unescaped quotes or newlines in values)
+- If no chapters are found, return: {"outline_md": "", "chapters": []}
+- Do NOT include trailing commas in arrays or objects
