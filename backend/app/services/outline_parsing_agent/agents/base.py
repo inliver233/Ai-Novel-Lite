@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import random
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -119,7 +120,14 @@ class BaseExtractionAgent:
         user_prompt: str,
         on_streaming: Callable[[str], None] | None = None,
     ) -> tuple[str, int]:
-        """Call LLM with streaming and accumulate response."""
+        """Call LLM with streaming and accumulate response.
+
+        Uses a sync strategy stream when available. The default
+        `_ClientLLMStrategy.stream_completion` is async and cannot be consumed
+        from synchronous `run_on_chunks`, so built-in providers use
+        `call_llm_stream_messages` directly. Falls back to `self._call_llm`
+        only when the streaming client cannot be initialized.
+        """
 
         from app.llm.client import call_llm_stream_messages
 
@@ -127,21 +135,53 @@ class BaseExtractionAgent:
             ChatMessage(role="system", content=self.system_prompt),
             ChatMessage(role="user", content=user_prompt),
         ]
+        params = {"temperature": 0.2, "max_tokens": 16384}
 
-        try:
-            iterator, state = call_llm_stream_messages(
-                provider=self.provider,
-                base_url=self.base_url,
-                model=self.model,
-                api_key=self.api_key,
-                messages=messages,
-                params={"temperature": 0.2, "max_tokens": 16384},
-                timeout_seconds=self.config.timeout_seconds,
-                extra={"provider": self.provider},
-            )
-        except Exception:
-            # Fallback to sync if streaming is unavailable.
-            return self._call_llm(user_prompt)
+        iterator: Iterator[str] | None = None
+        state: Any | None = None
+        stream_completion = getattr(self.strategy, "stream_completion", None)
+        strategy_stream_impl = getattr(type(self.strategy), "stream_completion", None)
+        if callable(stream_completion) and not (
+            inspect.iscoroutinefunction(stream_completion)
+            or inspect.isasyncgenfunction(stream_completion)
+            or inspect.iscoroutinefunction(strategy_stream_impl)
+            or inspect.isasyncgenfunction(strategy_stream_impl)
+        ):
+            try:
+                iterator = stream_completion(
+                    base_url=self.base_url,
+                    api_key=self.api_key,
+                    model=self.model,
+                    messages=messages,
+                    params=params,
+                    timeout_seconds=self.config.timeout_seconds,
+                    extra={"provider": self.provider},
+                )
+            except TypeError:
+                iterator = stream_completion(  # type: ignore[misc,call-arg]
+                    base_url=self.base_url,
+                    api_key=self.api_key,
+                    model=self.model,
+                    messages=messages,
+                    extra_params=params,
+                    timeout_seconds=self.config.timeout_seconds,
+                )
+
+        if iterator is None:
+            try:
+                iterator, state = call_llm_stream_messages(
+                    provider=self.provider,
+                    base_url=self.base_url,
+                    model=self.model,
+                    api_key=self.api_key,
+                    messages=messages,
+                    params=params,
+                    timeout_seconds=self.config.timeout_seconds,
+                    extra={"provider": self.provider},
+                )
+            except Exception:
+                # Fallback to sync if streaming is unavailable.
+                return self._call_llm(user_prompt)
 
         accumulated: list[str] = []
         try:
@@ -150,17 +190,19 @@ class BaseExtractionAgent:
                 if on_streaming is not None:
                     on_streaming(delta)
         except Exception as exc:
-            if accumulated:
-                logger.warning(
-                    "%s: 流式传输中断，已接收 %d 段: %s",
-                    self.agent_name,
-                    len(accumulated),
-                    str(exc)[:200],
-                )
-            else:
-                raise
+            # Always re-raise — partial content is unreliable for JSON parsing.
+            # The caller (run_on_chunks) will handle retry with backoff.
+            logger.warning(
+                "%s: 流式传输中断，已接收 %d 段: %s",
+                self.agent_name,
+                len(accumulated),
+                str(exc)[:200],
+            )
+            raise
 
         text = "".join(accumulated)
+        # Note: tokens_used is not populated for streaming responses; it
+        # requires provider-specific usage reporting after the stream ends.
         tokens = getattr(state, "tokens_used", 0) or 0
         if not text.strip():
             raise RuntimeError(f"{self.agent_name}: 流式响应为空")
