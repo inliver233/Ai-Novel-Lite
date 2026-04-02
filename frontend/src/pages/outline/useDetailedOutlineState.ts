@@ -149,10 +149,21 @@ export function useDetailedOutlineState(
           },
           onCustomEvent: (eventName, data) => {
             const obj = data as Record<string, unknown> | null;
-            if (eventName === "volume_start") {
+            if (eventName === "start") {
+              const total = typeof obj?.total_volumes === "number"
+                ? obj.total_volumes
+                : 0;
+              setProgress((prev) => ({
+                current: prev?.current ?? 0,
+                total,
+                message: prev?.message ?? "...",
+              }));
+            } else if (eventName === "volume_start") {
               const volNum = typeof obj?.volume_number === "number" ? obj.volume_number : 0;
               const volTitle = typeof obj?.volume_title === "string" ? obj.volume_title : "";
-              const total = typeof obj?.total === "number" ? obj.total : 0;
+              const total = typeof obj?.total_volumes === "number"
+                ? obj.total_volumes
+                : (typeof obj?.total === "number" ? obj.total : 0);
               setProgress({
                 current: volNum,
                 total,
@@ -160,7 +171,9 @@ export function useDetailedOutlineState(
               });
             } else if (eventName === "volume_complete") {
               const volNum = typeof obj?.volume_number === "number" ? obj.volume_number : 0;
-              const total = typeof obj?.total === "number" ? obj.total : 0;
+              const total = typeof obj?.total_volumes === "number"
+                ? obj.total_volumes
+                : (typeof obj?.total === "number" ? obj.total : 0);
               setProgress((prev) => ({
                 current: volNum,
                 total,

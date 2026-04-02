@@ -391,6 +391,7 @@ def generate_all_detailed_outlines(
                         "type": "volume_start",
                         "volume_number": vol_number,
                         "volume_title": vol_title,
+                        "total_volumes": total_volumes,
                     }
 
                     detailed_outline_id = _upsert_detailed_outline(
@@ -408,6 +409,7 @@ def generate_all_detailed_outlines(
                         "volume_number": vol_number,
                         "chapter_count": 0,
                         "detailed_outline_id": detailed_outline_id,
+                        "total_volumes": total_volumes,
                     }
 
                 yield {
@@ -441,6 +443,7 @@ def generate_all_detailed_outlines(
                 "type": "volume_start",
                 "volume_number": vol.number,
                 "volume_title": vol.title,
+                "total_volumes": total_volumes,
             }
 
             # Assign chapters to volume (best-effort)
@@ -488,6 +491,7 @@ def generate_all_detailed_outlines(
                 "volume_number": vol.number,
                 "chapter_count": chapter_count,
                 "detailed_outline_id": detailed_outline_id,
+                "total_volumes": total_volumes,
             }
 
         yield {
@@ -527,6 +531,7 @@ def generate_all_detailed_outlines(
             "type": "volume_start",
             "volume_number": vol.number,
             "volume_title": vol.title,
+            "total_volumes": total_volumes,
         }
 
         # Build prev/next volume summaries for context continuity
@@ -557,6 +562,7 @@ def generate_all_detailed_outlines(
                 "volume_number": vol.number,
                 "chapter_count": result.chapter_count,
                 "detailed_outline_id": result.detailed_outline_id,
+                "total_volumes": total_volumes,
             }
         except AppError as exc:
             logger.warning(
