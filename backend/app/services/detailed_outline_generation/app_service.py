@@ -269,7 +269,7 @@ def generate_detailed_outline_for_volume(
                 prompt_tokens, ctx_limit, safe_max, current_max_tokens,
             )
     elif current_max_tokens is None:
-        llm_config = with_param_overrides(llm_config, {"max_tokens": 8192})
+        llm_config = with_param_overrides(llm_config, {"max_tokens": 16000})
 
     # 3 -- call LLM
     llm_result = call_llm_and_record(
