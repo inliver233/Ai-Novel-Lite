@@ -260,12 +260,31 @@ def get_active_preset_for_task(db: Session, *, project_id: str, task: str, allow
         if (preset.scope or "") == LEGACY_IMPORTED_SCOPE:
             continue
         if task in parse_json_list(preset.active_for_json):
+            # Auto-upgrade blocks if resource version is newer
+            if preset.resource_key:
+                try:
+                    resource = load_preset_resource(preset.resource_key)
+                    if int(preset.version or 0) < int(resource.version):
+                        preset = _ensure_default_preset_from_resource(
+                            db, project_id=project_id, resource_key=preset.resource_key, activate=False,
+                        )
+                except Exception:
+                    pass
             return preset
 
     for preset in presets:
         if (preset.scope or "") != LEGACY_IMPORTED_SCOPE:
             continue
         if task in parse_json_list(preset.active_for_json):
+            if preset.resource_key:
+                try:
+                    resource = load_preset_resource(preset.resource_key)
+                    if int(preset.version or 0) < int(resource.version):
+                        preset = _ensure_default_preset_from_resource(
+                            db, project_id=project_id, resource_key=preset.resource_key, activate=False,
+                        )
+                except Exception:
+                    pass
             return preset
 
     if allow_autocreate:
