@@ -141,11 +141,39 @@ class ValidationAgent:
         if not outline_md:
             warnings.append("结构: 大纲摘要为空")
 
+        volumes_raw = data.get("volumes")
+        volumes: list[dict[str, Any]] = []
+        if isinstance(volumes_raw, list):
+            for item in volumes_raw:
+                if not isinstance(item, dict):
+                    warnings.append("结构: 无效卷条目（非对象）")
+                    continue
+
+                number = _safe_int(item.get("number"))
+                if number is None or number <= 0:
+                    warnings.append(f"结构: 卷编号必须为正整数，当前值: {item.get('number')}")
+                    continue
+
+                title = _clean_str(item.get("title"))
+                summary = _clean_str(item.get("summary"))
+                if not title:
+                    warnings.append(f"结构: 第 {number} 卷缺少标题")
+                if not summary:
+                    warnings.append(f"结构: 第 {number} 卷缺少摘要")
+
+                volumes.append({"number": number, "title": title, "summary": summary})
+            volumes.sort(key=lambda v: int(v.get("number") or 0))
+        elif "volumes" in data and data.get("volumes") is not None:
+            warnings.append("结构: 卷数据格式错误（非列表）")
+
         chapters_raw = data.get("chapters")
         chapters: list[dict[str, Any]] = []
+        if chapters_raw is None and volumes:
+            chapters_raw = []
+
         if not isinstance(chapters_raw, list):
             warnings.append("结构: 章节数据格式错误（非列表）")
-            return ParsedOutline(outline_md=outline_md, chapters=[])
+            return ParsedOutline(outline_md=outline_md, volumes=volumes, chapters=[])
 
         for item in chapters_raw:
             if not isinstance(item, dict):
@@ -168,10 +196,21 @@ class ValidationAgent:
             chapters.append({"number": number, "title": title, "beats": beats})
 
         chapters.sort(key=lambda c: int(c.get("number") or 0))
-        if not chapters:
+
+        if volumes and not chapters:
+            chapters = [
+                {
+                    "number": volume["number"],
+                    "title": volume["title"],
+                    "beats": [volume["summary"]] if volume.get("summary") else [],
+                }
+                for volume in volumes
+            ]
+
+        if not chapters and not volumes:
             warnings.append("结构: 未提取到任何章节")
 
-        return ParsedOutline(outline_md=outline_md, chapters=chapters)
+        return ParsedOutline(outline_md=outline_md, volumes=volumes, chapters=chapters)
 
     def _build_characters(
         self, character_result: AgentStepResult, *, warnings: list[str]

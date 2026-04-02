@@ -75,7 +75,7 @@ export function useOutlineGenerationState(args: {
     const preview = genPreview;
     const ok = !dirty ? true : await confirm.confirm({ ...OUTLINE_COPY.confirms.overwriteDirty, danger: true });
     if (!ok) return false;
-    const savedOk = await save(preview.outline_md, { chapters: preview.chapters });
+    const savedOk = await save(preview.outline_md, { volumes: preview.volumes, chapters: preview.chapters });
     if (!savedOk) return false;
     setOpen(false);
     setGenPreview(null);
@@ -95,7 +95,10 @@ export function useOutlineGenerationState(args: {
       }
     }
 
-    const created = await createOutline(buildGeneratedOutlineTitle(), preview.outline_md, { chapters: preview.chapters });
+    const created = await createOutline(buildGeneratedOutlineTitle(), preview.outline_md, {
+      volumes: preview.volumes,
+      chapters: preview.chapters,
+    });
     if (!created) return null;
     setOpen(false);
     setGenPreview(null);

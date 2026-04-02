@@ -14,6 +14,15 @@ const RAW_PAYLOAD = JSON.stringify(
   2,
 );
 
+const RAW_VOLUME_PAYLOAD = JSON.stringify(
+  {
+    outline_md: "# 分卷梗概\n- 新格式也应该被识别",
+    volumes: [{ number: 1, title: "第一卷", summary: "卷摘要" }],
+  },
+  null,
+  2,
+);
+
 describe("outlineParsing", () => {
   it("parses outline payload pasted as raw text", () => {
     const parsed = parseOutlineGenResultFromText(RAW_PAYLOAD);
@@ -39,5 +48,26 @@ describe("outlineParsing", () => {
     expect(derived.normalizedContentMd).toBe("plain markdown");
     expect(derived.chapters).toHaveLength(1);
     expect(derived.chapters[0]?.number).toBe(9);
+  });
+
+  it("parses volume-based outline payload pasted as raw text", () => {
+    const parsed = parseOutlineGenResultFromText(RAW_VOLUME_PAYLOAD);
+
+    expect(parsed?.outline_md).toContain("分卷梗概");
+    expect(parsed?.volumes).toHaveLength(1);
+    expect(parsed?.volumes[0]?.title).toBe("第一卷");
+    expect(parsed?.chapters).toHaveLength(1);
+  });
+
+  it("prefers stored volumes when structure already uses the new format", () => {
+    const derived = deriveOutlineFromStoredContent("plain markdown", {
+      volumes: [{ number: 1, title: "第一卷", summary: "卷摘要" }],
+      chapters: [],
+    });
+
+    expect(derived.normalizedContentMd).toBe("plain markdown");
+    expect(derived.volumes).toHaveLength(1);
+    expect(derived.volumes[0]?.summary).toBe("卷摘要");
+    expect(derived.chapters).toHaveLength(1);
   });
 });

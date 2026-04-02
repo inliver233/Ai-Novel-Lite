@@ -23,6 +23,12 @@ export type OutlineParseChapter = {
   beats: string[];
 };
 
+export type OutlineParseVolume = {
+  number: number;
+  title: string;
+  summary: string;
+};
+
 export type OutlineParseCharacter = {
   name: string;
   role: string | null;
@@ -53,7 +59,7 @@ export type OutlineParseAgentLogItem = {
 };
 
 export type OutlineParseResult = {
-  outline: { outline_md: string; chapters: OutlineParseChapter[] };
+  outline: { outline_md: string; volumes: OutlineParseVolume[]; chapters: OutlineParseChapter[] };
   characters: OutlineParseCharacter[];
   entries: OutlineParseEntry[];
   detailed_outlines: OutlineParseDetailedOutline[];

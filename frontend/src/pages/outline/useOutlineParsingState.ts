@@ -388,11 +388,12 @@ export function useOutlineParsingState(args: {
   const applyOutline = useCallback(async () => {
     if (!projectId || !parseResult) return { ok: false } satisfies ApplyOutlineResult;
 
+    const volumes = Array.isArray(parseResult.outline?.volumes) ? parseResult.outline.volumes : [];
     const chapters = Array.isArray(parseResult.outline?.chapters) ? parseResult.outline.chapters : [];
     const outlineMd = String(parseResult.outline?.outline_md ?? "");
 
     if (!dirty) {
-      const savedOk = await save(outlineMd, { chapters });
+      const savedOk = await save(outlineMd, { volumes, chapters });
       return { ok: savedOk, outlineId };
     }
 
@@ -406,13 +407,13 @@ export function useOutlineParsingState(args: {
     });
     if (choice === "cancel") return { ok: false, outlineId };
     if (choice === "confirm") {
-      const savedOk = await save(outlineMd, { chapters });
+      const savedOk = await save(outlineMd, { volumes, chapters });
       return { ok: savedOk, outlineId };
     }
 
     const savedOk = await save();
     if (!savedOk) return { ok: false, outlineId };
-    const created = await createOutline("解析大纲", outlineMd, { chapters });
+    const created = await createOutline("解析大纲", outlineMd, { volumes, chapters });
     if (!created) return { ok: false, outlineId };
     return { ok: true, outlineId: created.id };
   }, [confirm, createOutline, dirty, parseResult, projectId, save]);

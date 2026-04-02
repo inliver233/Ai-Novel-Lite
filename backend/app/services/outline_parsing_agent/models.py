@@ -45,7 +45,9 @@ class ParsedOutline:
     """Extracted outline structure."""
 
     outline_md: str = ""
+    volumes: list[dict[str, Any]] = field(default_factory=list)
     chapters: list[dict[str, Any]] = field(default_factory=list)
+    # Each volume: {number: int, title: str, summary: str}
     # Each chapter: {number: int, title: str, beats: list[str]}
 
 
@@ -98,6 +100,7 @@ class ParseResult:
         return {
             "outline": {
                 "outline_md": self.outline.outline_md,
+                "volumes": self.outline.volumes,
                 "chapters": self.outline.chapters,
             },
             "characters": [

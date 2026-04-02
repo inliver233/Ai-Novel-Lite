@@ -112,8 +112,8 @@ export function useOutlinePageState(): OutlinePageState {
       ...outlineQuery.data.outline,
       content_md: normalizedStored.normalizedContentMd,
       structure:
-        normalizedStored.chapters.length > 0
-          ? { chapters: normalizedStored.chapters }
+        normalizedStored.chapters.length > 0 || normalizedStored.volumes.length > 0
+          ? { volumes: normalizedStored.volumes, chapters: normalizedStored.chapters }
           : outlineQuery.data.outline.structure,
     });
     setPreset(outlineQuery.data.preset);

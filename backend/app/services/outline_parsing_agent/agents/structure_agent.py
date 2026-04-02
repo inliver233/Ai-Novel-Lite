@@ -47,10 +47,29 @@ class StructureExtractionAgent(BaseExtractionAgent):
 
     def parse_response(self, raw_json: Any) -> dict[str, Any]:
         if not isinstance(raw_json, dict):
-            return {"outline_md": "", "chapters": []}
+            return {"outline_md": "", "volumes": [], "chapters": []}
 
         outline_md = _clean_str(raw_json.get("outline_md"))
 
+        # Prefer new volumes format
+        volumes_raw = raw_json.get("volumes")
+        volumes: list[dict[str, Any]] = []
+        if isinstance(volumes_raw, list):
+            for item in volumes_raw:
+                if not isinstance(item, dict):
+                    continue
+                number = _coerce_int(item.get("number"))
+                if number is None:
+                    continue
+                volumes.append(
+                    {
+                        "number": number,
+                        "title": _clean_str(item.get("title")),
+                        "summary": _clean_str(item.get("summary")),
+                    }
+                )
+
+        # Fallback: extract chapters (backward compat)
         chapters_raw = raw_json.get("chapters")
         chapters: list[dict[str, Any]] = []
         if isinstance(chapters_raw, list):
@@ -68,13 +87,25 @@ class StructureExtractionAgent(BaseExtractionAgent):
                     }
                 )
 
-        return {"outline_md": outline_md, "chapters": chapters}
+        # If we got volumes but no chapters, synthesize compat chapters
+        if volumes and not chapters:
+            chapters = [
+                {
+                    "number": v["number"],
+                    "title": v["title"],
+                    "beats": [v["summary"]] if v.get("summary") else [],
+                }
+                for v in volumes
+            ]
+
+        return {"outline_md": outline_md, "volumes": volumes, "chapters": chapters}
 
     def merge_results(self, chunk_results: list[dict[str, Any]]) -> dict[str, Any]:
         if not chunk_results:
-            return {"outline_md": "", "chapters": []}
+            return {"outline_md": "", "volumes": [], "chapters": []}
 
         outline_parts: list[str] = []
+        volumes_by_number: dict[int, dict[str, Any]] = {}
         chapters_by_number: dict[int, dict[str, Any]] = {}
 
         for result in chunk_results:
@@ -82,6 +113,27 @@ class StructureExtractionAgent(BaseExtractionAgent):
             if outline_md:
                 outline_parts.append(outline_md)
 
+            # Merge volumes
+            volumes_raw = result.get("volumes")
+            if isinstance(volumes_raw, list):
+                for item in volumes_raw:
+                    if not isinstance(item, dict):
+                        continue
+                    number = _coerce_int(item.get("number"))
+                    if number is None:
+                        continue
+                    volume: dict[str, Any] = {
+                        "number": number,
+                        "title": _clean_str(item.get("title")),
+                        "summary": _clean_str(item.get("summary")),
+                    }
+                    existing = volumes_by_number.get(number)
+                    if existing is None:
+                        volumes_by_number[number] = volume
+                    elif len(_clean_str(volume.get("summary"))) > len(_clean_str(existing.get("summary"))):
+                        volumes_by_number[number] = volume
+
+            # Merge chapters (backward compat)
             chapters_raw = result.get("chapters")
             if not isinstance(chapters_raw, list):
                 continue
@@ -117,6 +169,18 @@ class StructureExtractionAgent(BaseExtractionAgent):
                     existing["title"] = _clean_str(chapter.get("title"))
 
         outline_md = "\n\n---\n\n".join([p for p in outline_parts if p.strip()])
+        merged_volumes = [volumes_by_number[n] for n in sorted(volumes_by_number)]
         merged_chapters = [chapters_by_number[n] for n in sorted(chapters_by_number)]
-        return {"outline_md": outline_md, "chapters": merged_chapters}
 
+        # If we got volumes but no chapters, synthesize compat chapters
+        if merged_volumes and not merged_chapters:
+            merged_chapters = [
+                {
+                    "number": v["number"],
+                    "title": v["title"],
+                    "beats": [v["summary"]] if v.get("summary") else [],
+                }
+                for v in merged_volumes
+            ]
+
+        return {"outline_md": outline_md, "volumes": merged_volumes, "chapters": merged_chapters}

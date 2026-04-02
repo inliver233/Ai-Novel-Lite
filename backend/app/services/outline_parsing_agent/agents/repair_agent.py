@@ -24,7 +24,11 @@ PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
 # Expected schema snippets for each task type
 _SCHEMA_HINTS: dict[str, str] = {
-    "structure": '{"outline_md": "...", "chapters": [{"number": 1, "title": "...", "beats": ["..."]}]}',
+    "structure": (
+        '{"outline_md": "...", '
+        '"volumes": [{"number": 1, "title": "...", "summary": "..."}], '
+        '"chapters": [{"number": 1, "title": "...", "beats": ["..."]}]}'
+    ),
     "character": '{"characters": [{"name": "...", "role": "...", "profile": "...", "notes": "..."}]}',
     "entry": '{"entries": [{"title": "...", "content": "...", "tags": ["..."]}]}',
 }

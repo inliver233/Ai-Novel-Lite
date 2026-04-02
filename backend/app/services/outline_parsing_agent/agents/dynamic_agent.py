@@ -94,8 +94,24 @@ def _clean_tags(value: Any) -> list[str]:
 
 def _parse_structure(raw_json: Any) -> dict[str, Any]:
     if not isinstance(raw_json, dict):
-        return {"outline_md": "", "chapters": []}
+        return {"outline_md": "", "volumes": [], "chapters": []}
     outline_md = _clean_str(raw_json.get("outline_md"))
+
+    volumes_raw = raw_json.get("volumes")
+    volumes: list[dict[str, Any]] = []
+    if isinstance(volumes_raw, list):
+        for item in volumes_raw:
+            if not isinstance(item, dict):
+                continue
+            number = _coerce_int(item.get("number"))
+            if number is None:
+                continue
+            volumes.append({
+                "number": number,
+                "title": _clean_str(item.get("title")),
+                "summary": _clean_str(item.get("summary")),
+            })
+
     chapters_raw = raw_json.get("chapters")
     chapters: list[dict[str, Any]] = []
     if isinstance(chapters_raw, list):
@@ -110,18 +126,52 @@ def _parse_structure(raw_json: Any) -> dict[str, Any]:
                 "title": _clean_str(item.get("title")),
                 "beats": _clean_beats(item.get("beats")),
             })
-    return {"outline_md": outline_md, "chapters": chapters}
+
+    if volumes and not chapters:
+        chapters = [
+            {
+                "number": volume["number"],
+                "title": volume["title"],
+                "beats": [volume["summary"]] if volume.get("summary") else [],
+            }
+            for volume in volumes
+        ]
+
+    return {"outline_md": outline_md, "volumes": volumes, "chapters": chapters}
 
 
 def _merge_structure(chunk_results: list[dict[str, Any]]) -> dict[str, Any]:
     if not chunk_results:
-        return {"outline_md": "", "chapters": []}
+        return {"outline_md": "", "volumes": [], "chapters": []}
     outline_parts: list[str] = []
+    volumes_by_number: dict[int, dict[str, Any]] = {}
     chapters_by_number: dict[int, dict[str, Any]] = {}
     for result in chunk_results:
         outline_md = _clean_str(result.get("outline_md"))
         if outline_md:
             outline_parts.append(outline_md)
+
+        volumes_raw = result.get("volumes")
+        if isinstance(volumes_raw, list):
+            for item in volumes_raw:
+                if not isinstance(item, dict):
+                    continue
+                number = _coerce_int(item.get("number"))
+                if number is None:
+                    continue
+                volume = {
+                    "number": number,
+                    "title": _clean_str(item.get("title")),
+                    "summary": _clean_str(item.get("summary")),
+                }
+                existing_volume = volumes_by_number.get(number)
+                if existing_volume is None:
+                    volumes_by_number[number] = volume
+                elif len(_clean_str(volume.get("summary"))) > len(_clean_str(existing_volume.get("summary"))):
+                    volumes_by_number[number] = volume
+                elif not _clean_str(existing_volume.get("title")) and _clean_str(volume.get("title")):
+                    existing_volume["title"] = _clean_str(volume.get("title"))
+
         chapters_raw = result.get("chapters")
         if not isinstance(chapters_raw, list):
             continue
@@ -144,8 +194,20 @@ def _merge_structure(chunk_results: list[dict[str, Any]]) -> dict[str, Any]:
             elif not _clean_str(existing.get("title")) and _clean_str(chapter.get("title")):
                 existing["title"] = _clean_str(chapter.get("title"))
     outline_md = "\n\n---\n\n".join([p for p in outline_parts if p.strip()])
+    merged_volumes = [volumes_by_number[n] for n in sorted(volumes_by_number)]
     merged_chapters = [chapters_by_number[n] for n in sorted(chapters_by_number)]
-    return {"outline_md": outline_md, "chapters": merged_chapters}
+
+    if merged_volumes and not merged_chapters:
+        merged_chapters = [
+            {
+                "number": volume["number"],
+                "title": volume["title"],
+                "beats": [volume["summary"]] if volume.get("summary") else [],
+            }
+            for volume in merged_volumes
+        ]
+
+    return {"outline_md": outline_md, "volumes": merged_volumes, "chapters": merged_chapters}
 
 
 # --- Character ---

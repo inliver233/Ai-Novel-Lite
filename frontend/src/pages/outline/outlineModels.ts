@@ -29,6 +29,7 @@ export function toFinalPreviewJson(result: OutlineGenResult): string {
   return JSON.stringify(
     {
       outline_md: result.outline_md,
+      volumes: result.volumes,
       chapters: result.chapters,
       parse_error: result.parse_error ?? undefined,
     },
