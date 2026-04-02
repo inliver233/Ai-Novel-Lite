@@ -80,7 +80,6 @@ export type OutlineActionsBarProps = {
   onOpenParse: () => void;
   onSave: () => void;
   onGoToDetailedTab: () => void;
-  onOpenGenerateDetailed: () => void;
 };
 
 export function OutlineActionsBar(props: OutlineActionsBarProps) {
@@ -93,11 +92,6 @@ export function OutlineActionsBar(props: OutlineActionsBarProps) {
         <button className="btn btn-secondary" onClick={props.onOpenParse} type="button">
           智能解析 (Beta)
         </button>
-        {props.hasOutlineStructure && !props.hasDetailedOutlines ? (
-          <button className="btn btn-secondary" onClick={props.onOpenGenerateDetailed} type="button">
-            {OUTLINE_COPY.generateDetailed}
-          </button>
-        ) : null}
         {props.hasDetailedOutlines ? (
           <button className="btn btn-secondary" onClick={props.onGoToDetailedTab} type="button">
             {OUTLINE_COPY.goToDetailedTab}

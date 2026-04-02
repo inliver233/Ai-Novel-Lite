@@ -407,21 +407,20 @@ def _generate_single_volume_sse_events(
         return
 
     # Resolve LLM config
-    resolved = resolve_task_llm_config(
-        db,
-        project=project,
-        user_id=user_id,
-        task_key="detailed_outline_generate",
-        header_api_key=x_llm_api_key,
-    )
-    if resolved is None:
-        resolved = resolve_task_llm_config(
-            db,
-            project=project,
-            user_id=user_id,
-            task_key="outline_generate",
-            header_api_key=x_llm_api_key,
-        )
+    resolved = None
+    for task_key in ("detailed_outline_generate", "outline_generate"):
+        try:
+            resolved = resolve_task_llm_config(
+                db,
+                project=project,
+                user_id=user_id,
+                task_key=task_key,
+                header_api_key=x_llm_api_key,
+            )
+        except AppError:
+            resolved = None
+        if resolved is not None:
+            break
     if resolved is None:
         yield sse_error(error="LLM 配置未找到，请先在 Prompts 页保存 LLM 配置")
         yield sse_done()

@@ -335,22 +335,20 @@ def generate_all_detailed_outlines(
     yield {"type": "start", "total_volumes": total_volumes}
 
     # -- resolve LLM config --
-    resolved = resolve_task_llm_config(
-        db,
-        project=project,
-        user_id=user_id,
-        task_key="detailed_outline_generate",
-        header_api_key=x_llm_api_key,
-    )
-    if resolved is None:
-        # Fallback: use outline_generate config when detailed_outline_generate not configured
-        resolved = resolve_task_llm_config(
-            db,
-            project=project,
-            user_id=user_id,
-            task_key="outline_generate",
-            header_api_key=x_llm_api_key,
-        )
+    resolved = None
+    for task_key in ("detailed_outline_generate", "outline_generate"):
+        try:
+            resolved = resolve_task_llm_config(
+                db,
+                project=project,
+                user_id=user_id,
+                task_key=task_key,
+                header_api_key=x_llm_api_key,
+            )
+        except AppError:
+            resolved = None
+        if resolved is not None:
+            break
     if resolved is None:
         yield {"type": "error", "message": "LLM 配置未找到，请先在 Prompts 页保存 LLM 配置"}
         return

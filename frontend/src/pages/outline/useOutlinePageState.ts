@@ -435,7 +435,6 @@ export function useOutlinePageState(): OutlinePageState {
       onOpenParse: parsing.openParseModal,
       onSave: () => void save(),
       onGoToDetailedTab: () => {/* handled by OutlinePage via setActiveTab */},
-      onOpenGenerateDetailed: () => detailedOutline.openGenerateModal(),
     },
     editorProps: {
       content,
