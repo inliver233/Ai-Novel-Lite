@@ -150,6 +150,15 @@ def ensure_default_chapter_preset(db: Session, *, project_id: str, activate: boo
     )
 
 
+def ensure_default_detailed_outline_preset(db: Session, *, project_id: str, activate: bool = False) -> PromptPreset:
+    return _ensure_default_preset_from_resource(
+        db,
+        project_id=project_id,
+        resource_key="detailed_outline_generate_v1",
+        activate=activate,
+    )
+
+
 def resolve_resource_key_for_preset(db: Session, *, preset: PromptPreset) -> str | None:
     if preset.resource_key:
         return str(preset.resource_key)
@@ -260,6 +269,8 @@ def get_active_preset_for_task(db: Session, *, project_id: str, task: str, allow
             return ensure_default_outline_preset(db, project_id=project_id, activate=True)
         if task == "chapter_generate":
             return ensure_default_chapter_preset(db, project_id=project_id, activate=True)
+        if task == "detailed_outline_generate":
+            return ensure_default_detailed_outline_preset(db, project_id=project_id, activate=True)
 
     if not allow_autocreate:
         raise AppError.validation(
@@ -282,4 +293,3 @@ def get_active_preset_for_task(db: Session, *, project_id: str, task: str, allow
     db.commit()
     db.refresh(preset)
     return preset
-

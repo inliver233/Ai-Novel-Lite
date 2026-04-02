@@ -319,19 +319,23 @@ def _generate_all_sse_events(
     context_flags: dict | None = None,
 ) -> Iterator[str]:
     """Wrap generate_all_detailed_outlines dict events into SSE strings."""
-    for event in generate_all_detailed_outlines(
-        outline_id=outline_id,
-        project_id=project_id,
-        user_id=user_id,
-        request_id=request_id,
-        db=db,
-        x_llm_api_key=x_llm_api_key,
-        chapters_per_volume=chapters_per_volume,
-        instruction=instruction,
-        context_flags=context_flags,
-    ):
-        event_type = event.get("type", "message")
-        yield format_sse(event, event=event_type)
+    try:
+        for event in generate_all_detailed_outlines(
+            outline_id=outline_id,
+            project_id=project_id,
+            user_id=user_id,
+            request_id=request_id,
+            db=db,
+            x_llm_api_key=x_llm_api_key,
+            chapters_per_volume=chapters_per_volume,
+            instruction=instruction,
+            context_flags=context_flags,
+        ):
+            event_type = event.get("type", "message")
+            yield format_sse(event, event=event_type)
+    except Exception as exc:
+        logger.exception("detailed_outline_generate_sse_error")
+        yield sse_error(error=str(exc) or "细纲生成失败")
     yield sse_done()
 
 
@@ -382,87 +386,90 @@ def _generate_single_volume_sse_events(
     context_flags: dict | None = None,
 ) -> Iterator[str]:
     """Generate detailed outline for a single volume, yielding SSE events."""
-    outline = db.get(Outline, outline_id)
-    if outline is None:
-        yield sse_error(error="Outline not found")
-        yield sse_done()
-        return
-    project = db.get(Project, project_id)
-    if project is None:
-        yield sse_error(error="Project not found")
-        yield sse_done()
-        return
-
-    # Extract volumes and find the target
-    volumes = extract_volumes_from_outline(outline, db)
-    target_vol = None
-    for vol in volumes:
-        if vol.number == volume_number:
-            target_vol = vol
-            break
-
-    if target_vol is None:
-        yield sse_error(error=f"Volume {volume_number} not found in outline")
-        yield sse_done()
-        return
-
-    # Resolve LLM config
-    resolved = None
-    for task_key in ("detailed_outline_generate", "outline_generate"):
-        try:
-            resolved = resolve_task_llm_config(
-                db,
-                project=project,
-                user_id=user_id,
-                task_key=task_key,
-                header_api_key=x_llm_api_key,
-            )
-        except AppError:
-            resolved = None
-        if resolved is not None:
-            break
-    if resolved is None:
-        yield sse_error(error="LLM 配置未找到，请先在 Prompts 页保存 LLM 配置")
-        yield sse_done()
-        return
-
-    yield format_sse(
-        {"type": "volume_start", "volume_number": target_vol.number, "volume_title": target_vol.title},
-        event="volume_start",
-    )
-
     try:
-        result = generate_detailed_outline_for_volume(
-            outline,
-            target_vol,
-            project,
-            resolved.llm_call,
-            str(resolved.api_key),
-            request_id,
-            user_id,
-            db,
-            chapters_per_volume=chapters_per_volume,
-            instruction=instruction,
-            context_flags=context_flags,
-        )
+        outline = db.get(Outline, outline_id)
+        if outline is None:
+            yield sse_error(error="Outline not found")
+            yield sse_done()
+            return
+        project = db.get(Project, project_id)
+        if project is None:
+            yield sse_error(error="Project not found")
+            yield sse_done()
+            return
+
+        # Extract volumes and find the target
+        volumes = extract_volumes_from_outline(outline, db)
+        target_vol = None
+        for vol in volumes:
+            if vol.number == volume_number:
+                target_vol = vol
+                break
+
+        if target_vol is None:
+            yield sse_error(error=f"Volume {volume_number} not found in outline")
+            yield sse_done()
+            return
+
+        # Resolve LLM config
+        resolved = None
+        for task_key in ("detailed_outline_generate", "outline_generate"):
+            try:
+                resolved = resolve_task_llm_config(
+                    db,
+                    project=project,
+                    user_id=user_id,
+                    task_key=task_key,
+                    header_api_key=x_llm_api_key,
+                )
+            except AppError:
+                resolved = None
+            if resolved is not None:
+                break
+        if resolved is None:
+            yield sse_error(error="LLM 配置未找到，请先在 Prompts 页保存 LLM 配置")
+            yield sse_done()
+            return
+
         yield format_sse(
-            {
-                "type": "volume_complete",
-                "volume_number": target_vol.number,
-                "chapter_count": result.chapter_count,
-                "detailed_outline_id": result.detailed_outline_id,
-            },
-            event="volume_complete",
+            {"type": "volume_start", "volume_number": target_vol.number, "volume_title": target_vol.title},
+            event="volume_start",
         )
-    except AppError as exc:
-        logger.warning(
-            "detailed_outline_single_volume_error volume=%d code=%s msg=%s",
-            volume_number, exc.code, exc.message,
-        )
-        yield sse_error(error=exc.message)
+        try:
+            result = generate_detailed_outline_for_volume(
+                outline,
+                target_vol,
+                project,
+                resolved.llm_call,
+                str(resolved.api_key),
+                request_id,
+                user_id,
+                db,
+                chapters_per_volume=chapters_per_volume,
+                instruction=instruction,
+                context_flags=context_flags,
+            )
+            yield format_sse(
+                {
+                    "type": "volume_complete",
+                    "volume_number": target_vol.number,
+                    "chapter_count": result.chapter_count,
+                    "detailed_outline_id": result.detailed_outline_id,
+                },
+                event="volume_complete",
+            )
+        except AppError as exc:
+            logger.warning(
+                "detailed_outline_single_volume_error volume=%d code=%s msg=%s",
+                volume_number, exc.code, exc.message,
+            )
+            yield sse_error(error=exc.message)
+        except Exception as exc:
+            logger.exception("detailed_outline_single_volume_unexpected_error volume=%d", volume_number)
+            yield sse_error(error=str(exc))
     except Exception as exc:
-        logger.exception("detailed_outline_single_volume_unexpected_error volume=%d", volume_number)
-        yield sse_error(error=str(exc))
+        logger.exception("detailed_outline_single_volume_sse_error")
+        yield sse_error(error=str(exc) or "细纲生成失败")
 
     yield sse_done()
 
