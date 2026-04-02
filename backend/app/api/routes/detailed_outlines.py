@@ -517,9 +517,75 @@ def create_chapters(
     user_id: UserIdDep,
     detailed_outline_id: str,
     replace: bool = Query(default=False),
+    x_llm_api_key: str | None = Header(default=None, alias="X-LLM-Api-Key"),
 ) -> dict:
     request_id = request.state.request_id
     _require_detailed_outline_editor(db, detailed_outline_id=detailed_outline_id, user_id=user_id)
+
+    detail = db.get(DetailedOutline, detailed_outline_id)
+    if detail is None:
+        raise AppError.not_found("DetailedOutline not found")
+
+    needs_generation = True
+    if detail.structure_json:
+        try:
+            structure = json.loads(detail.structure_json)
+            if isinstance(structure, dict):
+                chapters = structure.get("chapters")
+                if isinstance(chapters, list) and len(chapters) > 0:
+                    needs_generation = False
+        except Exception:
+            pass
+
+    if needs_generation:
+        outline = db.get(Outline, detail.outline_id)
+        project = db.get(Project, detail.project_id)
+        if outline is None or project is None:
+            raise AppError.not_found("Outline or Project not found")
+
+        from app.services.detailed_outline_generation.models import VolumeInfo
+
+        vol_info = VolumeInfo(
+            number=detail.volume_number,
+            title=detail.volume_title or "",
+            beats_text=detail.content_md or "",
+            chapter_range_start=1,
+            chapter_range_end=0,
+        )
+
+        resolved = None
+        for task_key in ("detailed_outline_generate", "outline_generate"):
+            try:
+                resolved = resolve_task_llm_config(
+                    db,
+                    project=project,
+                    user_id=user_id,
+                    task_key=task_key,
+                    header_api_key=x_llm_api_key,
+                )
+            except AppError:
+                resolved = None
+            if resolved is not None:
+                break
+
+        if resolved is None:
+            raise AppError(
+                code="LLM_CONFIG_NOT_FOUND",
+                message="LLM 配置未找到，请先在 Prompts 页保存 LLM 配置",
+                status_code=400,
+            )
+
+        generate_detailed_outline_for_volume(
+            outline,
+            vol_info,
+            project,
+            resolved.llm_call,
+            str(resolved.api_key),
+            request_id,
+            user_id,
+            db,
+        )
+        db.refresh(detail)
 
     chapters = create_chapters_from_detailed_outline(
         detailed_outline_id,
