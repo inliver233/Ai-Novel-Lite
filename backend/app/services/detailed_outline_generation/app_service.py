@@ -362,7 +362,20 @@ def generate_all_detailed_outlines(
     if isinstance(structure, dict):
         raw_ch = structure.get("chapters")
         if isinstance(raw_ch, list) and raw_ch:
-            outline_chapters = _normalize_chapters(raw_ch)
+            # Accept chapters even without valid number — assign sequential if missing
+            patched: list[dict[str, Any]] = []
+            for _i, _ch in enumerate(raw_ch):
+                if not isinstance(_ch, dict):
+                    continue
+                cp = dict(_ch)
+                try:
+                    _num = int(cp.get("number", 0))
+                except (TypeError, ValueError):
+                    _num = 0
+                if _num <= 0:
+                    cp["number"] = _i + 1
+                patched.append(cp)
+            outline_chapters = _normalize_chapters(patched) if patched else []
 
     if outline_chapters:
         total_chapters = 0

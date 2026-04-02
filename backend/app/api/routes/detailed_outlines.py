@@ -5,7 +5,7 @@ import logging
 from typing import Iterator
 
 from fastapi import APIRouter, Header, Query, Request
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.api.deps import (
     DbDep,
@@ -109,23 +109,20 @@ def list_detailed_outlines(
         .all()
     )
 
-    # Count chapters per outline (all chapters belong to the same outline_id)
+    # Count chapters from each detailed outline's structure_json
     chapter_counts: dict[str, int] = {}
-    if rows:
-        # Group chapters by volume -- chapters don't have a volume FK,
-        # so we count all chapters for the outline as a whole.
-        total_chapters = int(
-            db.execute(
-                select(func.count(Chapter.id)).where(
-                    Chapter.outline_id == outline_id,
-                    Chapter.project_id == project_id,
-                )
-            ).scalar_one()
-        )
-        # Distribute count info: for list display we show total per outline
-        # since chapters map to outline, not individual detailed_outline rows.
-        for r in rows:
-            chapter_counts[r.id] = total_chapters
+    for r in rows:
+        count = 0
+        if r.structure_json:
+            try:
+                s = json.loads(r.structure_json)
+                if isinstance(s, dict):
+                    chs = s.get("chapters")
+                    if isinstance(chs, list):
+                        count = len(chs)
+            except Exception:
+                pass
+        chapter_counts[r.id] = count
 
     items = [
         DetailedOutlineListItem(
