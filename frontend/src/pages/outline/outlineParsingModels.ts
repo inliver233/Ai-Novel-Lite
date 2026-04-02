@@ -80,12 +80,15 @@ export type AgentCardState = {
   retryCount: number;
   warnings: string[];
   error: string | null;
+  /** Agent type from task_plan: "structure" | "character" | "entry" | "planner" | "validation" | "repair" */
+  agentType: string;
 };
 
-export const INITIAL_AGENT_CARDS: AgentCardState[] = [
-  {
-    id: "analysis",
-    displayName: "分析引擎",
+/** Create a fresh agent card from an event */
+export function createAgentCard(id: string, displayName: string, agentType?: string): AgentCardState {
+  return {
+    id,
+    displayName,
     status: "pending",
     streamingText: "",
     durationMs: 0,
@@ -93,51 +96,30 @@ export const INITIAL_AGENT_CARDS: AgentCardState[] = [
     retryCount: 0,
     warnings: [],
     error: null,
-  },
-  {
-    id: "structure",
-    displayName: "大纲骨架",
-    status: "pending",
-    streamingText: "",
-    durationMs: 0,
-    tokensUsed: 0,
-    retryCount: 0,
-    warnings: [],
-    error: null,
-  },
-  {
-    id: "character",
-    displayName: "角色卡",
-    status: "pending",
-    streamingText: "",
-    durationMs: 0,
-    tokensUsed: 0,
-    retryCount: 0,
-    warnings: [],
-    error: null,
-  },
-  {
-    id: "entry",
-    displayName: "世界条目",
-    status: "pending",
-    streamingText: "",
-    durationMs: 0,
-    tokensUsed: 0,
-    retryCount: 0,
-    warnings: [],
-    error: null,
-  },
-  {
-    id: "validation",
-    displayName: "校验合并",
-    status: "pending",
-    streamingText: "",
-    durationMs: 0,
-    tokensUsed: 0,
-    retryCount: 0,
-    warnings: [],
-    error: null,
-  },
-];
+    agentType: agentType ?? inferAgentType(id),
+  };
+}
 
-// Agent icon mapping moved to OutlineParsingSection.tsx (Lucide React components)
+/** Infer agent type from id for icon mapping */
+function inferAgentType(id: string): string {
+  if (id === "planner" || id === "analysis") return "planner";
+  if (id === "validation") return "validation";
+  if (id.startsWith("repair")) return "repair";
+  if (id.startsWith("structure") || id === "structure") return "structure";
+  if (id.startsWith("character") || id === "character") return "character";
+  if (id.startsWith("entry") || id === "entry") return "entry";
+  return "default";
+}
+
+/** Task plan item from backend */
+export type TaskPlanItem = {
+  id: string;
+  type: string;
+  display_name: string;
+  scope: string;
+};
+
+// Backward-compatible: initial cards with just the planner
+export const INITIAL_AGENT_CARDS: AgentCardState[] = [
+  createAgentCard("planner", "任务规划", "planner"),
+];

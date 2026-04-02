@@ -16,6 +16,16 @@ class ChunkInfo:
 
 
 @dataclass
+class SubTask:
+    """A dynamically planned extraction sub-task."""
+
+    id: str
+    type: str  # "structure" | "character" | "entry"
+    display_name: str
+    scope: str  # Focused extraction scope description
+
+
+@dataclass
 class AgentStepResult:
     """Result from a single agent execution step."""
 
@@ -26,6 +36,8 @@ class AgentStepResult:
     tokens_used: int = 0
     error_message: str | None = None
     warnings: list[str] = field(default_factory=list)
+    # Raw LLM output preserved for repair agent on parse failure (not serialized)
+    _raw_output: str | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -98,17 +110,30 @@ class ParseResult:
         }
 
 
-# Agent display names (Chinese)
+# Built-in agent display names (Chinese)
 AGENT_DISPLAY_NAMES: dict[str, str] = {
     "analysis": "分析引擎",
+    "planner": "任务规划",
     "structure": "大纲骨架",
     "character": "角色卡",
     "entry": "世界条目",
     "validation": "校验合并",
+    "repair": "JSON 修复",
 }
+
+# Runtime-registered dynamic agent display names
+_dynamic_display_names: dict[str, str] = {}
+
+
+def register_agent_display_name(agent_id: str, display_name: str) -> None:
+    """Register a display name for a dynamically created agent."""
+    _dynamic_display_names[agent_id] = display_name
 
 
 def get_agent_display_name(agent_name: str) -> str:
-    """Return Chinese display name for an agent."""
-
-    return AGENT_DISPLAY_NAMES.get(agent_name, agent_name)
+    """Return Chinese display name for an agent (supports dynamic agents)."""
+    return (
+        AGENT_DISPLAY_NAMES.get(agent_name)
+        or _dynamic_display_names.get(agent_name)
+        or agent_name
+    )

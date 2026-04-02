@@ -12,11 +12,13 @@ import {
   DEFAULT_PARSE_AGENT_CONFIG,
   DEFAULT_PARSE_FORM,
   INITIAL_AGENT_CARDS,
+  createAgentCard,
   type AgentCardState,
   type OutlineParseAgentConfig,
   type OutlineParseForm,
   type OutlineParseProgress,
   type OutlineParseResult,
+  type TaskPlanItem,
 } from "./outlineParsingModels";
 
 const STREAM_CONNECT_MAX_RETRIES = 2;
@@ -63,14 +65,25 @@ function buildFreshParseForm(): OutlineParseForm {
 }
 
 function buildInitialAgentCards(): AgentCardState[] {
-  return INITIAL_AGENT_CARDS.map((card) => ({
-    ...card,
-    warnings: [...card.warnings],
-  }));
+  return INITIAL_AGENT_CARDS.map((card) => ({ ...card, warnings: [...card.warnings] }));
 }
 
 function isCustomEventPayload(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Ensure an agent card exists in the array. If not found, create one dynamically.
+ * Returns the (possibly updated) array.
+ */
+function ensureAgentCard(
+  cards: AgentCardState[],
+  agentId: string,
+  displayName: string,
+  agentType?: string,
+): AgentCardState[] {
+  if (cards.some((c) => c.id === agentId)) return cards;
+  return [...cards, createAgentCard(agentId, displayName, agentType)];
 }
 
 export function useOutlineParsingState(args: {
@@ -196,18 +209,41 @@ export function useOutlineParsingState(args: {
           onCustomEvent: (eventName, data) => {
             if (!isCustomEventPayload(data)) return;
 
+            // Handle task_plan: create dynamic agent cards
+            if (eventName === "task_plan") {
+              const tasks = data.tasks;
+              if (Array.isArray(tasks)) {
+                setAgentCards((prev) => {
+                  let updated = [...prev];
+                  for (const task of tasks as TaskPlanItem[]) {
+                    if (!updated.some((c) => c.id === task.id)) {
+                      updated = [...updated, createAgentCard(task.id, task.display_name, task.type)];
+                    }
+                  }
+                  // Add validation card at the end
+                  if (!updated.some((c) => c.id === "validation")) {
+                    updated = [...updated, createAgentCard("validation", "校验合并", "validation")];
+                  }
+                  return updated;
+                });
+              }
+              return;
+            }
+
             if (eventName === "agent_start") {
               const agentId = typeof data.agent === "string" ? data.agent : "";
               if (!agentId) return;
               const displayName =
                 typeof data.display_name === "string" && data.display_name.trim() ? data.display_name : agentId;
-              setAgentCards((prev) =>
-                prev.map((card) =>
+              setAgentCards((prev) => {
+                // Ensure card exists (may be a repair agent or dynamically added)
+                const withCard = ensureAgentCard(prev, agentId, displayName);
+                return withCard.map((card) =>
                   card.id === agentId
                     ? {
                         ...card,
                         displayName,
-                        status: "running",
+                        status: "running" as const,
                         streamingText: "",
                         durationMs: 0,
                         tokensUsed: 0,
@@ -216,8 +252,8 @@ export function useOutlineParsingState(args: {
                         retryCount: card.status === "pending" ? card.retryCount : card.retryCount + 1,
                       }
                     : card,
-                ),
-              );
+                );
+              });
               return;
             }
 
@@ -233,7 +269,7 @@ export function useOutlineParsingState(args: {
                     ? {
                         ...card,
                         displayName,
-                        status: card.status === "complete" ? "complete" : "running",
+                        status: card.status === "complete" ? ("complete" as const) : ("running" as const),
                         streamingText: text,
                       }
                     : card,
@@ -247,9 +283,10 @@ export function useOutlineParsingState(args: {
               if (!agentId) return;
               const displayName =
                 typeof data.display_name === "string" && data.display_name.trim() ? data.display_name : agentId;
-              const finalStatus = data.status === "error" ? "error" : "complete";
-              setAgentCards((prev) =>
-                prev.map((card) =>
+              const finalStatus = data.status === "error" ? ("error" as const) : ("complete" as const);
+              setAgentCards((prev) => {
+                const withCard = ensureAgentCard(prev, agentId, displayName);
+                return withCard.map((card) =>
                   card.id === agentId
                     ? {
                         ...card,
@@ -262,8 +299,8 @@ export function useOutlineParsingState(args: {
                           typeof data.error === "string" ? data.error : finalStatus === "error" ? "执行失败" : null,
                       }
                     : card,
-                ),
-              );
+                );
+              });
             }
           },
         });

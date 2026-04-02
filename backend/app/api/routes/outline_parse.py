@@ -53,6 +53,9 @@ def _iter_outline_parse_stream_sse_events(
 ) -> Iterator[str]:
     # Keep progress monotonic even if agent completion events arrive out of order.
     progress = 0
+    # Dynamic progress tracking: filled when task_plan arrives
+    total_agents = 0
+    completed_agents = 0
 
     yield sse_progress(message="准备解析...", progress=0)
 
@@ -79,21 +82,41 @@ def _iter_outline_parse_stream_sse_events(
                 continue
 
             event_type = str(event.get("type") or "")
+
             if event_type == "phase_start":
                 phase = str(event.get("phase") or "")
                 message = str(event.get("message") or "").strip() or f"{phase}..."
-                phase_progress = 10 if phase == "analysis" else 30 if phase == "extraction" else progress
+                phase_progress_map = {
+                    "analysis": 5,
+                    "extraction": 15,
+                    "repair": 80,
+                    "validation": 90,
+                }
+                phase_progress = phase_progress_map.get(phase, progress)
                 progress = max(progress, phase_progress)
                 yield sse_progress(message=message, progress=progress)
+                continue
+
+            if event_type == "task_plan":
+                # Forward task_plan to frontend for dynamic card creation
+                tasks = event.get("tasks", [])
+                total_agents = len(tasks) + 2  # +2 for planner and validation
+                yield _sse_custom_event("task_plan", {"tasks": tasks})
+                progress = max(progress, 10)
+                yield sse_progress(message=f"任务规划完成，分配 {len(tasks)} 个提取 Agent", progress=progress)
                 continue
 
             if event_type == "agent_complete":
                 agent = str(event.get("agent") or "")
                 display_name = str(event.get("display_name") or agent)
-                agent_progress = {"analysis": 20, "structure": 50, "character": 70, "entry": 90, "validation": 95}.get(
-                    agent, progress
-                )
-                progress = max(progress, agent_progress)
+                completed_agents += 1
+                # Dynamic progress: distribute 15%-90% across agents
+                if total_agents > 0:
+                    agent_progress = 15 + int(75 * completed_agents / total_agents)
+                else:
+                    # Fallback to old fixed mapping
+                    agent_progress = {"planner": 10, "validation": 95}.get(agent, progress + 5)
+                progress = max(progress, min(agent_progress, 95))
                 yield sse_progress(message=f"{display_name} 完成" if display_name else "完成", progress=progress)
                 yield _sse_custom_event(
                     "agent_complete",

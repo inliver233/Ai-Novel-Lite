@@ -1,5 +1,15 @@
 import clsx from "clsx";
-import { BarChart3, CheckCircle2, Circle, FileText, Globe, User } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  CheckCircle2,
+  Circle,
+  FileText,
+  Globe,
+  Sparkles,
+  User,
+  Wrench,
+} from "lucide-react";
 
 import { Badge } from "../../components/ui/Badge";
 import { Modal } from "../../components/ui/Modal";
@@ -43,13 +53,22 @@ function safeCount(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
 }
 
-const AGENT_ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  analysis: BarChart3,
+/** Dynamic icon mapping based on agent type */
+const AGENT_TYPE_ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  planner: Sparkles,
   structure: FileText,
   character: User,
   entry: Globe,
   validation: CheckCircle2,
+  repair: Wrench,
+  default: BookOpen,
 };
+
+function getAgentIcon(card: AgentCardState): React.ComponentType<{ size?: number; className?: string }> {
+  // Use agentType if available, otherwise infer from id
+  const agentType = card.agentType || card.id;
+  return AGENT_TYPE_ICON_MAP[agentType] ?? AGENT_TYPE_ICON_MAP.default ?? Circle;
+}
 
 function AgentStatusBadge({ status }: { status: AgentCardStatus }) {
   const map: Record<AgentCardStatus, { tone: "neutral" | "info" | "success" | "danger"; text: string }> = {
@@ -67,8 +86,9 @@ function AgentStatusBadge({ status }: { status: AgentCardStatus }) {
 }
 
 function AgentCard({ card }: { card: AgentCardState }) {
-  const IconComp = AGENT_ICON_MAP[card.id] ?? Circle;
+  const IconComp = getAgentIcon(card);
   const isRunning = card.status === "running";
+  const isRepair = card.agentType === "repair" || card.id.startsWith("repair");
 
   return (
     <div
@@ -77,6 +97,7 @@ function AgentCard({ card }: { card: AgentCardState }) {
         isRunning && "border-accent/40",
         card.status === "complete" && "border-success/30",
         card.status === "error" && "border-danger/30",
+        isRepair && "border-warning/30 bg-warning/5",
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -139,10 +160,21 @@ function AgentDashboard({ cards }: { cards: AgentCardState[] }) {
   const completedCount = cards.filter((card) => card.status === "complete").length;
   const errorCount = cards.filter((card) => card.status === "error").length;
 
+  // Adaptive grid: more columns for more agents
+  const gridCols =
+    cards.length <= 3
+      ? "sm:grid-cols-2 lg:grid-cols-3"
+      : cards.length <= 6
+        ? "sm:grid-cols-2 lg:grid-cols-3"
+        : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+
   return (
     <div className="mt-3">
-      <div className="mb-2 text-xs font-medium text-subtext">{OUTLINE_PARSING_COPY.agentDashboardTitle}</div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-2 flex items-center justify-between text-xs font-medium text-subtext">
+        <span>{OUTLINE_PARSING_COPY.agentDashboardTitle}</span>
+        <span className="text-[10px] text-subtext/60">{cards.length} 个 Agent</span>
+      </div>
+      <div className={clsx("grid gap-2", gridCols)}>
         {cards.map((card) => (
           <AgentCard key={card.id} card={card} />
         ))}

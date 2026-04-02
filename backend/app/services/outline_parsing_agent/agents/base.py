@@ -336,6 +336,7 @@ class BaseExtractionAgent:
         chunk_results: list[dict[str, Any]] = []
         total_tokens = 0
         warnings: list[str] = []
+        last_raw_output: str | None = None  # Preserve for repair agent
 
         for chunk in chunks:
             retries = 0
@@ -344,6 +345,7 @@ class BaseExtractionAgent:
                     user_prompt = self.build_user_prompt(chunk, analysis_context)
                     raw_text, tokens = self._call_llm_stream(user_prompt, on_streaming=on_streaming)
                     total_tokens += tokens
+                    last_raw_output = raw_text
 
                     parsed_json = self._parse_json_from_text(raw_text)
                     if parsed_json is None:
@@ -395,7 +397,7 @@ class BaseExtractionAgent:
         duration_ms = int((time.time() - start_time) * 1000)
 
         if not chunk_results:
-            return AgentStepResult(
+            step = AgentStepResult(
                 agent_name=self.agent_name,
                 status="error",
                 duration_ms=duration_ms,
@@ -403,6 +405,8 @@ class BaseExtractionAgent:
                 error_message=f"{len(chunks)} 个分块全部失败，无有效结果",
                 warnings=warnings,
             )
+            step._raw_output = last_raw_output
+            return step
 
         merged = self.merge_results(chunk_results)
         return AgentStepResult(
