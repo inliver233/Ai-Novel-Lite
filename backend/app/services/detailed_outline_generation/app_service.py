@@ -10,15 +10,17 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.db.utils import new_id, utc_now
+from app.llm.capabilities import max_context_tokens_limit
 from app.models.chapter import Chapter
 from app.models.detailed_outline import DetailedOutline
 from app.models.outline import Outline
 from app.models.project import Project
 from app.services.detailed_outline_generation.models import DetailedOutlineResult, VolumeInfo
 from app.services.detailed_outline_generation.prepare_service import prepare_detailed_outline_render_values
-from app.services.generation_service import PreparedLlmCall, call_llm_and_record
+from app.services.generation_service import PreparedLlmCall, call_llm_and_record, with_param_overrides
 from app.services.llm_task_preset_resolver import resolve_task_llm_config
 from app.services.output_parsers import extract_json_value, likely_truncated_json
+from app.services.prompt_budget import estimate_tokens
 from app.services.prompt_presets import render_preset_for_task
 
 logger = logging.getLogger("ainovel")
@@ -238,7 +240,7 @@ def generate_detailed_outline_for_volume(
     )
 
     # 2 -- render prompt
-    prompt_system, prompt_user, prompt_messages, _, _, _, render_log = render_preset_for_task(
+    prompt_system, prompt_user, _prompt_messages, _, _, _, render_log = render_preset_for_task(
         db,
         project_id=project.id,
         task="detailed_outline_generate",
@@ -247,6 +249,27 @@ def generate_detailed_outline_for_volume(
         provider=llm_config.provider,
     )
     prompt_render_log_json = json.dumps(render_log, ensure_ascii=False)
+
+    # 2.5 -- validate prompt + adjust max_tokens for context safety
+    if not prompt_system.strip() and not prompt_user.strip():
+        raise AppError(
+            code="DETAILED_OUTLINE_EMPTY_PROMPT",
+            message="细纲 prompt 渲染为空，请检查 Prompt 预设配置",
+            status_code=500,
+        )
+    prompt_tokens = estimate_tokens(prompt_system) + estimate_tokens(prompt_user)
+    ctx_limit = max_context_tokens_limit(llm_config.provider, llm_config.model)
+    current_max_tokens = llm_config.params.get("max_tokens")
+    if isinstance(ctx_limit, int) and ctx_limit > 0:
+        safe_max = max(4096, ctx_limit - prompt_tokens - 512)
+        if current_max_tokens is None or (isinstance(current_max_tokens, int) and current_max_tokens > safe_max):
+            llm_config = with_param_overrides(llm_config, {"max_tokens": safe_max})
+            logger.info(
+                "detailed_outline_max_tokens_adjusted prompt_tokens=%d ctx_limit=%d safe_max=%d original=%s",
+                prompt_tokens, ctx_limit, safe_max, current_max_tokens,
+            )
+    elif current_max_tokens is None:
+        llm_config = with_param_overrides(llm_config, {"max_tokens": 8192})
 
     # 3 -- call LLM
     llm_result = call_llm_and_record(
@@ -259,7 +282,6 @@ def generate_detailed_outline_for_volume(
         api_key=api_key,
         prompt_system=prompt_system,
         prompt_user=prompt_user,
-        prompt_messages=prompt_messages,
         prompt_render_log_json=prompt_render_log_json,
         llm_call=llm_config,
     )
