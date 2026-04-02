@@ -356,6 +356,77 @@ def generate_all_detailed_outlines(
     total_volumes = len(volumes)
     yield {"type": "start", "total_volumes": total_volumes}
 
+    # -- try to create from existing outline structure (no LLM needed) --
+    structure = _parse_structure_json(outline.structure_json)
+    outline_chapters: list[dict[str, Any]] = []
+    if isinstance(structure, dict):
+        raw_ch = structure.get("chapters")
+        if isinstance(raw_ch, list) and raw_ch:
+            outline_chapters = _normalize_chapters(raw_ch)
+
+    if outline_chapters:
+        total_chapters = 0
+        for idx, vol in enumerate(volumes):
+            yield {
+                "type": "volume_start",
+                "volume_number": vol.number,
+                "volume_title": vol.title,
+            }
+
+            # Assign chapters to volume (best-effort)
+            if total_volumes == 1:
+                vol_chapters = outline_chapters
+            else:
+                ch_end = vol.chapter_range_end if vol.chapter_range_end > 0 else 999999
+                vol_chapters = [
+                    ch for ch in outline_chapters
+                    if vol.chapter_range_start <= int(ch.get("number", 0)) <= ch_end
+                ]
+                if not vol_chapters:
+                    vol_chapters = outline_chapters  # fallback: assign all
+
+            # Build content_md from chapters
+            content_parts: list[str] = []
+            for ch in vol_chapters:
+                ch_num = ch.get("number", "?")
+                ch_title = str(ch.get("title", ""))
+                ch_summary = str(ch.get("summary", ""))
+                beats = ch.get("beats")
+                parts: list[str] = []
+                if ch_summary:
+                    parts.append(ch_summary)
+                if isinstance(beats, list) and beats:
+                    parts.append("\n".join(f"- {str(b)}" for b in beats if b is not None))
+                content_parts.append(f"### {ch_num}. {ch_title}\n" + "\n\n".join(parts))
+            content_md = "\n\n".join(content_parts)
+
+            structure_data = {"chapters": _normalize_chapters(vol_chapters)}
+            detailed_outline_id = _upsert_detailed_outline(
+                db,
+                outline_id=outline.id,
+                project_id=project_id,
+                volume_number=vol.number,
+                volume_title=vol.title or "",
+                content_md=content_md,
+                structure=structure_data,
+            )
+            chapter_count = len(vol_chapters)
+            total_chapters += chapter_count
+
+            yield {
+                "type": "volume_complete",
+                "volume_number": vol.number,
+                "chapter_count": chapter_count,
+                "detailed_outline_id": detailed_outline_id,
+            }
+
+        yield {
+            "type": "complete",
+            "total_volumes": total_volumes,
+            "total_chapters": total_chapters,
+        }
+        return  # No LLM generation needed
+
     # -- resolve LLM config --
     resolved = None
     for task_key in ("detailed_outline_generate", "outline_generate"):
