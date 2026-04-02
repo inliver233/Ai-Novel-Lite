@@ -76,22 +76,32 @@ def _ensure_default_preset_from_resource(
                 preset.active_for_json = json.dumps(merged, ensure_ascii=False)
                 changed = True
 
-        if resource.upgrade_add_identifiers and int(preset.version or 0) < int(resource.version):
+        if int(preset.version or 0) < int(resource.version):
+            # Version upgrade: refresh ALL block templates from resource
             blocks_by_identifier = {b.identifier: b for b in resource.blocks}
-            existing_identifiers = set(
-                db.execute(select(PromptBlock.identifier).where(PromptBlock.preset_id == preset.id)).scalars().all()
-            )
-            to_add: list[PromptBlock] = []
-            for identifier in resource.upgrade_add_identifiers:
-                if identifier in existing_identifiers:
-                    continue
-                block_res = blocks_by_identifier.get(identifier)
-                if block_res is None:
-                    continue
-                to_add.append(_prompt_block_from_resource(preset.id, block_res))
-            if to_add:
-                db.add_all(to_add)
-                changed = True
+            existing_blocks = db.execute(select(PromptBlock).where(PromptBlock.preset_id == preset.id)).scalars().all()
+            existing_by_identifier = {b.identifier: b for b in existing_blocks}
+
+            # Update existing blocks with new template content
+            for res_block in resource.blocks:
+                existing = existing_by_identifier.get(res_block.identifier)
+                if existing is not None:
+                    existing.template = str(res_block.template or "")
+                    existing.name = str(res_block.name)
+                    existing.role = str(res_block.role)
+                    existing.enabled = bool(res_block.enabled)
+                    existing.injection_order = int(res_block.injection_order)
+                    existing.triggers_json = json.dumps(list(res_block.triggers or []), ensure_ascii=False)
+                    existing.budget_json = json.dumps(res_block.budget, ensure_ascii=False) if res_block.budget else None
+                else:
+                    db.add(_prompt_block_from_resource(preset.id, res_block))
+
+            # Remove blocks that no longer exist in resource
+            resource_identifiers = {b.identifier for b in resource.blocks}
+            for existing in existing_blocks:
+                if existing.identifier not in resource_identifiers:
+                    db.delete(existing)
+
             preset.version = int(resource.version)
             changed = True
 
