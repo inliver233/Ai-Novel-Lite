@@ -27,6 +27,11 @@ def normalize_outline_content_and_structure(
         return text, None, False
 
     data, _warnings, parse_error = parse_outline_output(stripped)
+    volumes = data.get("volumes")
+    if parse_error is None and isinstance(volumes, list) and len(volumes) > 0:
+        outline_md = str(data.get("outline_md") or "").strip() or text
+        return outline_md, {"volumes": volumes}, True
+
     chapters = data.get("chapters")
     if parse_error is not None or not isinstance(chapters, list) or len(chapters) == 0:
         return text, None, False

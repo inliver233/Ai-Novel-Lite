@@ -28,6 +28,21 @@ class OutlineSchema(BaseModel):
     chapters: list[OutlineChapterSchema] = Field(default_factory=list)
 
 
+class OutlineVolumeItemSchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    number: int
+    title: str = ""
+    summary: str = ""
+
+
+class OutlineVolumeSchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    outline_md: str = ""
+    volumes: list[OutlineVolumeItemSchema] = Field(default_factory=list)
+
+
 def extract_json_value(text: str) -> tuple[Any | None, str | None]:
     if not text:
         return None, None
@@ -122,15 +137,67 @@ def parse_outline_output(text: str) -> tuple[dict[str, Any], list[str], dict[str
             data = {"outline_md": outline_md or text, "chapters": recovered_chapters, "raw_output": text}
             return data, warnings, None
 
-        parse_error: dict[str, Any] = {"code": "OUTLINE_PARSE_ERROR", "message": "无法从模型输出解析章节结构"}
+        parse_error: dict[str, Any] = {"code": "OUTLINE_PARSE_ERROR", "message": "无法从模型输出解析结构"}
         if likely_truncated_json(text):
-            parse_error["hint"] = "输出疑似被截断（JSON 未闭合），可尝试增大 max_tokens 或降低目标字数/章节数"
+            parse_error["hint"] = "输出疑似被截断（JSON 未闭合），可尝试增大 max_tokens 或降低目标字数/卷数"
         data = {"outline_md": text, "chapters": [], "raw_output": text}
         return data, warnings, parse_error
 
     outline_md = value.get("outline_md")
     if not isinstance(outline_md, str) or not outline_md.strip():
         outline_md = text
+
+    # ------------------------------------------------------------------
+    # Prefer new format: volumes[]
+    # ------------------------------------------------------------------
+    volumes_out: list[dict[str, Any]] = []
+    volumes_raw = value.get("volumes")
+    if isinstance(volumes_raw, list):
+        if not volumes_raw:
+            # volumes present but empty: only fall back to chapters when they exist.
+            chapters_raw = value.get("chapters")
+            if not (isinstance(chapters_raw, list) and chapters_raw):
+                parse_error = {"code": "OUTLINE_PARSE_ERROR", "message": "无法从模型输出解析卷结构"}
+                data = {"outline_md": outline_md, "volumes": [], "raw_output": text}
+                if raw_json:
+                    data["raw_json"] = raw_json
+                return data, warnings, parse_error
+        else:
+            # Strict schema path first.
+            try:
+                parsed = OutlineVolumeSchema.model_validate(value)
+                for v in parsed.volumes:
+                    volumes_out.append(
+                        {
+                            "number": int(v.number),
+                            "title": v.title or "",
+                            "summary": v.summary or "",
+                        }
+                    )
+            except ValidationError:
+                warnings.append("outline_json_schema_invalid")
+                for item in volumes_raw:
+                    if not isinstance(item, dict):
+                        continue
+                    try:
+                        number = int(item.get("number"))
+                    except Exception:
+                        continue
+                    title = str(item.get("title") or "")
+                    summary = str(item.get("summary") or "")
+                    volumes_out.append({"number": number, "title": title, "summary": summary})
+
+            if not volumes_out:
+                parse_error = {"code": "OUTLINE_PARSE_ERROR", "message": "无法从模型输出解析卷结构"}
+                data = {"outline_md": outline_md, "volumes": [], "raw_output": text}
+                if raw_json:
+                    data["raw_json"] = raw_json
+                return data, warnings, parse_error
+
+            data = {"outline_md": outline_md, "volumes": volumes_out, "raw_output": text}
+            if raw_json:
+                data["raw_json"] = raw_json
+            return data, warnings, None
 
     chapters_out: list[dict[str, Any]] = []
 
@@ -240,9 +307,12 @@ def build_outline_fix_json_prompt(raw_output: str) -> tuple[str, str]:
         "只输出 JSON，不要解释，不要 Markdown，不要代码块。"
     )
     user = (
-        "请把下面的内容修复为严格 JSON（对象），并满足以下 schema：\n"
+        "请把下面的内容修复为严格 JSON（对象），并满足以下 schema（优先输出 volumes；若原始输出明显是旧格式，可输出 chapters）：\n"
         "{\n"
         '  "outline_md": string,\n'
+        '  "volumes": [\n'
+        '    {"number": int, "title": string, "summary": string}\n'
+        "  ],\n"
         '  "chapters": [\n'
         '    {"number": int, "title": string, "beats": [string]}\n'
         "  ]\n"
@@ -250,7 +320,8 @@ def build_outline_fix_json_prompt(raw_output: str) -> tuple[str, str]:
         "要求：\n"
         "- 必须输出完整可解析的 JSON\n"
         "- 只输出 JSON，不能包含任何额外文本\n"
-        "- 若缺字段请补默认值（outline_md 可为空字符串，chapters 不能为空时尽量推断；推断不了则输出空数组）\n\n"
+        "- 二选一：输出 volumes 或 chapters（不要同时输出两者）；无法判断时优先输出 volumes\n"
+        "- 若缺字段请补默认值（outline_md 可为空字符串；volumes/chapters 推断不了则输出空数组）\n\n"
         f"原始输出如下：\n{raw_output}"
     )
     return system, user

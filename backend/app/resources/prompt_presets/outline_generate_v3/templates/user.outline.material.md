@@ -27,10 +27,10 @@
 {{requirements}}
 </REQUIREMENTS_JSON>
 
-{% if target_chapter_count %}<CHAPTER_TARGET>
-目标章节数：{{target_chapter_count}}
-严格要求：chapters 数组的条目数必须恰好等于 {{target_chapter_count}}，不得多也不得少。
-</CHAPTER_TARGET>
+{% if target_chapter_count %}<VOLUME_TARGET>
+目标卷数：{{target_chapter_count}}
+严格要求：volumes 数组的条目数必须恰好等于 {{target_chapter_count}}，不得多也不得少。
+</VOLUME_TARGET>
 {% endif %}
 
 请根据以上所有素材和要求，直接输出完整的大纲 JSON。只输出 JSON，不要任何额外文字。
