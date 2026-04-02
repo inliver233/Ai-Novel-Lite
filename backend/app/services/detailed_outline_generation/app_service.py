@@ -361,7 +361,62 @@ def generate_all_detailed_outlines(
     outline_chapters: list[dict[str, Any]] = []
     if isinstance(structure, dict):
         raw_vols = structure.get("volumes")
-        if not (isinstance(raw_vols, list) and raw_vols):
+        if isinstance(raw_vols, list) and raw_vols:
+            # Fast path: volumes with summary = 细纲 content, save directly without LLM
+            patched_vols: list[dict[str, Any]] = []
+            for _i, _vol in enumerate(raw_vols):
+                if not isinstance(_vol, dict):
+                    continue
+                cp = dict(_vol)
+                try:
+                    _num = int(cp.get("number", 0))
+                except (TypeError, ValueError):
+                    _num = 0
+                if _num <= 0:
+                    cp["number"] = _i + 1
+                else:
+                    cp["number"] = _num
+                cp["title"] = str(cp.get("title") or "")
+                cp["summary"] = str(cp.get("summary") or "")
+                patched_vols.append(cp)
+            outline_volumes = sorted(patched_vols, key=lambda v: int(v.get("number", 0))) if patched_vols else []
+
+            if outline_volumes:
+                for vol in outline_volumes:
+                    vol_number = int(vol.get("number", 0) or 0)
+                    vol_title = str(vol.get("title") or "")
+                    vol_summary = str(vol.get("summary") or "")
+
+                    yield {
+                        "type": "volume_start",
+                        "volume_number": vol_number,
+                        "volume_title": vol_title,
+                    }
+
+                    detailed_outline_id = _upsert_detailed_outline(
+                        db,
+                        outline_id=outline.id,
+                        project_id=project_id,
+                        volume_number=vol_number,
+                        volume_title=vol_title,
+                        content_md=vol_summary,
+                        structure=None,
+                    )
+
+                    yield {
+                        "type": "volume_complete",
+                        "volume_number": vol_number,
+                        "chapter_count": 0,
+                        "detailed_outline_id": detailed_outline_id,
+                    }
+
+                yield {
+                    "type": "complete",
+                    "total_volumes": total_volumes,
+                    "total_chapters": 0,
+                }
+                return
+        else:
             raw_ch = structure.get("chapters")
             if isinstance(raw_ch, list) and raw_ch:
                 # Accept chapters even without valid number — assign sequential if missing
