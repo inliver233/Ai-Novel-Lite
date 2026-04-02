@@ -1,5 +1,6 @@
 from app.models.batch_generation_task import BatchGenerationTask, BatchGenerationTaskItem
 from app.models.chapter import Chapter
+from app.models.detailed_outline import DetailedOutline
 from app.models.character import Character
 from app.models.entry import Entry
 from app.models.generation_run import GenerationRun
@@ -30,6 +31,7 @@ __all__ = [
     "BatchGenerationTask",
     "BatchGenerationTaskItem",
     "Chapter",
+    "DetailedOutline",
     "Character",
     "Entry",
     "GenerationRun",

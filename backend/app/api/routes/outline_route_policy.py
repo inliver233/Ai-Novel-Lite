@@ -78,10 +78,19 @@ def _recommend_outline_max_tokens(
     model: str | None,
     current_max_tokens: int | None,
 ) -> int | None:
+    """Ensure max_tokens is sufficient for the target chapter count.
+
+    Only *raises* max_tokens when it seems too low — never lowers a value the
+    user already configured via LLM profile.
+    """
     if not target_chapter_count or target_chapter_count <= 20:
         return None
-    wanted = 8192 if target_chapter_count <= 40 else 12000
+    # ~200 tokens per chapter is a conservative floor for outline JSON.
+    floor = min(target_chapter_count * 200, 64000)
+    if isinstance(current_max_tokens, int) and current_max_tokens >= floor:
+        return None  # already sufficient
     limit = max_output_tokens_limit(provider, model)
+    wanted = floor
     if isinstance(limit, int) and limit > 0:
         wanted = min(wanted, int(limit))
     if isinstance(current_max_tokens, int) and current_max_tokens >= wanted:
@@ -126,10 +135,14 @@ def _recommend_outline_segment_max_tokens(
     model: str | None,
     current_max_tokens: int | None,
 ) -> int | None:
+    """Floor for segment generation — only raises, never lowers."""
     if requested_count <= 0:
         return None
-    wanted = max(1800, min(4200, 1200 + requested_count * 230))
+    floor = max(2000, requested_count * 250)
+    if isinstance(current_max_tokens, int) and current_max_tokens >= floor:
+        return None
     limit = max_output_tokens_limit(provider, model)
+    wanted = floor
     if isinstance(limit, int) and limit > 0:
         wanted = min(wanted, int(limit))
     if isinstance(current_max_tokens, int) and current_max_tokens >= wanted:

@@ -12,7 +12,7 @@ from app.models.outline import Outline
 from app.models.project import Project
 from app.models.project_settings import ProjectSettings
 from app.schemas.chapter_plan import ChapterPlanRequest
-from app.services.chapter_context_service import load_previous_chapter_context
+from app.services.chapter_context_service import load_detailed_outline_context, load_previous_chapter_context
 from app.services.chapter_generation.models import PreparedChapterPlanRequest
 from app.services.chapter_generation.prepare_service import _require_chapter_prereqs_if_needed, resolve_task_llm_for_call
 from app.services.chapter_generation.prompt_service import resolve_macro_seed
@@ -87,6 +87,12 @@ def prepare_chapter_plan_request(
             previous_chapter=body.context.previous_chapter,
         )
 
+        detailed_outline_ctx = load_detailed_outline_context(
+            chapter_number=int(chapter.number),
+            outline_id=str(chapter.outline_id),
+            db=db,
+        )
+
         values: dict[str, object] = {
             "project_name": project.name or "",
             "genre": project.genre or "",
@@ -102,6 +108,7 @@ def prepare_chapter_plan_request(
             "instruction": body.instruction.strip(),
             "previous_chapter": prev_text,
             "previous_chapter_ending": prev_ending,
+            "detailed_outline_context": detailed_outline_ctx,
         }
         values["project"] = {
             "name": project.name or "",
@@ -119,6 +126,7 @@ def prepare_chapter_plan_request(
             "chapter_plan": (chapter.plan or ""),
             "previous_chapter": prev_text,
             "previous_chapter_ending": prev_ending,
+            "detailed_outline_context": detailed_outline_ctx,
         }
         values["user"] = {"instruction": body.instruction.strip()}
         values["context_optimizer_enabled"] = bool(getattr(settings_row, "context_optimizer_enabled", False))

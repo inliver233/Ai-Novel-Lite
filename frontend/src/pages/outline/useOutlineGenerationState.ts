@@ -4,7 +4,7 @@ import type { ConfirmApi } from "../../components/ui/confirm";
 import type { ToastApi } from "../../components/ui/toast";
 import { ApiError, apiJson } from "../../services/apiClient";
 import { SSEError, SSEPostClient } from "../../services/sseClient";
-import type { LLMPreset } from "../../types";
+import type { LLMPreset, Outline } from "../../types";
 import { normalizeOutlineGenResult, parseOutlineGenResultFromText, type OutlineGenResult } from "../outlineParsing";
 
 import { getOutlineStreamRetryMessage, OUTLINE_COPY } from "./outlineCopy";
@@ -28,7 +28,7 @@ type SaveOutline = (
   opts?: { silent?: boolean; snapshotContent?: string },
 ) => Promise<boolean>;
 
-type CreateOutline = (title: string, contentMd: string, structure: unknown) => Promise<void>;
+type CreateOutline = (title: string, contentMd: string, structure: unknown) => Promise<Outline | null>;
 
 export function useOutlineGenerationState(args: {
   projectId?: string;
@@ -71,29 +71,35 @@ export function useOutlineGenerationState(args: {
   }, []);
 
   const overwriteCurrentOutline = useCallback(async () => {
-    if (!genPreview) return;
+    if (!genPreview) return false;
+    const preview = genPreview;
     const ok = !dirty ? true : await confirm.confirm({ ...OUTLINE_COPY.confirms.overwriteDirty, danger: true });
-    if (!ok) return;
+    if (!ok) return false;
+    const savedOk = await save(preview.outline_md, { chapters: preview.chapters });
+    if (!savedOk) return false;
     setOpen(false);
-    await save(genPreview.outline_md, { chapters: genPreview.chapters });
     setGenPreview(null);
+    return true;
   }, [confirm, dirty, genPreview, save]);
 
   const saveAsNewOutline = useCallback(async () => {
-    if (!projectId || !genPreview) return;
+    if (!projectId || !genPreview) return null;
+    const preview = genPreview;
 
     if (dirty) {
       const choice = await confirm.choose(OUTLINE_COPY.confirms.saveAsNewDirty);
-      if (choice === "cancel") return;
+      if (choice === "cancel") return null;
       if (choice === "confirm") {
         const ok = await save();
-        if (!ok) return;
+        if (!ok) return null;
       }
     }
 
+    const created = await createOutline(buildGeneratedOutlineTitle(), preview.outline_md, { chapters: preview.chapters });
+    if (!created) return null;
     setOpen(false);
-    await createOutline(buildGeneratedOutlineTitle(), genPreview.outline_md, { chapters: genPreview.chapters });
     setGenPreview(null);
+    return created;
   }, [confirm, createOutline, dirty, genPreview, projectId, save]);
 
   const generate = useCallback(async () => {

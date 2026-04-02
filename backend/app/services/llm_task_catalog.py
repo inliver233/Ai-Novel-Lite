@@ -43,6 +43,12 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         description="大纲生成与填充缺失章节",
     ),
     LLMTaskCatalogItem(
+        key="detailed_outline_generate",
+        label="细纲生成",
+        group="planning",
+        description="从大纲生成卷级细纲（详细章节规划）",
+    ),
+    LLMTaskCatalogItem(
         key="characters_auto_update",
         label="角色卡自动更新",
         group="memory",

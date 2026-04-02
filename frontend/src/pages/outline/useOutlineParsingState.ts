@@ -4,8 +4,9 @@ import type { ConfirmApi } from "../../components/ui/confirm";
 import type { ToastApi } from "../../components/ui/toast";
 import { ApiError, apiJson, sanitizeFilename } from "../../services/apiClient";
 import { SSEError, SSEPostClient } from "../../services/sseClient";
+import { batchCreateDetailedOutlines } from "../../services/detailedOutlinesApi";
 import { createEntry } from "../../services/entriesApi";
-import type { LLMPreset } from "../../types";
+import type { LLMPreset, Outline } from "../../types";
 
 import { OUTLINE_PARSING_COPY } from "./outlineParsingCopy";
 import {
@@ -30,7 +31,8 @@ type SaveOutline = (
   opts?: { silent?: boolean; snapshotContent?: string },
 ) => Promise<boolean>;
 
-type CreateOutline = (title: string, contentMd: string, structure: unknown) => Promise<void>;
+type CreateOutline = (title: string, contentMd: string, structure: unknown) => Promise<Outline | null>;
+type ApplyOutlineResult = { ok: boolean; outlineId?: string };
 
 type ParseTab = "outline" | "characters" | "entries";
 
@@ -88,6 +90,7 @@ function ensureAgentCard(
 
 export function useOutlineParsingState(args: {
   projectId?: string;
+  outlineId?: string;
   preset: LLMPreset | null;
   dirty: boolean;
   save: SaveOutline;
@@ -95,7 +98,7 @@ export function useOutlineParsingState(args: {
   toast: ToastApi;
   confirm: ConfirmApi;
 }) {
-  const { projectId, preset, dirty, save, createOutline, toast, confirm } = args;
+  const { projectId, outlineId, preset, dirty, save, createOutline, toast, confirm } = args;
   const [open, setOpen] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parseForm, setParseForm] = useState<OutlineParseForm>(() => buildFreshParseForm());
@@ -383,13 +386,14 @@ export function useOutlineParsingState(args: {
   }, [parseForm, preset, projectId, toast]);
 
   const applyOutline = useCallback(async () => {
-    if (!projectId || !parseResult) return false;
+    if (!projectId || !parseResult) return { ok: false } satisfies ApplyOutlineResult;
 
     const chapters = Array.isArray(parseResult.outline?.chapters) ? parseResult.outline.chapters : [];
     const outlineMd = String(parseResult.outline?.outline_md ?? "");
 
     if (!dirty) {
-      return await save(outlineMd, { chapters });
+      const savedOk = await save(outlineMd, { chapters });
+      return { ok: savedOk, outlineId };
     }
 
     const choice = await confirm.choose({
@@ -400,15 +404,17 @@ export function useOutlineParsingState(args: {
       cancelText: "取消",
       danger: true,
     });
-    if (choice === "cancel") return false;
+    if (choice === "cancel") return { ok: false, outlineId };
     if (choice === "confirm") {
-      return await save(outlineMd, { chapters });
+      const savedOk = await save(outlineMd, { chapters });
+      return { ok: savedOk, outlineId };
     }
 
     const savedOk = await save();
-    if (!savedOk) return false;
-    await createOutline("解析大纲", outlineMd, { chapters });
-    return true;
+    if (!savedOk) return { ok: false, outlineId };
+    const created = await createOutline("解析大纲", outlineMd, { chapters });
+    if (!created) return { ok: false, outlineId };
+    return { ok: true, outlineId: created.id };
   }, [confirm, createOutline, dirty, parseResult, projectId, save]);
 
   const applyCharacters = useCallback(async () => {
@@ -470,15 +476,54 @@ export function useOutlineParsingState(args: {
     }
   }, [parseResult, projectId, toast]);
 
+  const applyDetailedOutlines = useCallback(
+    async (targetOutlineId?: string) => {
+      const effectiveOutlineId = targetOutlineId || outlineId;
+      if (!projectId || !effectiveOutlineId || !parseResult) return false;
+      const detailedOutlines = Array.isArray(parseResult.detailed_outlines) ? parseResult.detailed_outlines : [];
+      if (detailedOutlines.length === 0) return true; // nothing to apply
+
+      const items = detailedOutlines
+        .map((d) => ({
+          volume_number: typeof d.volume_number === "number" ? d.volume_number : 0,
+          volume_title: String(d.volume_title ?? ""),
+          volume_summary: String(d.volume_summary ?? ""),
+          chapters: Array.isArray(d.chapters) ? d.chapters : [],
+        }))
+        .filter((d) => d.volume_number > 0);
+
+      if (items.length === 0) return true;
+
+      try {
+        await batchCreateDetailedOutlines(projectId, effectiveOutlineId, items);
+        return true;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          toast.toastError(`${error.message} (${error.code})`, error.requestId);
+        } else {
+          toast.toastError("保存细纲失败");
+        }
+        return false;
+      }
+    },
+    [outlineId, parseResult, projectId, toast],
+  );
+
   const applyAll = useCallback(async () => {
     const outlineApplied = await applyOutline();
-    if (!outlineApplied) return;
+    if (!outlineApplied.ok) return outlineApplied;
 
     const charactersApplied = await applyCharacters();
-    if (!charactersApplied) return;
+    if (!charactersApplied) return { ok: false, outlineId: outlineApplied.outlineId } satisfies ApplyOutlineResult;
 
-    await applyEntries();
-  }, [applyCharacters, applyEntries, applyOutline]);
+    const entriesApplied = await applyEntries();
+    if (!entriesApplied) return { ok: false, outlineId: outlineApplied.outlineId } satisfies ApplyOutlineResult;
+
+    const detailedApplied = await applyDetailedOutlines(outlineApplied.outlineId);
+    if (!detailedApplied) return { ok: false, outlineId: outlineApplied.outlineId } satisfies ApplyOutlineResult;
+
+    return outlineApplied;
+  }, [applyCharacters, applyDetailedOutlines, applyEntries, applyOutline]);
 
   return {
     open,
@@ -499,6 +544,7 @@ export function useOutlineParsingState(args: {
     applyOutline,
     applyCharacters,
     applyEntries,
+    applyDetailedOutlines,
     applyAll,
   };
 }

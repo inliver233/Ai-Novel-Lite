@@ -35,4 +35,4 @@ def recommended_max_tokens(provider: str, model: str | None) -> int:
     try:
         return registry_recommended_max_tokens(provider, model, mode="audit")
     except Exception:
-        return 8192
+        return 128000

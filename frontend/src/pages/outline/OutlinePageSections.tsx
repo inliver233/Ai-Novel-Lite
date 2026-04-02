@@ -72,35 +72,37 @@ export function OutlineHeaderSection(props: OutlineHeaderSectionProps) {
 }
 
 export type OutlineActionsBarProps = {
-  canCreateChapters: boolean;
-  createChaptersDisabledReason?: string;
   dirty: boolean;
   saving: boolean;
-  onCreateChapters: () => void;
+  hasOutlineStructure: boolean;
+  hasDetailedOutlines: boolean;
   onOpenGenerate: () => void;
   onOpenParse: () => void;
   onSave: () => void;
+  onGoToDetailedTab: () => void;
+  onOpenGenerateDetailed: () => void;
 };
 
 export function OutlineActionsBar(props: OutlineActionsBarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <button
-          className={props.canCreateChapters ? "btn btn-primary" : "btn btn-secondary"}
-          disabled={!props.canCreateChapters}
-          onClick={props.onCreateChapters}
-          title={props.canCreateChapters ? undefined : props.createChaptersDisabledReason}
-          type="button"
-        >
-          {OUTLINE_COPY.createChapters}
-        </button>
-        <button className="btn btn-secondary" onClick={props.onOpenGenerate} type="button">
+        <button className="btn btn-primary" onClick={props.onOpenGenerate} type="button">
           {OUTLINE_COPY.generate}
         </button>
         <button className="btn btn-secondary" onClick={props.onOpenParse} type="button">
           智能解析 (Beta)
         </button>
+        {props.hasOutlineStructure && !props.hasDetailedOutlines ? (
+          <button className="btn btn-secondary" onClick={props.onOpenGenerateDetailed} type="button">
+            {OUTLINE_COPY.generateDetailed}
+          </button>
+        ) : null}
+        {props.hasDetailedOutlines ? (
+          <button className="btn btn-secondary" onClick={props.onGoToDetailedTab} type="button">
+            {OUTLINE_COPY.goToDetailedTab}
+          </button>
+        ) : null}
       </div>
       <button
         className={props.dirty ? "btn btn-primary" : "btn btn-secondary"}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { WizardNextBar } from "../../components/atelier/WizardNextBar";
 import { useConfirm } from "../../components/ui/confirm";
@@ -11,7 +11,6 @@ import { usePersistentOutletIsActive } from "../../hooks/usePersistentOutlet";
 import { useSaveHotkey } from "../../hooks/useSaveHotkey";
 import { useWizardProgress } from "../../hooks/useWizardProgress";
 import { ApiError, apiJson } from "../../services/apiClient";
-import { chapterStore } from "../../services/chapterStore";
 import { markWizardProjectChanged } from "../../services/wizard";
 import type { LLMPreset, Outline, OutlineListItem, Project } from "../../types";
 import { deriveOutlineFromStoredContent } from "../outlineParsing";
@@ -24,8 +23,9 @@ import type {
   OutlineParsingModalProps,
   OutlineTitleModalProps,
 } from "./OutlinePageSections";
-import { getOutlineCreateChaptersDescription, getOutlineCreatedChaptersText, OUTLINE_COPY } from "./outlineCopy";
+import { OUTLINE_COPY } from "./outlineCopy";
 import { buildNextOutlineTitle } from "./outlineModels";
+import { useDetailedOutlineState, type DetailedOutlineState } from "./useDetailedOutlineState";
 import { useOutlineGenerationState } from "./useOutlineGenerationState";
 import { useOutlineParsingState } from "./useOutlineParsingState";
 
@@ -52,13 +52,15 @@ export type OutlinePageState = {
   generationModalProps: OutlineGenerationModalProps;
   parsingModalProps: OutlineParsingModalProps;
   wizardBarProps: ComponentProps<typeof WizardNextBar>;
+  detailedOutlineState: DetailedOutlineState;
+  switchToDetailedRequested: boolean;
+  clearSwitchToDetailedRequest: () => void;
 };
 
 export function useOutlinePageState(): OutlinePageState {
   const { projectId } = useParams();
   const toast = useToast();
   const confirm = useConfirm();
-  const navigate = useNavigate();
   const outletActive = usePersistentOutletIsActive();
   const wizard = useWizardProgress(projectId);
   const refreshWizard = wizard.refresh;
@@ -70,6 +72,7 @@ export function useOutlinePageState(): OutlinePageState {
   const [preset, setPreset] = useState<LLMPreset | null>(null);
   const [baseline, setBaseline] = useState("");
   const [content, setContent] = useState("");
+  const [switchToDetailedRequested, setSwitchToDetailedRequested] = useState(false);
   const [titleModal, setTitleModal] = useState<{ open: boolean; mode: "create" | "rename"; title: string }>({
     open: false,
     mode: "create",
@@ -78,6 +81,7 @@ export function useOutlinePageState(): OutlinePageState {
 
   const wizardRefreshTimerRef = useRef<number | null>(null);
   const savingRef = useRef(false);
+  const pendingDetailedSwitchOutlineIdRef = useRef<string | null>(null);
   const queuedSaveRef = useRef<{
     nextContent?: string;
     nextStructure?: unknown;
@@ -212,11 +216,35 @@ export function useOutlinePageState(): OutlinePageState {
   const refreshOutline = outlineQuery.refresh;
   const activeOutlineId = activeOutline?.id ?? "";
 
+  const clearSwitchToDetailedRequest = useCallback(() => {
+    setSwitchToDetailedRequested(false);
+  }, []);
+
+  const requestSwitchToDetailed = useCallback(
+    (targetOutlineId?: string) => {
+      if (!targetOutlineId) return;
+      if (targetOutlineId === activeOutlineId) {
+        pendingDetailedSwitchOutlineIdRef.current = null;
+        setSwitchToDetailedRequested(true);
+        return;
+      }
+      pendingDetailedSwitchOutlineIdRef.current = targetOutlineId;
+    },
+    [activeOutlineId],
+  );
+
+  useEffect(() => {
+    if (!activeOutlineId) return;
+    if (pendingDetailedSwitchOutlineIdRef.current !== activeOutlineId) return;
+    pendingDetailedSwitchOutlineIdRef.current = null;
+    setSwitchToDetailedRequested(true);
+  }, [activeOutlineId]);
+
   const createOutline = useCallback(
     async (title: string, contentMd: string, structure: unknown) => {
-      if (!projectId) return;
+      if (!projectId) return null;
       try {
-        await apiJson<{ outline: Outline }>(`/api/projects/${projectId}/outlines`, {
+        const response = await apiJson<{ outline: Outline }>(`/api/projects/${projectId}/outlines`, {
           method: "POST",
           body: JSON.stringify({ title, content_md: contentMd, structure }),
         });
@@ -225,9 +253,11 @@ export function useOutlinePageState(): OutlinePageState {
         await refreshOutline();
         await refreshWizard();
         toast.toastSuccess(OUTLINE_COPY.createdAndSwitched);
+        return response.data.outline;
       } catch (error) {
         const err = error as ApiError;
         toast.toastError(`${err.message} (${err.code})`, err.requestId);
+        return null;
       }
     },
     [bumpWizardLocal, projectId, refreshOutline, refreshWizard, toast],
@@ -316,6 +346,7 @@ export function useOutlinePageState(): OutlinePageState {
 
   const parsing = useOutlineParsingState({
     projectId,
+    outlineId: activeOutlineId || undefined,
     preset,
     dirty,
     save,
@@ -323,6 +354,8 @@ export function useOutlinePageState(): OutlinePageState {
     confirm,
     toast,
   });
+
+  const detailedOutline = useDetailedOutlineState(projectId, activeOutlineId || undefined);
 
   const storedChapters = useMemo(
     () => deriveOutlineFromStoredContent(activeOutline?.content_md ?? "", activeOutline?.structure).chapters,
@@ -334,50 +367,6 @@ export function useOutlinePageState(): OutlinePageState {
     [previewChapters, storedChapters],
   );
   const canCreateChapters = chaptersForSkeleton.length > 0;
-
-  const createChaptersFromOutline = useCallback(async () => {
-    if (!projectId || chaptersForSkeleton.length === 0) return;
-
-    const ok = await confirm.confirm({
-      ...OUTLINE_COPY.confirms.createSkeleton,
-      description: getOutlineCreateChaptersDescription(chaptersForSkeleton.length),
-    });
-    if (!ok) return;
-
-    const payload = {
-      chapters: chaptersForSkeleton.map((chapter) => ({
-        number: chapter.number,
-        title: chapter.title,
-        plan: (chapter.beats ?? []).join("；"),
-      })),
-    };
-
-    try {
-      await chapterStore.bulkCreateProjectChapters(projectId, payload);
-      toast.toastSuccess(getOutlineCreatedChaptersText(chaptersForSkeleton.length));
-      markWizardProjectChanged(projectId);
-      bumpWizardLocal();
-      navigate(`/projects/${projectId}/writing`);
-    } catch (error) {
-      const err = error as ApiError;
-      if (err.code === "CONFLICT" && err.status === 409) {
-        const replaceOk = await confirm.confirm({ ...OUTLINE_COPY.confirms.replaceSkeleton, danger: true });
-        if (!replaceOk) return;
-        try {
-          await chapterStore.bulkCreateProjectChapters(projectId, payload, { replace: true });
-          toast.toastSuccess(getOutlineCreatedChaptersText(chaptersForSkeleton.length, true));
-          markWizardProjectChanged(projectId);
-          bumpWizardLocal();
-          navigate(`/projects/${projectId}/writing`);
-        } catch (retryError) {
-          const retryErr = retryError as ApiError;
-          toast.toastError(`${retryErr.message} (${retryErr.code})`, retryErr.requestId);
-        }
-        return;
-      }
-      toast.toastError(`${err.message} (${err.code})`, err.requestId);
-    }
-  }, [bumpWizardLocal, chaptersForSkeleton, confirm, navigate, projectId, toast]);
 
   const openCreateTitleModal = useCallback(() => {
     setTitleModal({
@@ -438,14 +427,15 @@ export function useOutlinePageState(): OutlinePageState {
       onDelete: () => void deleteOutline(),
     },
     actionsBarProps: {
-      canCreateChapters,
-      createChaptersDisabledReason: canCreateChapters ? undefined : OUTLINE_COPY.createChaptersDisabledReason,
       dirty,
       saving,
-      onCreateChapters: () => void createChaptersFromOutline(),
+      hasOutlineStructure: canCreateChapters,
+      hasDetailedOutlines: detailedOutline.items.length > 0,
       onOpenGenerate: () => generation.setOpen(true),
       onOpenParse: parsing.openParseModal,
       onSave: () => void save(),
+      onGoToDetailedTab: () => {/* handled by OutlinePage via setActiveTab */},
+      onOpenGenerateDetailed: () => detailedOutline.openGenerateModal(),
     },
     editorProps: {
       content,
@@ -474,8 +464,26 @@ export function useOutlinePageState(): OutlinePageState {
       onCancelGenerate: generation.cancelGenerate,
       onGenerate: () => void generation.generate(),
       onClearPreview: generation.clearPreview,
-      onOverwriteCurrent: () => void generation.overwriteCurrentOutline(),
-      onSaveAsNew: () => void generation.saveAsNewOutline(),
+      onOverwriteCurrent: () =>
+        void (async () => {
+          const shouldGenerateDetailed = (generation.genPreview?.chapters.length ?? 0) > 0;
+          const applied = await generation.overwriteCurrentOutline();
+          if (!applied || !shouldGenerateDetailed || !activeOutlineId) return;
+          const generated = await detailedOutline.generate({});
+          if (generated) {
+            requestSwitchToDetailed(activeOutlineId);
+          }
+        })(),
+      onSaveAsNew: () =>
+        void (async () => {
+          const shouldGenerateDetailed = (generation.genPreview?.chapters.length ?? 0) > 0;
+          const createdOutline = await generation.saveAsNewOutline();
+          if (!createdOutline || !shouldGenerateDetailed) return;
+          const generated = await detailedOutline.generate({}, createdOutline.id);
+          if (generated) {
+            requestSwitchToDetailed(createdOutline.id);
+          }
+        })(),
       onPreviewContentChange: (next) =>
         generation.setGenPreview((prev) => (prev ? { ...prev, outline_md: next } : null)),
     },
@@ -494,11 +502,56 @@ export function useOutlinePageState(): OutlinePageState {
       onAgentConfigChange: parsing.handleAgentConfigChange,
       onStartParse: () => void parsing.startParse(),
       onTabChange: parsing.setActiveTab,
-      onApplyOutline: () => void parsing.applyOutline(),
+      onApplyOutline: () =>
+        void (async () => {
+          const hasDetailed = Array.isArray(parsing.parseResult?.detailed_outlines) &&
+            parsing.parseResult.detailed_outlines.length > 0;
+          const result = await parsing.applyOutline();
+          const targetOutlineId = result.outlineId ?? activeOutlineId;
+          if (!result.ok || !targetOutlineId) return;
+
+          if (hasDetailed) {
+            const appliedDetailed = await parsing.applyDetailedOutlines(targetOutlineId);
+            if (!appliedDetailed) return;
+            if (targetOutlineId === activeOutlineId) {
+              await detailedOutline.refresh();
+            }
+            requestSwitchToDetailed(targetOutlineId);
+            return;
+          }
+
+          const generated = await detailedOutline.generate({}, targetOutlineId);
+          if (generated) {
+            requestSwitchToDetailed(targetOutlineId);
+          }
+        })(),
       onApplyCharacters: () => void parsing.applyCharacters(),
       onApplyEntries: () => void parsing.applyEntries(),
-      onApplyAll: () => void parsing.applyAll(),
+      onApplyAll: () =>
+        void (async () => {
+          const hasDetailed = Array.isArray(parsing.parseResult?.detailed_outlines) &&
+            parsing.parseResult.detailed_outlines.length > 0;
+          const result = await parsing.applyAll();
+          const targetOutlineId = result.outlineId ?? activeOutlineId;
+          if (!result.ok || !targetOutlineId) return;
+
+          if (hasDetailed) {
+            if (targetOutlineId === activeOutlineId) {
+              await detailedOutline.refresh();
+            }
+            requestSwitchToDetailed(targetOutlineId);
+            return;
+          }
+
+          const generated = await detailedOutline.generate({}, targetOutlineId);
+          if (generated) {
+            requestSwitchToDetailed(targetOutlineId);
+          }
+        })(),
     },
+    detailedOutlineState: detailedOutline,
+    switchToDetailedRequested,
+    clearSwitchToDetailedRequest,
     wizardBarProps: {
       projectId,
       currentStep: "outline",
@@ -509,17 +562,23 @@ export function useOutlinePageState(): OutlinePageState {
       onSave: () => save(),
       primaryAction:
         wizard.progress.nextStep?.key === "chapters"
-          ? canCreateChapters
+          ? detailedOutline.items.length > 0
             ? {
-                label: "下一步：创建章节骨架",
+                label: "下一步：查看细纲并创建章节",
                 disabled: generation.generating || parsing.parsing || saving,
-                onClick: createChaptersFromOutline,
+                onClick: () => {/* handled by OutlinePage */},
               }
-            : {
-                label: "下一步：先 AI 生成大纲",
-                disabled: generation.generating || parsing.parsing || saving,
-                onClick: () => generation.setOpen(true),
-              }
+            : canCreateChapters
+              ? {
+                  label: "下一步：生成细纲",
+                  disabled: generation.generating || parsing.parsing || saving || detailedOutline.generating,
+                  onClick: () => detailedOutline.openGenerateModal(),
+                }
+              : {
+                  label: "下一步：先 AI 生成大纲",
+                  disabled: generation.generating || parsing.parsing || saving,
+                  onClick: () => generation.setOpen(true),
+                }
           : undefined,
     },
   };

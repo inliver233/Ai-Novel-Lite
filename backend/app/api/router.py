@@ -7,6 +7,7 @@ from app.api.routes import (
     batch_generation,
     chapters,
     characters,
+    detailed_outlines,
     entries,
     export,
     generation_runs,
@@ -57,6 +58,7 @@ api_router.include_router(llm_models.router, tags=["llm_models"])
 api_router.include_router(llm.router, tags=["llm"])
 api_router.include_router(llm_profiles.router, tags=["llm_profiles"])
 api_router.include_router(outlines.router, tags=["outlines"])
+api_router.include_router(detailed_outlines.router, tags=["detailed_outlines"])
 api_router.include_router(outline_parse.router, tags=["outline_parse"])
 api_router.include_router(export.router, tags=["export"])
 api_router.include_router(import_export.router, tags=["import_export"])

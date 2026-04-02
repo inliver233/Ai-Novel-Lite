@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "name": "默认·细纲生成 v1",
+  "category": "细纲",
+  "scope": "project",
+  "version": 1,
+  "activation_tasks": [
+    "detailed_outline_generate"
+  ],
+  "blocks": [
+    {
+      "identifier": "sys.detailed_outline.role",
+      "name": "细纲：角色与方法",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.detailed_outline.role.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 10,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must"
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.detailed_outline.contract",
+      "name": "细纲：输出契约（JSON）",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.detailed_outline.contract.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 20,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must"
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.project.meta",
+      "name": "素材：项目元信息",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.project.meta.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 30,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "important"
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.project.world_setting",
+      "name": "素材：世界观",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.project.world_setting.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 40,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "optional",
+        "maxTokens": 2000
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.project.characters",
+      "name": "素材：角色卡",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.project.characters.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 50,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "important",
+        "maxTokens": 2500
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.story.full_outline",
+      "name": "素材：完整大纲",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.story.full_outline.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 60,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must",
+        "maxTokens": 6000
+      },
+      "cache": null
+    },
+    {
+      "identifier": "sys.story.volume_context",
+      "name": "素材：当前卷上下文",
+      "role": "system",
+      "enabled": true,
+      "template_file": "templates/sys.story.volume_context.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 70,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must",
+        "maxTokens": 4000
+      },
+      "cache": null
+    },
+    {
+      "identifier": "user.detailed_outline.instruction",
+      "name": "用户指令",
+      "role": "user",
+      "enabled": true,
+      "template_file": "templates/user.detailed_outline.instruction.md",
+      "marker_key": null,
+      "injection_position": "relative",
+      "injection_depth": null,
+      "injection_order": 80,
+      "triggers": [
+        "detailed_outline_generate"
+      ],
+      "forbid_overrides": false,
+      "budget": {
+        "priority": "must"
+      },
+      "cache": null
+    }
+  ]
+}

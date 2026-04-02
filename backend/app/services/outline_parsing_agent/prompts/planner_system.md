@@ -38,10 +38,14 @@
 
 **章节结构**通常不拆分（1个任务），除非章节 >80 才考虑拆分为多个批次。
 
+**细纲提取**（当文本中出现卷/篇/部/volume/arc 等分卷标记时）：
+- 添加 1 个 `detailed_outline` 类型任务，scope 为"提取各卷的详细章节规划"
+- 仅在文本有明确分卷结构时添加，简单大纲不需要
+
 ### task_plan 中每个任务的字段
 
 - **id**: 唯一标识符，格式为 `{type}` 或 `{type}_{序号}`，如 `character_1`、`entry_2`
-- **type**: 必须为 `structure`、`character`、`entry` 之一
+- **type**: 必须为 `structure`、`character`、`entry`、`detailed_outline` 之一
 - **display_name**: 中文显示名称，简短描述（2-6字），如"核心角色"、"修炼体系"
 - **scope**: 详细的提取范围描述，告诉 Agent 具体要提取什么内容。越具体越好。
 
@@ -96,7 +100,7 @@
 ## ⚠️ 输出自检清单
 
 1. 输出是否为合法 JSON？（无多余文本、无注释）
-2. task_plan 中每个任务的 type 是否为 structure/character/entry 之一？
+2. task_plan 中每个任务的 type 是否为 structure/character/entry/detailed_outline 之一？
 3. task_plan 中的 id 是否唯一？
 4. task_plan 是否至少包含 1 个 structure 类型的任务？
 5. scope 描述是否具体明确？（不能是"提取所有内容"这样的泛泛描述）

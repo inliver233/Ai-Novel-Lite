@@ -59,6 +59,7 @@ const AGENT_TYPE_ICON_MAP: Record<string, React.ComponentType<{ size?: number; c
   structure: FileText,
   character: User,
   entry: Globe,
+  detailed_outline: BarChart3,
   validation: CheckCircle2,
   repair: Wrench,
   default: BookOpen,

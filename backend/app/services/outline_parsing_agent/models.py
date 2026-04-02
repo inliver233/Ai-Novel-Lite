@@ -20,7 +20,7 @@ class SubTask:
     """A dynamically planned extraction sub-task."""
 
     id: str
-    type: str  # "structure" | "character" | "entry"
+    type: str  # "structure" | "character" | "entry" | "detailed_outline"
     display_name: str
     scope: str  # Focused extraction scope description
 
@@ -69,12 +69,24 @@ class ParsedEntry:
 
 
 @dataclass
+class ParsedDetailedOutline:
+    """Extracted detailed outline for a volume/arc."""
+
+    volume_number: int = 0
+    volume_title: str = ""
+    volume_summary: str = ""
+    chapters: list[dict[str, Any]] = field(default_factory=list)
+    # Each chapter: {number, title, summary, beats, characters, emotional_arc, foreshadowing}
+
+
+@dataclass
 class ParseResult:
     """Final result from the multi-agent parsing pipeline."""
 
     outline: ParsedOutline = field(default_factory=ParsedOutline)
     characters: list[ParsedCharacter] = field(default_factory=list)
     entries: list[ParsedEntry] = field(default_factory=list)
+    detailed_outlines: list[ParsedDetailedOutline] = field(default_factory=list)
     agent_log: list[AgentStepResult] = field(default_factory=list)
     total_duration_ms: int = 0
     total_tokens_used: int = 0
@@ -93,6 +105,15 @@ class ParseResult:
                 for c in self.characters
             ],
             "entries": [{"title": e.title, "content": e.content, "tags": e.tags} for e in self.entries],
+            "detailed_outlines": [
+                {
+                    "volume_number": d.volume_number,
+                    "volume_title": d.volume_title,
+                    "volume_summary": d.volume_summary,
+                    "chapters": d.chapters,
+                }
+                for d in self.detailed_outlines
+            ],
             "agent_log": [
                 {
                     "agent_name": s.agent_name,
@@ -117,6 +138,7 @@ AGENT_DISPLAY_NAMES: dict[str, str] = {
     "structure": "大纲骨架",
     "character": "角色卡",
     "entry": "世界条目",
+    "detailed_outline": "细纲提取",
     "validation": "校验合并",
     "repair": "JSON 修复",
 }

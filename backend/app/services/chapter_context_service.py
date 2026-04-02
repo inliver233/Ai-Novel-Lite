@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.chapter import Chapter
 from app.models.character import Character
+from app.models.detailed_outline import DetailedOutline
 from app.models.entry import Entry
 from app.models.outline import Outline
 from app.models.project import Project
@@ -118,6 +119,144 @@ def build_smart_context(
         skeleton = "\n".join(skeleton_lines).strip()
 
     return recent_summaries, recent_full, skeleton
+
+
+def load_detailed_outline_context(
+    chapter_number: int,
+    outline_id: str,
+    db: Session,
+) -> str:
+    """Load detailed outline context for a chapter.
+
+    Queries DetailedOutline records for the given outline_id (status='done'),
+    finds which volume contains the target chapter_number, then extracts:
+      - Current chapter plan (summary + beats)
+      - Previous 2 and next 2 chapter summaries from the same volume
+      - Volume-level title
+    Returns a formatted text block, or empty string if nothing found.
+    """
+    rows = (
+        db.execute(
+            select(DetailedOutline).where(
+                DetailedOutline.outline_id == outline_id,
+                DetailedOutline.status == "done",
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not rows:
+        return ""
+
+    # Find which volume contains this chapter_number
+    target_volume: DetailedOutline | None = None
+    target_chapters: list[dict] = []
+    for row in rows:
+        chapters = _parse_detailed_structure_chapters(row.structure_json)
+        if not chapters:
+            continue
+        chapter_numbers = {ch.get("number") for ch in chapters if isinstance(ch.get("number"), int)}
+        if chapter_number in chapter_numbers:
+            target_volume = row
+            target_chapters = chapters
+            break
+
+    if target_volume is None or not target_chapters:
+        return ""
+
+    # Sort chapters by number for consistent ordering
+    target_chapters.sort(key=lambda ch: ch.get("number", 0))
+
+    # Build a lookup by chapter number
+    by_number: dict[int, dict] = {ch["number"]: ch for ch in target_chapters if isinstance(ch.get("number"), int)}
+
+    parts: list[str] = []
+
+    # Volume header
+    vol_num = target_volume.volume_number or 1
+    vol_title = (target_volume.volume_title or "").strip()
+    vol_header = f"\u7b2c{vol_num}\u5377"
+    if vol_title:
+        vol_header += f"\u300c{vol_title}\u300d"
+    parts.append(f"\u3010\u6240\u5c5e\u5377\u3011{vol_header}")
+
+    # Current chapter plan
+    current_ch = by_number.get(chapter_number)
+    if current_ch:
+        parts.append(f"\n\u3010\u5f53\u524d\u7ae0\u8282\u89c4\u5212\u3011\u7b2c{chapter_number}\u7ae0")
+        ch_summary = str(current_ch.get("summary") or "").strip()
+        if ch_summary:
+            parts.append(f"\u6982\u8ff0\uff1a{ch_summary}")
+        beats = current_ch.get("beats")
+        if isinstance(beats, list) and beats:
+            parts.append("\u60c5\u8282\u70b9\uff1a")
+            for b in beats:
+                if b is not None:
+                    parts.append(f"- {str(b)}")
+        # Include extra keys if present
+        characters = current_ch.get("characters")
+        if characters:
+            if isinstance(characters, list):
+                parts.append(f"\u51fa\u573a\u89d2\u8272\uff1a{'\uff0c'.join(str(c) for c in characters)}")
+            else:
+                parts.append(f"\u51fa\u573a\u89d2\u8272\uff1a{characters}")
+        emotional = current_ch.get("emotional_arc") or current_ch.get("emotion")
+        if emotional:
+            parts.append(f"\u60c5\u611f\u8d70\u5411\uff1a{emotional}")
+
+    # Previous chapters context (up to 2)
+    prev_lines: list[str] = []
+    all_numbers = sorted(by_number.keys())
+    current_idx = all_numbers.index(chapter_number) if chapter_number in all_numbers else -1
+    if current_idx > 0:
+        prev_nums = all_numbers[max(0, current_idx - 2):current_idx]
+        for pn in prev_nums:
+            pch = by_number[pn]
+            pt = str(pch.get("title") or "").strip()
+            ps = str(pch.get("summary") or "").strip()
+            label = f"\u7b2c{pn}\u7ae0"
+            if pt:
+                label += f"\u300c{pt}\u300d"
+            if ps:
+                prev_lines.append(f"{label}\uff1a{ps}")
+    if prev_lines:
+        parts.append(f"\n\u3010\u524d\u6587\u8d70\u5411\u3011")
+        parts.extend(prev_lines)
+
+    # Next chapters context (up to 2)
+    next_lines: list[str] = []
+    if current_idx >= 0 and current_idx < len(all_numbers) - 1:
+        next_nums = all_numbers[current_idx + 1:current_idx + 3]
+        for nn in next_nums:
+            nch = by_number[nn]
+            nt = str(nch.get("title") or "").strip()
+            ns = str(nch.get("summary") or "").strip()
+            label = f"\u7b2c{nn}\u7ae0"
+            if nt:
+                label += f"\u300c{nt}\u300d"
+            if ns:
+                next_lines.append(f"{label}\uff1a{ns}")
+    if next_lines:
+        parts.append(f"\n\u3010\u540e\u6587\u8d70\u5411\u3011")
+        parts.extend(next_lines)
+
+    return "\n".join(parts).strip()
+
+
+def _parse_detailed_structure_chapters(structure_json_raw: str | None) -> list[dict]:
+    """Parse structure_json and return the chapters list, or empty list."""
+    if not structure_json_raw:
+        return []
+    try:
+        structure = json.loads(structure_json_raw)
+    except Exception:
+        return []
+    if not isinstance(structure, dict):
+        return []
+    chapters = structure.get("chapters")
+    if not isinstance(chapters, list):
+        return []
+    return [ch for ch in chapters if isinstance(ch, dict)]
 
 
 def load_previous_chapter_context(
@@ -293,6 +432,7 @@ def assemble_chapter_generate_render_values(
     smart_context_recent_summaries: str,
     smart_context_recent_full: str,
     smart_context_story_skeleton: str,
+    detailed_outline_context: str = "",
 ) -> tuple[dict[str, object], dict[str, object]]:
     requirements_obj: dict[str, object] = {}
     if target_word_count is not None:
@@ -322,6 +462,7 @@ def assemble_chapter_generate_render_values(
         "smart_context_recent_summaries": smart_context_recent_summaries,
         "smart_context_recent_full": smart_context_recent_full,
         "smart_context_story_skeleton": smart_context_story_skeleton,
+        "detailed_outline_context": detailed_outline_context,
     }
     values["project"] = {
         "name": project.name or "",
@@ -345,6 +486,7 @@ def assemble_chapter_generate_render_values(
         "smart_context_recent_summaries": smart_context_recent_summaries,
         "smart_context_recent_full": smart_context_recent_full,
         "smart_context_story_skeleton": smart_context_story_skeleton,
+        "detailed_outline_context": detailed_outline_context,
     }
     values["user"] = {"instruction": instruction, "requirements": requirements_obj}
     return values, requirements_obj
@@ -396,6 +538,12 @@ def build_chapter_generate_render_values(
             chapter_number=int(chapter.number),
         )
 
+    detailed_outline_ctx = load_detailed_outline_context(
+        chapter_number=int(chapter.number),
+        outline_id=chapter.outline_id,
+        db=db,
+    )
+
     base_instruction = body.instruction.strip()
     instruction = _format_chapter_generate_instruction(mode=body.mode, base_instruction=base_instruction)
 
@@ -419,6 +567,7 @@ def build_chapter_generate_render_values(
         smart_context_recent_summaries=smart_recent_summaries,
         smart_context_recent_full=smart_recent_full,
         smart_context_story_skeleton=smart_story_skeleton,
+        detailed_outline_context=detailed_outline_ctx,
     )
 
     return values, base_instruction, requirements_obj, style_resolution

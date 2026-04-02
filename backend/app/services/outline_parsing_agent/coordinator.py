@@ -32,6 +32,7 @@ from app.services.llm_task_preset_resolver import resolve_task_llm_config
 from app.services.outline_parsing_agent.agents.dynamic_agent import (
     DynamicExtractionAgent,
     _merge_characters,
+    _merge_detailed_outlines,
     _merge_entries,
     _merge_structure,
 )
@@ -43,6 +44,7 @@ from app.services.outline_parsing_agent.config import AgentPipelineConfig
 from app.services.outline_parsing_agent.models import (
     AGENT_DISPLAY_NAMES,
     AgentStepResult,
+    ParsedDetailedOutline,
     ParseResult,
     SubTask,
     get_agent_display_name,
@@ -173,6 +175,27 @@ def _build_analysis_context(planner_step: AgentStepResult) -> str:
     return context
 
 
+def _build_detailed_outlines(data: dict[str, Any]) -> list[ParsedDetailedOutline]:
+    """Convert raw merged detailed_outline data into ParsedDetailedOutline objects."""
+    outlines_raw = data.get("detailed_outlines")
+    if not isinstance(outlines_raw, list):
+        return []
+    result: list[ParsedDetailedOutline] = []
+    for item in outlines_raw:
+        if not isinstance(item, dict):
+            continue
+        vol_num = item.get("volume_number")
+        if not isinstance(vol_num, int):
+            continue
+        result.append(ParsedDetailedOutline(
+            volume_number=vol_num,
+            volume_title=str(item.get("volume_title") or "").strip(),
+            volume_summary=str(item.get("volume_summary") or "").strip(),
+            chapters=item.get("chapters") or [],
+        ))
+    return result
+
+
 def _error_step(agent_name: str, message: str) -> AgentStepResult:
     safe_message = redact_secrets_text(str(message or "")).replace("\n", " ").strip()[:500] or "unknown error"
     return AgentStepResult(
@@ -227,7 +250,7 @@ def _extract_task_plan(planner_step: AgentStepResult) -> list[SubTask]:
         task_type = str(item.get("type") or "").strip()
         display_name = str(item.get("display_name") or "").strip()
         scope = str(item.get("scope") or "").strip()
-        if task_id and task_type in ("structure", "character", "entry") and scope:
+        if task_id and task_type in ("structure", "character", "entry", "detailed_outline") and scope:
             tasks.append(SubTask(
                 id=task_id,
                 type=task_type,
@@ -255,11 +278,13 @@ def _merge_results_by_type(
 ) -> dict[str, AgentStepResult]:
     """Merge multiple agent results of the same type into canonical results.
 
-    Returns a dict with keys "structure", "character", "entry" — each containing
-    the merged data from all agents of that type.
+    Returns a dict with keys "structure", "character", "entry", and optionally
+    "detailed_outline" — each containing the merged data from all agents of that type.
     """
     # Group results by type
-    by_type: dict[str, list[AgentStepResult]] = {"structure": [], "character": [], "entry": []}
+    by_type: dict[str, list[AgentStepResult]] = {
+        "structure": [], "character": [], "entry": [], "detailed_outline": [],
+    }
     for task in task_plan:
         step = all_results.get(task.id)
         if step and step.status != "error" and step.data:
@@ -326,6 +351,24 @@ def _merge_results_by_type(
         )
     else:
         merged["entry"] = _error_step("entry", "无有效的条目结果")
+
+    # Merge detailed outlines (optional — only present when planner includes it)
+    do_data_list = [s.data for s in by_type["detailed_outline"]]
+    if do_data_list:
+        merged_data = _merge_detailed_outlines(do_data_list)
+        total_tokens = sum(s.tokens_used for s in by_type["detailed_outline"])
+        total_duration = sum(s.duration_ms for s in by_type["detailed_outline"])
+        all_warnings = []
+        for s in by_type["detailed_outline"]:
+            all_warnings.extend(s.warnings)
+        merged["detailed_outline"] = AgentStepResult(
+            agent_name="detailed_outline",
+            status="success",
+            data=merged_data,
+            duration_ms=total_duration,
+            tokens_used=total_tokens,
+            warnings=all_warnings,
+        )
 
     return merged
 
@@ -440,6 +483,11 @@ class OutlineParsingOrchestrator:
             merged.get("entry") or _error_step("entry", "Missing"),
             planner_step,
         )
+
+        # Attach detailed outlines if present
+        do_step = merged.get("detailed_outline")
+        if do_step and do_step.status != "error" and do_step.data:
+            parse_result.detailed_outlines = _build_detailed_outlines(do_step.data)
 
         # Include all individual agent steps in the log
         all_agent_steps = [planner_step] + [results[t.id] for t in task_plan if t.id in results]
@@ -730,6 +778,11 @@ class OutlineParsingOrchestrator:
                 merged.get("entry") or _error_step("entry", "Missing"),
                 planner_step,
             )
+
+            # Attach detailed outlines if present
+            do_step = merged.get("detailed_outline")
+            if do_step and do_step.status != "error" and do_step.data:
+                parse_result.detailed_outlines = _build_detailed_outlines(do_step.data)
 
             # Build complete agent log
             all_agent_steps = [planner_step] + [results[t.id] for t in task_plan if t.id in results]

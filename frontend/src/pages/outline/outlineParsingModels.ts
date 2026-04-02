@@ -36,6 +36,13 @@ export type OutlineParseEntry = {
   tags: string[];
 };
 
+export type OutlineParseDetailedOutline = {
+  volume_number: number;
+  volume_title: string;
+  volume_summary: string;
+  chapters: Record<string, unknown>[];
+};
+
 export type OutlineParseAgentLogItem = {
   agent_name: string;
   status: "success" | "error" | "partial";
@@ -49,6 +56,7 @@ export type OutlineParseResult = {
   outline: { outline_md: string; chapters: OutlineParseChapter[] };
   characters: OutlineParseCharacter[];
   entries: OutlineParseEntry[];
+  detailed_outlines: OutlineParseDetailedOutline[];
   agent_log: OutlineParseAgentLogItem[];
   total_duration_ms: number;
   total_tokens_used: number;
@@ -80,7 +88,7 @@ export type AgentCardState = {
   retryCount: number;
   warnings: string[];
   error: string | null;
-  /** Agent type from task_plan: "structure" | "character" | "entry" | "planner" | "validation" | "repair" */
+  /** Agent type from task_plan: "structure" | "character" | "entry" | "detailed_outline" | "planner" | "validation" | "repair" */
   agentType: string;
 };
 
@@ -108,6 +116,7 @@ function inferAgentType(id: string): string {
   if (id.startsWith("structure") || id === "structure") return "structure";
   if (id.startsWith("character") || id === "character") return "character";
   if (id.startsWith("entry") || id === "entry") return "entry";
+  if (id.startsWith("detailed_outline") || id === "detailed_outline") return "detailed_outline";
   return "default";
 }
 

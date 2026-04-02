@@ -20,6 +20,7 @@ _TYPE_NAME_MAP: dict[str, str] = {
     "structure": "章节结构",
     "character": "角色",
     "entry": "世界观条目",
+    "detailed_outline": "细纲",
 }
 
 
@@ -249,17 +250,98 @@ def _merge_entries(chunk_results: list[dict[str, Any]]) -> dict[str, Any]:
     return {"entries": entries}
 
 
+# --- Detailed Outline ---
+
+def _parse_detailed_outlines(raw_json: Any) -> dict[str, Any]:
+    if not isinstance(raw_json, dict):
+        return {"detailed_outlines": []}
+    outlines_raw = raw_json.get("detailed_outlines")
+    outlines: list[dict[str, Any]] = []
+    if isinstance(outlines_raw, list):
+        for item in outlines_raw:
+            if not isinstance(item, dict):
+                continue
+            vol_num = _coerce_int(item.get("volume_number"))
+            if vol_num is None:
+                continue
+            chapters_raw = item.get("chapters")
+            chapters: list[dict[str, Any]] = []
+            if isinstance(chapters_raw, list):
+                for ch in chapters_raw:
+                    if not isinstance(ch, dict):
+                        continue
+                    ch_num = _coerce_int(ch.get("number"))
+                    if ch_num is None:
+                        continue
+                    chapters.append({
+                        "number": ch_num,
+                        "title": _clean_str(ch.get("title")),
+                        "summary": _clean_str(ch.get("summary")),
+                        "beats": _clean_beats(ch.get("beats")),
+                        "characters": _clean_tags(ch.get("characters")),
+                        "emotional_arc": _clean_str(ch.get("emotional_arc")),
+                        "foreshadowing": _clean_tags(ch.get("foreshadowing")),
+                    })
+            outlines.append({
+                "volume_number": vol_num,
+                "volume_title": _clean_str(item.get("volume_title")),
+                "volume_summary": _clean_str(item.get("volume_summary")),
+                "chapters": chapters,
+            })
+    return {"detailed_outlines": outlines}
+
+
+def _merge_detailed_outlines(chunk_results: list[dict[str, Any]]) -> dict[str, Any]:
+    by_volume: dict[int, dict[str, Any]] = {}
+    for result in chunk_results:
+        outlines = result.get("detailed_outlines")
+        if not isinstance(outlines, list):
+            continue
+        for item in outlines:
+            if not isinstance(item, dict):
+                continue
+            vol_num = _coerce_int(item.get("volume_number"))
+            if vol_num is None:
+                continue
+            if vol_num not in by_volume:
+                by_volume[vol_num] = {
+                    "volume_number": vol_num,
+                    "volume_title": _clean_str(item.get("volume_title")),
+                    "volume_summary": _clean_str(item.get("volume_summary")),
+                    "chapters": [],
+                }
+            existing = by_volume[vol_num]
+            # Prefer longer summary
+            incoming_summary = _clean_str(item.get("volume_summary"))
+            if incoming_summary and len(incoming_summary) > len(_clean_str(existing.get("volume_summary"))):
+                existing["volume_summary"] = incoming_summary
+            # Merge chapters by number
+            chapters_raw = item.get("chapters")
+            if isinstance(chapters_raw, list):
+                existing_ch_nums = {c.get("number") for c in existing["chapters"] if isinstance(c, dict)}
+                for ch in chapters_raw:
+                    if isinstance(ch, dict) and ch.get("number") not in existing_ch_nums:
+                        existing["chapters"].append(ch)
+    # Sort volumes and their chapters
+    merged = [by_volume[n] for n in sorted(by_volume)]
+    for vol in merged:
+        vol["chapters"].sort(key=lambda c: int(c.get("number") or 0))
+    return {"detailed_outlines": merged}
+
+
 # Dispatch tables
 _PARSE_DISPATCH: dict[str, Any] = {
     "structure": _parse_structure,
     "character": _parse_characters,
     "entry": _parse_entries,
+    "detailed_outline": _parse_detailed_outlines,
 }
 
 _MERGE_DISPATCH: dict[str, Any] = {
     "structure": _merge_structure,
     "character": _merge_characters,
     "entry": _merge_entries,
+    "detailed_outline": _merge_detailed_outlines,
 }
 
 
