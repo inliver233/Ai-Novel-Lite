@@ -189,12 +189,17 @@ def parse_outline_output(text: str) -> tuple[dict[str, Any], list[str], dict[str
 
             if not volumes_out:
                 parse_error = {"code": "OUTLINE_PARSE_ERROR", "message": "无法从模型输出解析卷结构"}
-                data = {"outline_md": outline_md, "volumes": [], "raw_output": text}
+                data = {"outline_md": outline_md, "volumes": [], "chapters": [], "raw_output": text}
                 if raw_json:
                     data["raw_json"] = raw_json
                 return data, warnings, parse_error
 
-            data = {"outline_md": outline_md, "volumes": volumes_out, "raw_output": text}
+            # Synthesize chapters from volumes for backward compat with pipeline
+            compat_chapters = [
+                {"number": v["number"], "title": v["title"], "beats": [v["summary"]] if v.get("summary") else []}
+                for v in volumes_out
+            ]
+            data = {"outline_md": outline_md, "volumes": volumes_out, "chapters": compat_chapters, "raw_output": text}
             if raw_json:
                 data["raw_json"] = raw_json
             return data, warnings, None
