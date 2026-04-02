@@ -131,11 +131,37 @@ def _build_pipeline_config(
 def _build_analysis_context(analysis_step: AgentStepResult) -> str:
     if analysis_step.status == "error" or not analysis_step.data:
         return ""
+    data = analysis_step.data
     try:
-        payload = json.dumps(analysis_step.data, ensure_ascii=False, indent=2)
+        payload = json.dumps(data, ensure_ascii=False, indent=2)
     except Exception:
-        payload = str(analysis_step.data)
-    return f"Analysis context (JSON):\n{payload}"
+        payload = str(data)
+
+    context = f"Analysis context (JSON):\n{payload}"
+
+    # Add dynamic length-control instructions for high-complexity content
+    complexity = str(data.get("complexity") or "").lower()
+    char_count = int(data.get("estimated_character_count") or 0)
+    entry_count = int(data.get("estimated_entry_count") or 0)
+
+    hints: list[str] = []
+    if complexity == "high" or char_count > 15:
+        hints.append(
+            f"⚠️ 预计角色约 {char_count} 个，内容复杂度高。"
+            "请优先提取主要角色（主角、主要反派、核心配角），次要角色可精简 profile。"
+            "每个角色 profile 控制在 100 字以内，确保 JSON 完整可解析。"
+        )
+    if complexity == "high" or entry_count > 15:
+        hints.append(
+            f"⚠️ 预计条目约 {entry_count} 个，内容复杂度高。"
+            "请优先提取最重要的 15 个条目，每个 content 控制在 150 字以内。"
+            "确保 JSON 完整可解析，不要因输出过长而截断。"
+        )
+
+    if hints:
+        context += "\n\n" + "\n".join(hints)
+
+    return context
 
 
 def _error_step(agent_name: str, message: str) -> AgentStepResult:

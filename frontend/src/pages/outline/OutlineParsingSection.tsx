@@ -1,12 +1,13 @@
 import clsx from "clsx";
+import { BarChart3, CheckCircle2, Circle, FileText, Globe, User } from "lucide-react";
 
+import { Badge } from "../../components/ui/Badge";
 import { Modal } from "../../components/ui/Modal";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 
 import { OUTLINE_COPY } from "./outlineCopy";
 import { OUTLINE_PARSING_COPY } from "./outlineParsingCopy";
 import {
-  AGENT_ICONS,
   type AgentCardState,
   type AgentCardStatus,
   type OutlineParseAgentConfig,
@@ -42,61 +43,61 @@ function safeCount(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
 }
 
-function AgentStatusBadge({ status }: { status: AgentCardStatus }) {
-  const config: Record<AgentCardStatus, { text: string; className: string }> = {
-    pending: {
-      text: OUTLINE_PARSING_COPY.agentStatusPending,
-      className: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
-    },
-    running: {
-      text: OUTLINE_PARSING_COPY.agentStatusRunning,
-      className: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse",
-    },
-    complete: {
-      text: OUTLINE_PARSING_COPY.agentStatusComplete,
-      className: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-    },
-    error: {
-      text: OUTLINE_PARSING_COPY.agentStatusError,
-      className: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-    },
-  };
+const AGENT_ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  analysis: BarChart3,
+  structure: FileText,
+  character: User,
+  entry: Globe,
+  validation: CheckCircle2,
+};
 
+function AgentStatusBadge({ status }: { status: AgentCardStatus }) {
+  const map: Record<AgentCardStatus, { tone: "neutral" | "info" | "success" | "danger"; text: string }> = {
+    pending: { tone: "neutral", text: OUTLINE_PARSING_COPY.agentStatusPending },
+    running: { tone: "info", text: OUTLINE_PARSING_COPY.agentStatusRunning },
+    complete: { tone: "success", text: OUTLINE_PARSING_COPY.agentStatusComplete },
+    error: { tone: "danger", text: OUTLINE_PARSING_COPY.agentStatusError },
+  };
+  const { tone, text } = map[status];
   return (
-    <span
-      className={clsx(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-        config[status].className,
-      )}
-    >
-      {config[status].text}
-    </span>
+    <Badge tone={tone} className={status === "running" ? "animate-pulse" : undefined}>
+      {text}
+    </Badge>
   );
 }
 
 function AgentCard({ card }: { card: AgentCardState }) {
-  const icon = AGENT_ICONS[card.id] ?? "🔧";
+  const IconComp = AGENT_ICON_MAP[card.id] ?? Circle;
   const isRunning = card.status === "running";
 
   return (
     <div
       className={clsx(
-        "panel rounded-atelier border p-3 transition-all duration-300",
-        isRunning && "border-blue-300 border-l-4 border-l-blue-400 dark:border-blue-700 dark:border-l-blue-500",
-        card.status === "complete" && "border-green-200 dark:border-green-800",
-        card.status === "error" && "border-red-200 dark:border-red-800",
+        "panel p-3 transition-all",
+        isRunning && "border-accent/40",
+        card.status === "complete" && "border-success/30",
+        card.status === "error" && "border-danger/30",
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-sm">
-          <span>{icon}</span>
+          <IconComp
+            size={14}
+            className={clsx(
+              "shrink-0",
+              isRunning && "text-accent",
+              card.status === "complete" && "text-success",
+              card.status === "error" && "text-danger",
+              card.status === "pending" && "text-subtext",
+            )}
+          />
           <span className="font-medium text-ink">{card.displayName}</span>
         </div>
         <AgentStatusBadge status={card.status} />
       </div>
 
       {card.streamingText ? (
-        <div className="mt-2 max-h-[60px] overflow-hidden rounded bg-canvas p-1.5 font-mono text-[10px] leading-tight text-subtext opacity-100 transition-opacity duration-200">
+        <div className="mt-2 max-h-[60px] overflow-hidden rounded-atelier bg-canvas p-1.5 font-mono text-[10px] leading-tight text-subtext">
           {card.streamingText.slice(-200)}
         </div>
       ) : null}
@@ -401,10 +402,10 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
                     <span
                       className={clsx(
                         "inline-block w-14 shrink-0 rounded px-1 py-0.5 text-center font-medium",
-                        log.status === "success" && "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-                        log.status === "error" && "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+                        log.status === "success" && "bg-success/10 text-success",
+                        log.status === "error" && "bg-danger/10 text-danger",
                         log.status === "partial" &&
-                          "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
+                          "bg-warning/10 text-warning",
                       )}
                     >
                       {log.status}

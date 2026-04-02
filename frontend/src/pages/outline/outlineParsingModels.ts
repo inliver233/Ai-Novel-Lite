@@ -140,10 +140,4 @@ export const INITIAL_AGENT_CARDS: AgentCardState[] = [
   },
 ];
 
-export const AGENT_ICONS: Record<string, string> = {
-  analysis: "📊",
-  structure: "📋",
-  character: "👤",
-  entry: "🌍",
-  validation: "✅",
-};
+// Agent icon mapping moved to OutlineParsingSection.tsx (Lucide React components)

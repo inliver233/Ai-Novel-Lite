@@ -63,12 +63,19 @@ class AnalysisAgent(BaseExtractionAgent):
                 if text and text not in content_types:
                     content_types.append(text)
 
+        complexity = str(raw_json.get("complexity") or "medium").strip().lower()
+        if complexity not in ("low", "medium", "high"):
+            complexity = "medium"
+
         return {
             "content_types": content_types,
             "has_chapters": _coerce_bool(raw_json.get("has_chapters")),
             "has_characters": _coerce_bool(raw_json.get("has_characters")),
             "has_entries": _coerce_bool(raw_json.get("has_entries")),
             "estimated_chapter_count": max(0, _coerce_int(raw_json.get("estimated_chapter_count"))),
+            "estimated_character_count": max(0, _coerce_int(raw_json.get("estimated_character_count"))),
+            "estimated_entry_count": max(0, _coerce_int(raw_json.get("estimated_entry_count"))),
+            "complexity": complexity,
             "format_description": str(raw_json.get("format_description") or "").strip(),
         }
 
@@ -88,6 +95,9 @@ class AnalysisAgent(BaseExtractionAgent):
         has_characters = False
         has_entries = False
         estimated_chapter_count = 0
+        estimated_character_count = 0
+        estimated_entry_count = 0
+        complexity = "medium"
         format_description = ""
 
         for result in chunk_results:
@@ -104,6 +114,14 @@ class AnalysisAgent(BaseExtractionAgent):
             has_characters = has_characters or _coerce_bool(result.get("has_characters"))
             has_entries = has_entries or _coerce_bool(result.get("has_entries"))
             estimated_chapter_count = max(estimated_chapter_count, _coerce_int(result.get("estimated_chapter_count")))
+            estimated_character_count = max(estimated_character_count, _coerce_int(result.get("estimated_character_count")))
+            estimated_entry_count = max(estimated_entry_count, _coerce_int(result.get("estimated_entry_count")))
+
+            c = str(result.get("complexity") or "").strip().lower()
+            if c == "high":
+                complexity = "high"
+            elif c == "medium" and complexity != "high":
+                complexity = "medium"
 
             desc = str(result.get("format_description") or "").strip()
             if len(desc) > len(format_description):
@@ -115,6 +133,9 @@ class AnalysisAgent(BaseExtractionAgent):
             "has_characters": has_characters,
             "has_entries": has_entries,
             "estimated_chapter_count": max(0, estimated_chapter_count),
+            "estimated_character_count": max(0, estimated_character_count),
+            "estimated_entry_count": max(0, estimated_entry_count),
+            "complexity": complexity,
             "format_description": format_description,
         }
 

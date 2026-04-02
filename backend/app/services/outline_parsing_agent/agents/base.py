@@ -209,44 +209,108 @@ class BaseExtractionAgent:
         return text, tokens
 
     def _parse_json_from_text(self, text: str) -> dict[str, Any] | list[Any] | None:
-        """Extract JSON from LLM response text. Tries code fence first, then raw JSON."""
+        """Extract JSON from LLM response text.
 
-        # Try code fence extraction
+        Multi-level extraction strategy:
+        1. Code fence → json.loads
+        2. Raw JSON extraction → json.loads
+        3. Fix raw newlines inside JSON strings → retry
+        4. Fix trailing commas → retry
+        """
+
         import re
 
+        # --- Level 1: Code fence extraction ---
         fence_match = re.search(r"```(?:json)?\s*\n(.*?)```", text, re.DOTALL)
         if fence_match:
-            try:
-                return json.loads(fence_match.group(1).strip())
-            except json.JSONDecodeError:
-                pass
+            raw = fence_match.group(1).strip()
+            result = self._try_parse_json(raw)
+            if result is not None:
+                return result
 
-        # Try raw JSON extraction
+        # --- Level 2: Raw JSON extraction ---
         trimmed = text.strip()
-        for start_char, end_char in [("{", "}"), ("[", "]")]:
-            first = trimmed.find(start_char)
-            last = trimmed.rfind(end_char)
-            if first >= 0 and last > first:
-                try:
-                    return json.loads(trimmed[first : last + 1])
-                except json.JSONDecodeError:
-                    pass
+        result = self._extract_json_block(trimmed)
+        if result is not None:
+            return result
 
-        # Try fixing common JSON issues: trailing commas, single quotes
-        import re as _re
+        # --- Level 3: Fix raw newlines inside JSON string values ---
+        # LLM often puts literal newlines in strings instead of \n
+        fixed = self._fix_raw_newlines_in_json(trimmed)
+        if fixed != trimmed:
+            result = self._extract_json_block(fixed)
+            if result is not None:
+                return result
 
-        # Remove trailing commas before } or ]
-        cleaned = _re.sub(r",\s*([}\]])", r"\1", trimmed)
-        for start_char, end_char in [("{", "}"), ("[", "]")]:
-            first = cleaned.find(start_char)
-            last = cleaned.rfind(end_char)
-            if first >= 0 and last > first:
-                try:
-                    return json.loads(cleaned[first : last + 1])
-                except json.JSONDecodeError:
-                    pass
+        # --- Level 4: Fix trailing commas ---
+        cleaned = re.sub(r",\s*([}\]])", r"\1", fixed)
+        if cleaned != fixed:
+            result = self._extract_json_block(cleaned)
+            if result is not None:
+                return result
 
         return None
+
+    @staticmethod
+    def _try_parse_json(raw: str) -> dict[str, Any] | list[Any] | None:
+        """Attempt json.loads, return None on failure."""
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            return None
+
+    def _extract_json_block(self, text: str) -> dict[str, Any] | list[Any] | None:
+        """Find and parse the outermost JSON object or array in text."""
+        for start_char, end_char in [("{", "}"), ("[", "]")]:
+            first = text.find(start_char)
+            last = text.rfind(end_char)
+            if first >= 0 and last > first:
+                result = self._try_parse_json(text[first : last + 1])
+                if result is not None:
+                    return result
+        return None
+
+    @staticmethod
+    def _fix_raw_newlines_in_json(text: str) -> str:
+        """Replace literal newlines inside JSON string values with \\n.
+
+        This handles the most common LLM JSON error: putting actual newlines
+        inside string values instead of the escaped \\n sequence.
+        """
+        import re
+
+        # Strategy: find content between quotes and escape newlines within
+        result: list[str] = []
+        in_string = False
+        escape_next = False
+        i = 0
+        while i < len(text):
+            ch = text[i]
+            if escape_next:
+                result.append(ch)
+                escape_next = False
+                i += 1
+                continue
+            if ch == "\\":
+                escape_next = True
+                result.append(ch)
+                i += 1
+                continue
+            if ch == '"':
+                in_string = not in_string
+                result.append(ch)
+                i += 1
+                continue
+            if in_string and ch == "\n":
+                result.append("\\n")
+                i += 1
+                continue
+            if in_string and ch == "\r":
+                i += 1
+                continue
+            result.append(ch)
+            i += 1
+        return "".join(result)
 
     def parse_response(self, raw_json: Any) -> dict[str, Any]:
         """Parse the JSON response into agent-specific data. Override in subclass."""
