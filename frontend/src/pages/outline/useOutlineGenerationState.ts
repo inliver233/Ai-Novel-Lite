@@ -58,7 +58,6 @@ export function useOutlineGenerationState(args: {
   }, []);
 
   const closeModal = useCallback(() => {
-    streamClientRef.current?.abort();
     setOpen(false);
   }, []);
 

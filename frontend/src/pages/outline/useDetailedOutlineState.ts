@@ -17,6 +17,7 @@ import {
 import { SSEError, SSEPostClient } from "../../services/sseClient";
 
 import { OUTLINE_COPY } from "./outlineCopy";
+import { appendCappedRawText, STREAM_RAW_MAX_CHARS } from "./outlineModels";
 
 export type DetailedOutlineProgress = {
   current: number;
@@ -31,6 +32,8 @@ export type DetailedOutlineState = {
   progress: DetailedOutlineProgress | null;
   skeletonGenerating: boolean;
   skeletonProgress: DetailedOutlineProgress | null;
+  skeletonStreamRawText: string;
+  skeletonStreamResult: Record<string, unknown> | null;
   editing: boolean;
   editContent: string;
   editTitle: string;
@@ -57,6 +60,10 @@ export type DetailedOutlineState = {
   createChapters: (id: string) => Promise<void>;
 };
 
+function isRecordLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function useDetailedOutlineState(
   projectId: string | undefined,
   outlineId: string | undefined,
@@ -76,6 +83,8 @@ export function useDetailedOutlineState(
   const [saving, setSaving] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [skeletonModalOpen, setSkeletonModalOpen] = useState(false);
+  const [skeletonStreamRawText, setSkeletonStreamRawText] = useState("");
+  const [skeletonStreamResult, setSkeletonStreamResult] = useState<Record<string, unknown> | null>(null);
 
   const streamClientRef = useRef<SSEPostClient | null>(null);
   const skeletonStreamRef = useRef<SSEPostClient | null>(null);
@@ -134,7 +143,6 @@ export function useDetailedOutlineState(
   }, []);
 
   const closeGenerateModal = useCallback(() => {
-    streamClientRef.current?.abort();
     setGenerateModalOpen(false);
   }, []);
 
@@ -147,7 +155,6 @@ export function useDetailedOutlineState(
   }, []);
 
   const closeSkeletonModal = useCallback(() => {
-    skeletonStreamRef.current?.abort();
     setSkeletonModalOpen(false);
   }, []);
 
@@ -242,7 +249,6 @@ export function useDetailedOutlineState(
       } finally {
         streamClientRef.current = null;
         setGenerating(false);
-        setProgress(null);
       }
     },
     [projectId, outlineId, refresh, toast],
@@ -258,6 +264,8 @@ export function useDetailedOutlineState(
   const generateChapterSkeleton = useCallback(
     async (detailedOutlineId: string, request: ChapterSkeletonGenerateRequest) => {
       setSkeletonGenerating(true);
+      setSkeletonStreamRawText("");
+      setSkeletonStreamResult(null);
       setSkeletonProgress({ current: 0, total: 100, message: "..." });
       skeletonStreamRef.current = null;
 
@@ -271,8 +279,13 @@ export function useDetailedOutlineState(
               message: message || `${Math.round(pct)}%`,
             }));
           },
-          onChunk: () => {
-            // Token streaming — progress updates handled by onProgress
+          onChunk: (content: string) => {
+            setSkeletonStreamRawText((prev) => appendCappedRawText(prev, content, STREAM_RAW_MAX_CHARS));
+          },
+          onResult: (data: unknown) => {
+            if (isRecordLike(data)) {
+              setSkeletonStreamResult(data);
+            }
           },
           onDone: () => {
             setSkeletonProgress((prev) =>
@@ -306,7 +319,6 @@ export function useDetailedOutlineState(
       } finally {
         skeletonStreamRef.current = null;
         setSkeletonGenerating(false);
-        setSkeletonProgress(null);
       }
     },
     [refresh, toast],
@@ -408,6 +420,8 @@ export function useDetailedOutlineState(
     progress,
     skeletonGenerating,
     skeletonProgress,
+    skeletonStreamRawText,
+    skeletonStreamResult,
     editing,
     editContent,
     editTitle,

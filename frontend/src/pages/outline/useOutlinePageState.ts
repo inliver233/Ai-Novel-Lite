@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { WizardNextBar } from "../../components/atelier/WizardNextBar";
 import { useConfirm } from "../../components/ui/confirm";
+import type { GenerationFloatingCardProps } from "../../components/ui/GenerationFloatingCard";
 import { useToast } from "../../components/ui/toast";
 import { useProjectData } from "../../hooks/useProjectData";
 import { useAutoSave } from "../../hooks/useAutoSave";
@@ -53,6 +54,10 @@ export type OutlinePageState = {
   parsingModalProps: OutlineParsingModalProps;
   wizardBarProps: ComponentProps<typeof WizardNextBar>;
   detailedOutlineState: DetailedOutlineState;
+  outlineGenFloatingProps: GenerationFloatingCardProps;
+  parsingFloatingProps: GenerationFloatingCardProps;
+  detailedGenFloatingProps: GenerationFloatingCardProps;
+  skeletonGenFloatingProps: GenerationFloatingCardProps;
   switchToDetailedRequested: boolean;
   clearSwitchToDetailedRequest: () => void;
 };
@@ -413,6 +418,46 @@ export function useOutlinePageState(): OutlinePageState {
     await renameOutline(title);
   }, [closeTitleModal, confirm, createOutline, dirty, renameOutline, save, titleModal.mode, titleModal.title, toast]);
 
+  const outlineGenFloatingProps: GenerationFloatingCardProps = {
+    open: generation.generating && !generation.open,
+    title: "大纲生成中",
+    message: generation.streamProgress?.message,
+    progress: generation.streamProgress?.progress ?? 0,
+    onExpand: () => generation.setOpen(true),
+    onCancel: generation.cancelGenerate,
+  };
+
+  const parsingFloatingProps: GenerationFloatingCardProps = {
+    open: parsing.parsing && !parsing.open,
+    title: "智能解析中",
+    message: parsing.parseProgress?.message,
+    progress: parsing.parseProgress?.progress ?? 0,
+    onExpand: parsing.openParseModal,
+    onCancel: parsing.cancelParse,
+  };
+
+  const detailedGenFloatingProps: GenerationFloatingCardProps = {
+    open: detailedOutline.generating && !detailedOutline.generateModalOpen,
+    title: "细纲生成中",
+    message: detailedOutline.progress?.message,
+    progress: detailedOutline.progress
+      ? detailedOutline.progress.total > 0
+        ? (detailedOutline.progress.current / detailedOutline.progress.total) * 100
+        : 0
+      : 0,
+    onExpand: detailedOutline.openGenerateModal,
+    onCancel: detailedOutline.cancelGenerate,
+  };
+
+  const skeletonGenFloatingProps: GenerationFloatingCardProps = {
+    open: detailedOutline.skeletonGenerating && !detailedOutline.skeletonModalOpen,
+    title: "章节骨架生成中",
+    message: detailedOutline.skeletonProgress?.message,
+    progress: detailedOutline.skeletonProgress?.current ?? 0,
+    onExpand: detailedOutline.openSkeletonModal,
+    onCancel: detailedOutline.cancelSkeletonGenerate,
+  };
+
   return {
     loading: outlineQuery.loading,
     dirty,
@@ -549,6 +594,10 @@ export function useOutlinePageState(): OutlinePageState {
         })(),
     },
     detailedOutlineState: detailedOutline,
+    outlineGenFloatingProps,
+    parsingFloatingProps,
+    detailedGenFloatingProps,
+    skeletonGenFloatingProps,
     switchToDetailedRequested,
     clearSwitchToDetailedRequest,
     wizardBarProps: {

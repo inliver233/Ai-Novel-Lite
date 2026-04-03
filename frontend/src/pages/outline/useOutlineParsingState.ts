@@ -121,16 +121,7 @@ export function useOutlineParsingState(args: {
   }, []);
 
   const closeParseModal = useCallback(() => {
-    streamClientRef.current?.abort();
-    streamClientRef.current = null;
-    streamHasProgressRef.current = false;
     setOpen(false);
-    setParsing(false);
-    setParseForm(buildFreshParseForm());
-    setParseProgress(null);
-    setParseResult(null);
-    setAgentCards([]);
-    setActiveTab("outline");
   }, []);
 
   const handleContentChange = useCallback((value: string) => {

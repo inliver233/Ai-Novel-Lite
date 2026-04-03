@@ -326,6 +326,8 @@ export function DetailedOutlineSection(props: DetailedOutlineSectionProps) {
         generating={props.skeletonGenerating}
         progress={props.skeletonProgress}
         detailedOutlineId={props.selected?.id}
+        streamRawText={props.skeletonStreamRawText}
+        streamResult={props.skeletonStreamResult}
         onClose={props.closeSkeletonModal}
         onGenerate={props.generateChapterSkeleton}
         onCancelGenerate={props.cancelSkeletonGenerate}
@@ -482,6 +484,8 @@ export type ChapterSkeletonGenerationModalProps = {
   generating: boolean;
   progress: DetailedOutlineState["skeletonProgress"];
   detailedOutlineId: string | undefined;
+  streamRawText: string;
+  streamResult: Record<string, unknown> | null;
   onClose: () => void;
   onGenerate: (detailedOutlineId: string, request: ChapterSkeletonGenerateRequest) => void;
   onCancelGenerate: () => void;
@@ -601,6 +605,32 @@ export function ChapterSkeletonGenerationModal(props: ChapterSkeletonGenerationM
             <span className="shrink-0">{props.progress.current}%</span>
           </div>
           <ProgressBar ariaLabel={copy.skeletonProgressLabel} value={props.progress.current} />
+        </div>
+      ) : null}
+
+      {(props.generating || props.streamRawText || props.streamResult) ? (
+        <div className="mt-4 grid gap-3">
+          {props.streamRawText ? (
+            <details open={props.generating} className="panel p-3">
+              <summary className="cursor-pointer text-xs text-subtext ui-transition-fast hover:text-ink">
+                {OUTLINE_COPY.detailedOutline.skeletonStreamRawTitle ?? "流式输出"}
+              </summary>
+              <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-words text-xs text-ink">
+                {props.streamRawText}
+              </pre>
+            </details>
+          ) : null}
+
+          {props.streamResult ? (
+            <details open className="panel p-3">
+              <summary className="cursor-pointer text-xs text-subtext ui-transition-fast hover:text-ink">
+                {OUTLINE_COPY.detailedOutline.skeletonJsonPreviewTitle ?? "章节结构预览"}
+              </summary>
+              <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-words text-xs text-ink">
+                {JSON.stringify(props.streamResult, null, 2)}
+              </pre>
+            </details>
+          ) : null}
         </div>
       ) : null}
 

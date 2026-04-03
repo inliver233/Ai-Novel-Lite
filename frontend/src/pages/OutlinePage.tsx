@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 
 import { WizardNextBar } from "../components/atelier/WizardNextBar";
+import { GenerationFloatingCard } from "../components/ui/GenerationFloatingCard";
 import { UnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 
 import {
@@ -119,6 +120,10 @@ export function OutlinePage() {
         onCancelGenerate={detailedState.cancelGenerate}
       />
       <WizardNextBar {...wizardBarProps} />
+      <GenerationFloatingCard {...state.outlineGenFloatingProps} />
+      <GenerationFloatingCard {...state.parsingFloatingProps} />
+      <GenerationFloatingCard {...state.detailedGenFloatingProps} />
+      <GenerationFloatingCard {...state.skeletonGenFloatingProps} />
     </div>
   );
 }

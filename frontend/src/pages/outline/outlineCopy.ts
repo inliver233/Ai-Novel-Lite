@@ -169,6 +169,8 @@ export const OUTLINE_COPY = {
     generateSkeletonFailed: "章节骨架生成失败",
     generateSkeletonCanceled: "已取消章节骨架生成",
     skeletonProgressLabel: "章节骨架生成进度",
+    skeletonStreamRawTitle: "流式输出",
+    skeletonJsonPreviewTitle: "章节结构预览",
     skeletonReplaceLabel: "替换现有章节",
     skeletonReplaceHint: "生成后将替换该大纲下所有现有章节",
   },
