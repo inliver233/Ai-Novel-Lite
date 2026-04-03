@@ -396,3 +396,4 @@ export function OutlineGenerationModal(props: OutlineGenerationModalProps) {
 }
 
 export { OutlineParsingModal, type OutlineParsingModalProps } from "./OutlineParsingSection";
+export { ChapterSkeletonGenerationModal } from "./DetailedOutlineSection";

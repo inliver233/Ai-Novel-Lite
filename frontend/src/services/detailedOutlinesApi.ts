@@ -35,10 +35,7 @@ export type DetailedOutlineGenerateRequest = {
   };
 };
 
-export async function listDetailedOutlines(
-  projectId: string,
-  outlineId: string,
-): Promise<DetailedOutlineListItem[]> {
+export async function listDetailedOutlines(projectId: string, outlineId: string): Promise<DetailedOutlineListItem[]> {
   const res = await apiJson<{ detailed_outlines: DetailedOutlineListItem[] }>(
     `/api/projects/${projectId}/outlines/${outlineId}/detailed_outlines`,
   );
@@ -97,3 +94,14 @@ export async function createChaptersFromDetailedOutline(
   );
   return res.data;
 }
+
+export type ChapterSkeletonGenerateRequest = {
+  chapters_count?: number | null;
+  instruction?: string | null;
+  context?: {
+    include_world_setting?: boolean;
+    include_characters?: boolean;
+    include_style_guide?: boolean;
+  };
+  replace_chapters?: boolean;
+};

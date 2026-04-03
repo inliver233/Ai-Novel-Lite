@@ -4,6 +4,7 @@ import { useConfirm } from "../../components/ui/confirm";
 import { useToast } from "../../components/ui/toast";
 import { ApiError } from "../../services/apiClient";
 import {
+  type ChapterSkeletonGenerateRequest,
   listDetailedOutlines,
   getDetailedOutline,
   updateDetailedOutline,
@@ -28,11 +29,14 @@ export type DetailedOutlineState = {
   selected: DetailedOutline | null;
   generating: boolean;
   progress: DetailedOutlineProgress | null;
+  skeletonGenerating: boolean;
+  skeletonProgress: DetailedOutlineProgress | null;
   editing: boolean;
   editContent: string;
   editTitle: string;
   saving: boolean;
   generateModalOpen: boolean;
+  skeletonModalOpen: boolean;
   refresh: () => Promise<void>;
   selectVolume: (id: string) => Promise<void>;
   deselectVolume: () => void;
@@ -40,6 +44,10 @@ export type DetailedOutlineState = {
   closeGenerateModal: () => void;
   generate: (request: DetailedOutlineGenerateRequest, targetOutlineId?: string) => Promise<boolean>;
   cancelGenerate: () => void;
+  openSkeletonModal: () => void;
+  closeSkeletonModal: () => void;
+  cancelSkeletonGenerate: () => void;
+  generateChapterSkeleton: (detailedOutlineId: string, request: ChapterSkeletonGenerateRequest) => Promise<void>;
   startEdit: () => void;
   cancelEdit: () => void;
   setEditContent: (value: string) => void;
@@ -60,17 +68,22 @@ export function useDetailedOutlineState(
   const [selected, setSelected] = useState<DetailedOutline | null>(null);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState<DetailedOutlineProgress | null>(null);
+  const [skeletonGenerating, setSkeletonGenerating] = useState(false);
+  const [skeletonProgress, setSkeletonProgress] = useState<DetailedOutlineProgress | null>(null);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [skeletonModalOpen, setSkeletonModalOpen] = useState(false);
 
   const streamClientRef = useRef<SSEPostClient | null>(null);
+  const skeletonStreamRef = useRef<SSEPostClient | null>(null);
 
   useEffect(() => {
     return () => {
       streamClientRef.current?.abort();
+      skeletonStreamRef.current?.abort();
     };
   }, []);
 
@@ -129,6 +142,19 @@ export function useDetailedOutlineState(
     streamClientRef.current?.abort();
   }, []);
 
+  const openSkeletonModal = useCallback(() => {
+    setSkeletonModalOpen(true);
+  }, []);
+
+  const closeSkeletonModal = useCallback(() => {
+    skeletonStreamRef.current?.abort();
+    setSkeletonModalOpen(false);
+  }, []);
+
+  const cancelSkeletonGenerate = useCallback(() => {
+    skeletonStreamRef.current?.abort();
+  }, []);
+
   const generate = useCallback(
     async (request: DetailedOutlineGenerateRequest, targetOutlineId?: string) => {
       const effectiveOutlineId = targetOutlineId || outlineId;
@@ -150,9 +176,7 @@ export function useDetailedOutlineState(
           onCustomEvent: (eventName, data) => {
             const obj = data as Record<string, unknown> | null;
             if (eventName === "start") {
-              const total = typeof obj?.total_volumes === "number"
-                ? obj.total_volumes
-                : 0;
+              const total = typeof obj?.total_volumes === "number" ? obj.total_volumes : 0;
               setProgress((prev) => ({
                 current: prev?.current ?? 0,
                 total,
@@ -161,9 +185,12 @@ export function useDetailedOutlineState(
             } else if (eventName === "volume_start") {
               const volNum = typeof obj?.volume_number === "number" ? obj.volume_number : 0;
               const volTitle = typeof obj?.volume_title === "string" ? obj.volume_title : "";
-              const total = typeof obj?.total_volumes === "number"
-                ? obj.total_volumes
-                : (typeof obj?.total === "number" ? obj.total : 0);
+              const total =
+                typeof obj?.total_volumes === "number"
+                  ? obj.total_volumes
+                  : typeof obj?.total === "number"
+                    ? obj.total
+                    : 0;
               setProgress({
                 current: volNum,
                 total,
@@ -171,9 +198,12 @@ export function useDetailedOutlineState(
               });
             } else if (eventName === "volume_complete") {
               const volNum = typeof obj?.volume_number === "number" ? obj.volume_number : 0;
-              const total = typeof obj?.total_volumes === "number"
-                ? obj.total_volumes
-                : (typeof obj?.total === "number" ? obj.total : 0);
+              const total =
+                typeof obj?.total_volumes === "number"
+                  ? obj.total_volumes
+                  : typeof obj?.total === "number"
+                    ? obj.total
+                    : 0;
               setProgress((prev) => ({
                 current: volNum,
                 total,
@@ -224,6 +254,63 @@ export function useDetailedOutlineState(
     setEditTitle(selected.volume_title);
     setEditing(true);
   }, [selected]);
+
+  const generateChapterSkeleton = useCallback(
+    async (detailedOutlineId: string, request: ChapterSkeletonGenerateRequest) => {
+      setSkeletonGenerating(true);
+      setSkeletonProgress({ current: 0, total: 100, message: "..." });
+      skeletonStreamRef.current = null;
+
+      try {
+        const url = `/api/detailed_outlines/${detailedOutlineId}/generate_chapters_stream`;
+        const client = new SSEPostClient(url, request, {
+          onProgress: ({ message, progress: pct }) => {
+            setSkeletonProgress(() => ({
+              current: Math.round(pct),
+              total: 100,
+              message: message || `${Math.round(pct)}%`,
+            }));
+          },
+          onChunk: () => {
+            // Token streaming — progress updates handled by onProgress
+          },
+          onDone: () => {
+            setSkeletonProgress((prev) =>
+              prev ? { ...prev, message: OUTLINE_COPY.detailedOutline.generateSkeletonDone } : prev,
+            );
+          },
+        });
+        skeletonStreamRef.current = client;
+
+        await client.connect();
+        await refresh();
+        // 刷新当前选中的细纲详情
+        try {
+          const updated = await getDetailedOutline(detailedOutlineId);
+          setSelected(updated);
+        } catch {
+          // ignore — list already refreshed
+        }
+        toast.toastSuccess(OUTLINE_COPY.detailedOutline.generateSkeletonDone);
+      } catch (error) {
+        if (error instanceof SSEError && error.code === "ABORTED") {
+          toast.toastSuccess(OUTLINE_COPY.detailedOutline.generateSkeletonCanceled);
+          await refresh();
+          return;
+        }
+        if (error instanceof SSEError || error instanceof ApiError) {
+          toast.toastError(`${error.message} (${(error as SSEError).code ?? (error as ApiError).code})`);
+        } else {
+          toast.toastError(OUTLINE_COPY.detailedOutline.generateSkeletonFailed);
+        }
+      } finally {
+        skeletonStreamRef.current = null;
+        setSkeletonGenerating(false);
+        setSkeletonProgress(null);
+      }
+    },
+    [refresh, toast],
+  );
 
   const cancelEdit = useCallback(() => {
     setEditing(false);
@@ -282,7 +369,9 @@ export function useDetailedOutlineState(
       if (!ok) return;
       try {
         const result = await createChaptersFromDetailedOutline(id);
-        toast.toastSuccess(`${OUTLINE_COPY.detailedOutline.createdChaptersPrefix}${result.count}${OUTLINE_COPY.detailedOutline.chapterCountSuffix}`);
+        toast.toastSuccess(
+          `${OUTLINE_COPY.detailedOutline.createdChaptersPrefix}${result.count}${OUTLINE_COPY.detailedOutline.chapterCountSuffix}`,
+        );
         await refresh();
       } catch (error) {
         const err = error as ApiError;
@@ -296,7 +385,9 @@ export function useDetailedOutlineState(
           if (!replaceOk) return;
           try {
             const retryResult = await createChaptersFromDetailedOutline(id, true);
-            toast.toastSuccess(`${OUTLINE_COPY.detailedOutline.replacedChaptersPrefix}${retryResult.count}${OUTLINE_COPY.detailedOutline.chapterCountSuffix}`);
+            toast.toastSuccess(
+              `${OUTLINE_COPY.detailedOutline.replacedChaptersPrefix}${retryResult.count}${OUTLINE_COPY.detailedOutline.chapterCountSuffix}`,
+            );
             await refresh();
           } catch (retryError) {
             const retryErr = retryError as ApiError;
@@ -315,11 +406,14 @@ export function useDetailedOutlineState(
     selected,
     generating,
     progress,
+    skeletonGenerating,
+    skeletonProgress,
     editing,
     editContent,
     editTitle,
     saving,
     generateModalOpen,
+    skeletonModalOpen,
     refresh,
     selectVolume,
     deselectVolume,
@@ -327,6 +421,10 @@ export function useDetailedOutlineState(
     closeGenerateModal,
     generate,
     cancelGenerate,
+    openSkeletonModal,
+    closeSkeletonModal,
+    cancelSkeletonGenerate,
+    generateChapterSkeleton,
     startEdit,
     cancelEdit,
     setEditContent,
