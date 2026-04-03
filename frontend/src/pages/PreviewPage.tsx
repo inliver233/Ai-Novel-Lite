@@ -10,6 +10,7 @@ import { PaperContent } from "../components/layout/AppShell";
 import { ChapterVirtualList } from "../components/writing/ChapterVirtualList";
 import { Drawer } from "../components/ui/Drawer";
 import { useChapterDetail } from "../hooks/useChapterDetail";
+import { useIsMobile } from "../hooks/useIsMobile";
 import { useChapterMetaList } from "../hooks/useChapterMetaList";
 import { useWizardProgress } from "../hooks/useWizardProgress";
 import { chapterStore } from "../services/chapterStore";
@@ -27,6 +28,7 @@ function humanizeChapterStatusZh(status: string): string {
 export function PreviewPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { bumpLocal, loading: wizardLoading, progress: wizardProgress } = useWizardProgress(projectId);
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -82,7 +84,6 @@ export function PreviewPage() {
     if (!projectId) return;
     navigate(`/projects/${projectId}/writing?chapterId=${encodeURIComponent(chapterId)}`);
   };
-
 
   const openChapter = useCallback((chapterId: string) => {
     setActiveId(chapterId);
@@ -169,12 +170,12 @@ export function PreviewPage() {
   if (!chapterListQuery.hasLoaded && chapterListQuery.loading) return <div className="text-subtext">加载中...</div>;
 
   return (
-    <PaperContent className="grid gap-4 pb-24">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <PaperContent className="grid gap-3 pb-[120px] sm:gap-4 sm:pb-24">
+      {/* PC 端工具栏 */}
+      <div className="hidden items-center justify-between gap-3 sm:flex">
+        <div className="flex items-center gap-2">
           <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => navigate("/")} type="button">
-            <ChevronLeft size={16} />
-            返回首页
+            <ChevronLeft size={16} /> 返回首页
           </button>
           <button
             className="btn btn-secondary"
@@ -182,22 +183,21 @@ export function PreviewPage() {
             onClick={() => (projectId ? navigate(`/projects/${projectId}/writing`) : undefined)}
             type="button"
           >
-            <ChevronLeft size={16} />
-            返回写作
+            <ChevronLeft size={16} /> 返回写作
           </button>
           <button className="btn btn-secondary lg:hidden" onClick={() => setMobileListOpen(true)} type="button">
-            <List size={16} />
-            章节列表
+            <List size={16} /> 章节列表
           </button>
-          <button
-            className="btn btn-secondary hidden lg:inline-flex"
-            onClick={() => setCollapsed((v) => !v)}
-            type="button"
-          >
-            <List size={16} />
-            {collapsed ? "显示章节列表" : "隐藏章节列表"}
+          <button className="btn btn-secondary hidden lg:inline-flex" onClick={() => setCollapsed((v) => !v)} type="button">
+            <List size={16} /> {collapsed ? "显示列表" : "隐藏列表"}
           </button>
+        </div>
 
+        <div className="min-w-0 truncate text-sm text-subtext">
+          {activeChapterSummary ? `第 ${activeChapterSummary.number} 章` : "请选择章节"}
+        </div>
+
+        <div className="flex items-center gap-2">
           <button
             className="btn btn-secondary"
             disabled={!prevChapter}
@@ -214,57 +214,101 @@ export function PreviewPage() {
           >
             下一章
           </button>
+          {activeChapterSummary ? (
+            <button className="btn btn-secondary" onClick={() => openEditor(activeChapterSummary.id)} type="button">
+              <Edit3 size={16} /> 编辑
+            </button>
+          ) : null}
           <span className="text-[11px] text-subtext">快捷键：← / →</span>
         </div>
+      </div>
 
+      {/* 手机端工具栏 */}
+      <div className="flex items-center justify-between gap-2 sm:hidden">
+        <button
+          className="btn btn-secondary"
+          disabled={!projectId}
+          onClick={() => (projectId ? navigate(`/projects/${projectId}/writing`) : undefined)}
+          type="button"
+        >
+          <ChevronLeft size={16} /> 返回
+        </button>
         <div className="min-w-0 truncate text-xs text-subtext">
-          {activeChapterSummary ? `正在预览：第 ${activeChapterSummary.number} 章` : "请选择章节"}
+          {activeChapterSummary ? `第 ${activeChapterSummary.number} 章` : ""}
         </div>
-
-        {activeChapterSummary ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <button className="btn btn-secondary" onClick={() => openEditor(activeChapterSummary.id)} type="button">
-              <Edit3 size={16} />
-              编辑
-            </button>
-          </div>
-        ) : null}
+        <button className="btn btn-secondary" onClick={() => setMobileListOpen(true)} type="button">
+          <List size={16} /> 目录
+        </button>
       </div>
 
       <div className="flex gap-4">
         {!collapsed ? (
-          <aside className="hidden w-[280px] shrink-0 lg:block">
-            <div className="panel h-[calc(100vh-260px)] min-h-[520px] overflow-hidden">{list}</div>
+          <aside className="hidden w-[260px] shrink-0 lg:block">
+            <div className="panel h-[calc(100vh-220px)] min-h-[520px] overflow-hidden">{list}</div>
           </aside>
         ) : null}
 
         <section className="min-w-0 flex-1">
-          <div className="panel p-8">
+          <div
+            className={clsx(
+              "panel",
+              isMobile && "border-0 bg-canvas shadow-none",
+            )}
+          >
             {activeChapterSummary ? (
               <>
-                <div className="mb-4">
-                  <div className="font-content text-2xl text-ink">
-                    第 {activeChapterSummary.number} 章
-                    {activeChapterSummary.title?.trim() ? ` · ${activeChapterSummary.title}` : ""}
-                  </div>
+                <div className="border-b border-border px-6 py-8 text-center sm:px-12 sm:py-10">
+                  <div className="font-content text-2xl text-ink sm:text-3xl">第{activeChapterSummary.number}章</div>
+                  {activeChapterSummary.title?.trim() ? (
+                    <div className="mt-2 font-content text-lg text-subtext sm:text-xl">
+                      {activeChapterSummary.title}
+                    </div>
+                  ) : null}
                   {activeChapterSummary.status !== "done" ? (
-                    <div className="mt-1 text-xs text-subtext">
-                      提示：本章状态为 {humanizeChapterStatusZh(activeChapterSummary.status)}，向导会以{" "}
-                      {humanizeChapterStatusZh("done")} 作为“写完”判定。
+                    <div className="mt-2 text-xs text-subtext">
+                      本章状态：{humanizeChapterStatusZh(activeChapterSummary.status)}
                     </div>
                   ) : null}
                 </div>
-                <div className="atelier-content mx-auto max-w-4xl text-ink">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {loadingChapter ? "_(loading...)_" : activeChapter?.content_md || "_（空）_"}
-                  </ReactMarkdown>
+
+                <div className="mx-auto max-w-[720px] px-5 py-8 sm:px-12 sm:py-10">
+                  <div className="atelier-reader">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {loadingChapter ? "_(loading...)_" : activeChapter?.content_md || "_（空）_"}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </>
             ) : (
-              <div className="text-subtext">暂无可预览内容</div>
+              <div className="p-8 text-center text-subtext">暂无可预览内容</div>
             )}
           </div>
         </section>
+      </div>
+
+      {/* 手机端固定底部导航栏 */}
+      <div className="fixed inset-x-0 bottom-24 z-20 flex items-center justify-between gap-2 border-t border-border bg-surface/80 px-4 py-3 shadow-sm backdrop-blur-sm sm:hidden mobile-safe-bottom">
+        <button
+          className="btn btn-secondary flex-1"
+          disabled={!prevChapter}
+          onClick={() => (prevChapter ? openChapter(prevChapter.id) : undefined)}
+          type="button"
+        >
+          上一章
+        </button>
+        {activeChapterSummary ? (
+          <button className="btn btn-ghost px-2" onClick={() => openEditor(activeChapterSummary.id)} type="button">
+            <Edit3 size={16} />
+          </button>
+        ) : null}
+        <button
+          className="btn btn-secondary flex-1"
+          disabled={!nextChapter}
+          onClick={() => (nextChapter ? openChapter(nextChapter.id) : undefined)}
+          type="button"
+        >
+          下一章
+        </button>
       </div>
 
       <Drawer
