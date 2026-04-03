@@ -14,6 +14,7 @@ import {
   type DetailedOutline,
   type DetailedOutlineGenerateRequest,
 } from "../../services/detailedOutlinesApi";
+import { chapterStore } from "../../services/chapterStore";
 import { SSEError, SSEPostClient } from "../../services/sseClient";
 
 import { OUTLINE_COPY } from "./outlineCopy";
@@ -385,6 +386,7 @@ export function useDetailedOutlineState(
           `${OUTLINE_COPY.detailedOutline.createdChaptersPrefix}${result.count}${OUTLINE_COPY.detailedOutline.chapterCountSuffix}`,
         );
         await refresh();
+        if (projectId) chapterStore.invalidateProjectChapters(projectId);
       } catch (error) {
         const err = error as ApiError;
         if (err.code === "CONFLICT" && err.status === 409) {
@@ -401,6 +403,7 @@ export function useDetailedOutlineState(
               `${OUTLINE_COPY.detailedOutline.replacedChaptersPrefix}${retryResult.count}${OUTLINE_COPY.detailedOutline.chapterCountSuffix}`,
             );
             await refresh();
+            if (projectId) chapterStore.invalidateProjectChapters(projectId);
           } catch (retryError) {
             const retryErr = retryError as ApiError;
             toast.toastError(`${retryErr.message} (${retryErr.code})`, retryErr.requestId);
@@ -410,7 +413,7 @@ export function useDetailedOutlineState(
         toast.toastError(`${err.message} (${err.code})`, err.requestId);
       }
     },
-    [confirm, refresh, toast],
+    [confirm, projectId, refresh, toast],
   );
 
   return {
