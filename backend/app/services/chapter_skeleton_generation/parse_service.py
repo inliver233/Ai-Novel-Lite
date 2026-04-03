@@ -1,8 +1,44 @@
 from __future__ import annotations
 
+import json
+import re
 from typing import Any
 
 from app.services.output_parsers import extract_json_value, likely_truncated_json
+
+
+def _find_chapters_in_nested(value: dict[str, Any]) -> list[Any] | None:
+    """Search for a 'chapters' array in nested dict structures."""
+    chapters = value.get("chapters")
+    if isinstance(chapters, list) and chapters:
+        return chapters
+    # Search one level deeper (e.g. {"result": {"chapters": [...]}})
+    for v in value.values():
+        if isinstance(v, dict):
+            chapters = v.get("chapters")
+            if isinstance(chapters, list) and chapters:
+                return chapters
+    return None
+
+
+def _recover_partial_skeleton_chapters(text: str) -> list[dict[str, Any]]:
+    """Recover individual chapter objects from truncated/malformed JSON."""
+    decoder = json.JSONDecoder()
+    chapters: dict[int, dict[str, Any]] = {}
+    for m in re.finditer(r'\{\s*"number"\s*:', text):
+        try:
+            obj, _ = decoder.raw_decode(text, m.start())
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if not isinstance(obj, dict):
+            continue
+        try:
+            number = int(obj.get("number"))
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            chapters[number] = obj
+    return [chapters[n] for n in sorted(chapters)]
 
 
 def parse_chapter_skeleton_output(
@@ -20,17 +56,34 @@ def parse_chapter_skeleton_output(
 
     value, _raw_json = extract_json_value(raw_text)
     if not isinstance(value, dict):
+        # Full JSON parse failed — try partial recovery
         if likely_truncated_json(raw_text):
             warnings.append("output_possibly_truncated")
+        recovered = _recover_partial_skeleton_chapters(raw_text)
+        if recovered:
+            warnings.append("partial_json_recovery")
+            chapters = _normalize_skeleton_chapters(recovered)
+            if chapters:
+                content_md = _build_content_md_from_chapters(chapters)
+                return content_md, chapters, warnings, None
         return raw_text, [], warnings, {
             "code": "CHAPTER_SKELETON_PARSE_ERROR",
             "message": "Failed to extract JSON structure from LLM output",
         }
 
-    chapters_raw = value.get("chapters")
-    if not isinstance(chapters_raw, list) or not chapters_raw:
+    # Try to find chapters in top-level or nested structure
+    chapters_raw = _find_chapters_in_nested(value)
+    if not chapters_raw:
+        # JSON found but no chapters key — try partial recovery from raw text
         if likely_truncated_json(raw_text):
             warnings.append("output_possibly_truncated")
+        recovered = _recover_partial_skeleton_chapters(raw_text)
+        if recovered:
+            warnings.append("partial_json_recovery")
+            chapters = _normalize_skeleton_chapters(recovered)
+            if chapters:
+                content_md = _build_content_md_from_chapters(chapters)
+                return content_md, chapters, warnings, None
         return str(value.get("content_md") or value.get("outline_md") or raw_text), [], warnings, {
             "code": "CHAPTER_SKELETON_PARSE_ERROR",
             "message": "JSON found but missing 'chapters' array",
