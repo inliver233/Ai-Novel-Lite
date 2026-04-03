@@ -21,6 +21,7 @@ from app.models.detailed_outline import DetailedOutline
 from app.models.outline import Outline
 from app.models.project import Project
 from app.schemas.detailed_outline import (
+    ChapterSkeletonGenerateRequest,
     DetailedOutlineBatchCreateRequest,
     DetailedOutlineCreate,
     DetailedOutlineGenerateRequest,
@@ -35,6 +36,7 @@ from app.services.detailed_outline_generation.app_service import (
     generate_all_detailed_outlines,
     generate_detailed_outline_for_volume,
 )
+from app.services.chapter_skeleton_generation.stream_service import generate_chapter_skeleton_stream_events
 from app.services.llm_task_preset_resolver import resolve_task_llm_config
 from app.utils.sse_response import create_sse_response, format_sse, sse_done, sse_error
 
@@ -596,3 +598,139 @@ def create_chapters(
         request_id=request_id,
         data={"chapters": chapters, "count": len(chapters)},
     )
+
+
+# ---------------------------------------------------------------------------
+# Chapter skeleton streaming generation (SSE)
+# ---------------------------------------------------------------------------
+
+def _generate_chapter_skeleton_sse_events(
+    detailed_outline: DetailedOutline,
+    outline: Outline,
+    project: Project,
+    user_id: str,
+    request_id: str,
+    db: DbDep,
+    *,
+    llm_call,
+    api_key: str,
+    neighbor_summaries: dict | None = None,
+    chapters_count: int | None = None,
+    instruction: str | None = None,
+    context_flags: dict | None = None,
+    replace_chapters: bool = True,
+) -> Iterator[str]:
+    """Wrap generate_chapter_skeleton_stream_events into SSE strings."""
+    try:
+        yield from generate_chapter_skeleton_stream_events(
+            request_id=request_id,
+            detailed_outline=detailed_outline,
+            outline=outline,
+            project=project,
+            llm_call=llm_call,
+            api_key=api_key,
+            user_id=user_id,
+            db=db,
+            neighbor_summaries=neighbor_summaries,
+            chapters_count=chapters_count,
+            instruction=instruction,
+            context_flags=context_flags,
+            replace_chapters=replace_chapters,
+        )
+    except Exception as exc:
+        logger.exception("chapter_skeleton_generate_sse_error")
+        yield sse_error(error=str(exc) or "章节骨架生成失败")
+        yield sse_done()
+
+
+@router.post("/detailed_outlines/{detailed_outline_id}/generate_chapters_stream")
+def generate_chapters_stream(
+    request: Request,
+    db: DbDep,
+    user_id: UserIdDep,
+    detailed_outline_id: str,
+    body: ChapterSkeletonGenerateRequest,
+    x_llm_api_key: str | None = Header(default=None, alias="X-LLM-API-Key", max_length=4096),
+):
+    """Generate chapter skeleton for a detailed outline volume via SSE streaming."""
+    request_id = request.state.request_id
+    detail = _require_detailed_outline_editor(db, detailed_outline_id=detailed_outline_id, user_id=user_id)
+
+    outline = db.get(Outline, detail.outline_id)
+    project = db.get(Project, detail.project_id)
+    if outline is None or project is None:
+        raise AppError.not_found("Outline or Project not found")
+
+    # Resolve LLM config
+    resolved = None
+    for task_key in ("chapter_skeleton_generate", "detailed_outline_generate", "outline_generate"):
+        try:
+            resolved = resolve_task_llm_config(
+                db,
+                project=project,
+                user_id=user_id,
+                task_key=task_key,
+                header_api_key=x_llm_api_key,
+            )
+        except AppError:
+            resolved = None
+        if resolved is not None:
+            break
+    if resolved is None:
+        raise AppError(
+            code="LLM_CONFIG_NOT_FOUND",
+            message="LLM 配置未找到，请先在 Prompts 页保存 LLM 配置",
+            status_code=400,
+        )
+
+    # Collect neighbor volume summaries for context
+    neighbor_summaries = _collect_neighbor_summaries(db, detail)
+
+    context_flags: dict | None = None
+    if body.context is not None:
+        context_flags = body.context.model_dump()
+
+    return create_sse_response(
+        _generate_chapter_skeleton_sse_events(
+            detailed_outline=detail,
+            outline=outline,
+            project=project,
+            user_id=user_id,
+            request_id=request_id,
+            db=db,
+            llm_call=resolved.llm_call,
+            api_key=str(resolved.api_key),
+            neighbor_summaries=neighbor_summaries,
+            chapters_count=body.chapters_count,
+            instruction=body.instruction,
+            context_flags=context_flags,
+            replace_chapters=body.replace_chapters,
+        )
+    )
+
+
+def _collect_neighbor_summaries(db: DbDep, detail: DetailedOutline) -> dict[str, str]:
+    """Collect summaries from neighboring volumes for context continuity."""
+    result: dict[str, str] = {}
+
+    # Previous volume
+    prev = db.execute(
+        select(DetailedOutline).where(
+            DetailedOutline.outline_id == detail.outline_id,
+            DetailedOutline.volume_number == detail.volume_number - 1,
+        )
+    ).scalar_one_or_none()
+    if prev is not None:
+        result["previous"] = (prev.content_md or "")[:500]
+
+    # Next volume
+    nxt = db.execute(
+        select(DetailedOutline).where(
+            DetailedOutline.outline_id == detail.outline_id,
+            DetailedOutline.volume_number == detail.volume_number + 1,
+        )
+    ).scalar_one_or_none()
+    if nxt is not None:
+        result["next"] = (nxt.content_md or "")[:500]
+
+    return result

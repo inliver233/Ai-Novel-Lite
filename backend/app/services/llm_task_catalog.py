@@ -49,6 +49,12 @@ LLM_TASK_CATALOG: tuple[LLMTaskCatalogItem, ...] = (
         description="从大纲生成卷级细纲（详细章节规划）",
     ),
     LLMTaskCatalogItem(
+        key="chapter_skeleton_generate",
+        label="章节骨架生成",
+        group="planning",
+        description="基于大纲和细纲流式生成卷级章节骨架",
+    ),
+    LLMTaskCatalogItem(
         key="characters_auto_update",
         label="角色卡自动更新",
         group="memory",

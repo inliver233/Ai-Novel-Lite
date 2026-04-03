@@ -82,3 +82,12 @@ class DetailedOutlineBatchCreateRequest(BaseModel):
     """Batch-create detailed outlines from parsed data (no LLM call)."""
 
     detailed_outlines: list[DetailedOutlineBatchItem] = Field(min_length=1, max_length=50)
+
+
+class ChapterSkeletonGenerateRequest(BaseModel):
+    """Request to generate chapter skeleton for a detailed outline volume."""
+
+    chapters_count: int | None = Field(default=None, ge=3, le=50)
+    instruction: str | None = Field(default=None, max_length=4000)
+    context: DetailedOutlineGenerateContext | None = None
+    replace_chapters: bool = Field(default=True)
