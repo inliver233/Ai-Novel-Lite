@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Any, Iterator
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -637,6 +637,20 @@ def create_chapters_from_detailed_outline(
         for ch in existing:
             db.delete(ch)
         db.flush()
+
+    if not replace:
+        conflict_count = db.execute(
+            select(func.count())
+            .select_from(Chapter)
+            .where(Chapter.outline_id == detail.outline_id)
+            .where(Chapter.project_id == detail.project_id)
+        ).scalar() or 0
+        if conflict_count > 0:
+            raise AppError(
+                code="CONFLICT",
+                message=f"该大纲已有 {conflict_count} 个章节，请选择替换",
+                status_code=409,
+            )
 
     created: list[dict] = []
     for ch_raw in chapters_raw:
