@@ -10,13 +10,14 @@ import { useProjects } from "../contexts/projects";
 import { duration, transition } from "../lib/motion";
 import { UI_COPY } from "../lib/uiCopy";
 import { ApiError, apiJson } from "../services/apiClient";
-import { computeWizardProgressFromSummary } from "../services/wizard";
+import { computeWizardProgressFromSummary, setWizardStepSkipped } from "../services/wizard";
 import type { Project, ProjectSummaryItem } from "../types";
 
 type CreateProjectForm = {
   name: string;
   genre: string;
   logline: string;
+  mode: "generate" | "parse";
 };
 
 export function DashboardPage() {
@@ -28,7 +29,7 @@ export function DashboardPage() {
 
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState<CreateProjectForm>({ name: "", genre: "", logline: "" });
+  const [form, setForm] = useState<CreateProjectForm>({ name: "", genre: "", logline: "", mode: "generate" });
 
   const sorted = useMemo(() => [...projects].sort((a, b) => b.created_at.localeCompare(a.created_at)), [projects]);
   const recommendedProject = sorted[0] ?? null;
@@ -448,6 +449,42 @@ export function DashboardPage() {
               onChange={(e) => setForm((v) => ({ ...v, logline: e.target.value }))}
             />
           </label>
+          <fieldset className="grid gap-2">
+            <legend className="text-xs text-subtext">创建模式</legend>
+            <label className="surface flex cursor-pointer items-start gap-3 rounded-atelier p-3">
+              <input
+                className="radio mt-0.5"
+                type="radio"
+                name="creation_mode"
+                value="generate"
+                checked={form.mode === "generate"}
+                disabled={creating}
+                onChange={() => setForm((v) => ({ ...v, mode: "generate" }))}
+              />
+              <div className="grid gap-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-ink">逐步生成</span>
+                  <span className="rounded-atelier bg-accent/15 px-2 py-0.5 text-[11px] text-accent">推荐</span>
+                </div>
+                <span className="text-xs text-subtext">按步骤完成设定、角色、模型配置等，适合从零开始创作。</span>
+              </div>
+            </label>
+            <label className="surface flex cursor-pointer items-start gap-3 rounded-atelier p-3">
+              <input
+                className="radio mt-0.5"
+                type="radio"
+                name="creation_mode"
+                value="parse"
+                checked={form.mode === "parse"}
+                disabled={creating}
+                onChange={() => setForm((v) => ({ ...v, mode: "parse" }))}
+              />
+              <div className="grid gap-0.5">
+                <span className="text-sm font-medium text-ink">智能解析</span>
+                <span className="text-xs text-subtext">直接跳到模型配置，用智能解析导入已有大纲、角色、条目。</span>
+              </div>
+            </label>
+          </fieldset>
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button className="btn btn-secondary" onClick={() => setCreateOpen(false)} type="button">
@@ -470,8 +507,14 @@ export function DashboardPage() {
                 await refresh();
                 toast.toastSuccess("创建成功");
                 setCreateOpen(false);
-                setForm({ name: "", genre: "", logline: "" });
-                navigate(`/projects/${res.data.project.id}/settings`);
+                setForm({ name: "", genre: "", logline: "", mode: "generate" });
+                if (form.mode === "parse") {
+                  setWizardStepSkipped(res.data.project.id, "settings", true);
+                  setWizardStepSkipped(res.data.project.id, "characters", true);
+                  navigate(`/projects/${res.data.project.id}/prompts`);
+                } else {
+                  navigate(`/projects/${res.data.project.id}/settings`);
+                }
               } catch (e) {
                 const err = e as ApiError;
                 toast.toastError(`${err.message} (${err.code})`, err.requestId);
