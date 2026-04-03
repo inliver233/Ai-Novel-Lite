@@ -594,6 +594,75 @@ def generate_all_detailed_outlines(
 # create_chapters_from_detailed_outline
 # ---------------------------------------------------------------------------
 
+def _extract_positive_chapter_numbers(chapters: Any) -> list[int]:
+    if not isinstance(chapters, list):
+        return []
+
+    numbers: list[int] = []
+    for item in chapters:
+        if not isinstance(item, dict):
+            continue
+        try:
+            number = int(item.get("number", 0))
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            numbers.append(number)
+    return numbers
+
+
+def _format_chapter_numbers(numbers: set[int]) -> str:
+    ordered = sorted(numbers)
+    if not ordered:
+        return ""
+
+    ranges: list[str] = []
+    start = ordered[0]
+    end = ordered[0]
+    for number in ordered[1:]:
+        if number == end + 1:
+            end = number
+            continue
+        ranges.append(f"{start}-{end}" if start != end else str(start))
+        start = end = number
+    ranges.append(f"{start}-{end}" if start != end else str(start))
+    return ",".join(ranges)
+
+
+def _is_contiguous_number_set(numbers: set[int]) -> bool:
+    if not numbers:
+        return False
+    start = min(numbers)
+    end = max(numbers)
+    return len(numbers) == (end - start + 1)
+
+
+def _compute_chapter_offset(db: Session, detail: DetailedOutline) -> int:
+    """计算当前卷的章节编号偏移量。
+
+    基于同一 outline 中 volume_number 更小的所有卷的 structure_json，
+    累加每卷有效章节编号的最大值，避免稀疏编号时发生冲突。
+    """
+    earlier_volumes = db.execute(
+        select(DetailedOutline)
+        .where(DetailedOutline.outline_id == detail.outline_id)
+        .where(DetailedOutline.volume_number < detail.volume_number)
+        .order_by(DetailedOutline.volume_number)
+    ).scalars().all()
+
+    offset = 0
+    for vol in earlier_volumes:
+        if not vol.structure_json:
+            continue
+        try:
+            structure = json.loads(vol.structure_json)
+            chapters = structure.get("chapters") if isinstance(structure, dict) else None
+            offset += max(_extract_positive_chapter_numbers(chapters), default=0)
+        except Exception:
+            pass
+    return offset
+
+
 def create_chapters_from_detailed_outline(
     detailed_outline_id: str,
     db: Session,
@@ -602,8 +671,9 @@ def create_chapters_from_detailed_outline(
 ) -> list[dict]:
     """Create Chapter records from a DetailedOutline's structure_json.
 
-    When ``replace=True``, existing chapters for the same outline are deleted
-    before new ones are created.
+    Chapters are numbered globally across volumes: volume 1 gets 1..N,
+    volume 2 gets N+1..N+M, etc.  When ``replace=True`` only the
+    chapters that belong to *this* volume's target numbers are deleted.
     """
     detail = db.get(DetailedOutline, detailed_outline_id)
     if detail is None:
@@ -623,13 +693,34 @@ def create_chapters_from_detailed_outline(
             message="structure_json contains no chapters",
         )
 
-    # optionally remove existing chapters
-    if replace:
+    offset = _compute_chapter_offset(db, detail)
+    target_numbers = {offset + number for number in _extract_positive_chapter_numbers(chapters_raw)}
+    target_numbers_text = _format_chapter_numbers(target_numbers)
+
+    if replace and target_numbers:
+        replace_numbers = set(target_numbers)
+        has_later_volume = db.execute(
+            select(DetailedOutline.id)
+            .where(DetailedOutline.outline_id == detail.outline_id)
+            .where(DetailedOutline.volume_number > detail.volume_number)
+            .limit(1)
+        ).scalar_one_or_none()
+        if has_later_volume is None and _is_contiguous_number_set(target_numbers):
+            replace_numbers.update(
+                row[0]
+                for row in db.execute(
+                    select(Chapter.number)
+                    .where(Chapter.outline_id == detail.outline_id)
+                    .where(Chapter.project_id == detail.project_id)
+                    .where(Chapter.number >= min(target_numbers))
+                ).all()
+            )
         existing = (
             db.execute(
                 select(Chapter)
                 .where(Chapter.outline_id == detail.outline_id)
                 .where(Chapter.project_id == detail.project_id)
+                .where(Chapter.number.in_(replace_numbers))
             )
             .scalars()
             .all()
@@ -638,17 +729,23 @@ def create_chapters_from_detailed_outline(
             db.delete(ch)
         db.flush()
 
-    if not replace:
-        conflict_count = db.execute(
-            select(func.count())
-            .select_from(Chapter)
-            .where(Chapter.outline_id == detail.outline_id)
-            .where(Chapter.project_id == detail.project_id)
-        ).scalar() or 0
-        if conflict_count > 0:
+    if not replace and target_numbers:
+        conflict_numbers = {
+            row[0]
+            for row in db.execute(
+                select(Chapter.number)
+                .where(Chapter.outline_id == detail.outline_id)
+                .where(Chapter.project_id == detail.project_id)
+                .where(Chapter.number.in_(target_numbers))
+            ).all()
+        }
+        if conflict_numbers:
             raise AppError(
                 code="CONFLICT",
-                message=f"该大纲已有 {conflict_count} 个章节，请选择替换",
+                message=(
+                    f"第{detail.volume_number}卷已有 {len(conflict_numbers)} 个章节"
+                    f"(编号{_format_chapter_numbers(conflict_numbers) or target_numbers_text})，请选择替换"
+                ),
                 status_code=409,
             )
 
@@ -657,11 +754,13 @@ def create_chapters_from_detailed_outline(
         if not isinstance(ch_raw, dict):
             continue
         try:
-            number = int(ch_raw.get("number", 0))
+            local_number = int(ch_raw.get("number", 0))
         except (TypeError, ValueError):
             continue
-        if number <= 0:
+        if local_number <= 0:
             continue
+
+        global_number = offset + local_number
 
         title = str(ch_raw.get("title") or "")
         summary_text = str(ch_raw.get("summary") or "")
@@ -681,7 +780,7 @@ def create_chapters_from_detailed_outline(
             id=new_id(),
             project_id=detail.project_id,
             outline_id=detail.outline_id,
-            number=number,
+            number=global_number,
             title=title,
             plan=plan,
             status="planned",
@@ -689,7 +788,7 @@ def create_chapters_from_detailed_outline(
         db.add(chapter)
         created.append({
             "id": chapter.id,
-            "number": number,
+            "number": global_number,
             "title": title,
             "plan": plan,
         })

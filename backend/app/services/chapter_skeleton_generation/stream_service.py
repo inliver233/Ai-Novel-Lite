@@ -99,6 +99,44 @@ class _SafeFormatDict(dict[str, object]):
         return ""
 
 
+def _extract_positive_chapter_numbers(chapters: Any) -> list[int]:
+    if not isinstance(chapters, list):
+        return []
+
+    numbers: list[int] = []
+    for item in chapters:
+        if not isinstance(item, dict):
+            continue
+        try:
+            number = int(item.get("number", 0))
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            numbers.append(number)
+    return numbers
+
+
+def _compute_chapter_offset(db: Session, detailed_outline: DetailedOutline) -> int:
+    earlier_volumes = db.execute(
+        select(DetailedOutline)
+        .where(DetailedOutline.outline_id == detailed_outline.outline_id)
+        .where(DetailedOutline.volume_number < detailed_outline.volume_number)
+        .order_by(DetailedOutline.volume_number)
+    ).scalars().all()
+
+    offset = 0
+    for volume in earlier_volumes:
+        if not volume.structure_json:
+            continue
+        try:
+            structure = json.loads(volume.structure_json)
+            chapters = structure.get("chapters") if isinstance(structure, dict) else None
+            offset += max(_extract_positive_chapter_numbers(chapters), default=0)
+        except Exception:
+            pass
+    return offset
+
+
 def generate_chapter_skeleton_stream_events(
     *,
     request_id: str,
@@ -247,15 +285,24 @@ def generate_chapter_skeleton_stream_events(
                     existing_structure = parsed
             except Exception:
                 pass
+
+        chapter_offset = _compute_chapter_offset(db, detailed_outline)
+        previous_chapter_numbers = {
+            chapter_offset + number
+            for number in _extract_positive_chapter_numbers(existing_structure.get("chapters"))
+        }
         existing_structure["chapters"] = chapters
         detailed_outline.structure_json = json.dumps(existing_structure, ensure_ascii=False)
         # 不覆写 content_md — 保留原始细纲内容
 
+        new_chapter_numbers = {chapter_offset + number for number in _extract_positive_chapter_numbers(chapters)}
         created_chapters = _create_chapter_records(
             db,
             detailed_outline,
             chapters,
             replace=replace_chapters,
+            chapter_offset=chapter_offset,
+            replace_numbers=previous_chapter_numbers | new_chapter_numbers,
         )
         if generation_run_id is None:
             raise AppError(
@@ -375,17 +422,28 @@ def _create_chapter_records(
     chapters: list[dict[str, Any]],
     *,
     replace: bool = True,
+    chapter_offset: int = 0,
+    replace_numbers: set[int] | None = None,
 ) -> list[dict[str, Any]]:
     existing_numbers: set[int] = set()
-    new_numbers = {int(ch.get("number", 0)) for ch in chapters if int(ch.get("number", 0)) > 0}
+    new_numbers: set[int] = set()
+    for ch in chapters:
+        try:
+            local_number = int(ch.get("number", 0))
+        except (TypeError, ValueError):
+            continue
+        if local_number > 0:
+            new_numbers.add(chapter_offset + local_number)
 
-    if replace and new_numbers:
+    numbers_to_replace = replace_numbers if replace_numbers is not None else new_numbers
+
+    if replace and numbers_to_replace:
         existing = (
             db.execute(
                 select(Chapter)
                 .where(Chapter.outline_id == detailed_outline.outline_id)
                 .where(Chapter.project_id == detailed_outline.project_id)
-                .where(Chapter.number.in_(new_numbers))
+                .where(Chapter.number.in_(numbers_to_replace))
             )
             .scalars()
             .all()
@@ -407,11 +465,12 @@ def _create_chapter_records(
     created: list[dict[str, Any]] = []
     for item in chapters:
         try:
-            number = int(item.get("number", 0))
+            local_number = int(item.get("number", 0))
         except (TypeError, ValueError):
             continue
-        if number <= 0:
+        if local_number <= 0:
             continue
+        number = chapter_offset + local_number
         if not replace and number in existing_numbers:
             continue
 
