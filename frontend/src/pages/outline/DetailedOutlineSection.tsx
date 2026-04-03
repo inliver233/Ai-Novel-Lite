@@ -141,7 +141,7 @@ function VolumeDetail(props: VolumeDetailProps) {
           )}
           <StatusBadge status={vol.status} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {props.editing ? (
             <>
               <button className="btn btn-secondary" type="button" onClick={props.cancelEdit}>
@@ -157,7 +157,7 @@ function VolumeDetail(props: VolumeDetailProps) {
               </button>
             </>
           ) : (
-            <>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
               <button className="btn btn-secondary" type="button" onClick={props.startEdit}>
                 {copy.editButton}
               </button>
@@ -175,13 +175,13 @@ function VolumeDetail(props: VolumeDetailProps) {
                   : OUTLINE_COPY.detailedOutline.generateSkeletonButton}
               </button>
               <button
-                className="btn btn-ghost text-danger hover:bg-danger/10"
+                className="btn btn-ghost col-span-2 text-danger hover:bg-danger/10 sm:col-span-1"
                 type="button"
                 onClick={() => void props.deleteVolume(vol.id)}
               >
                 {OUTLINE_COPY.delete}
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -373,12 +373,12 @@ export function DetailedOutlineGenerationModal(props: DetailedOutlineGenerationM
     <Modal
       open={props.open}
       onClose={props.onClose}
-      panelClassName="surface max-w-2xl p-6"
+      panelClassName="surface max-w-2xl p-4 sm:p-6"
       ariaLabel={copy.generateDetailedTitle}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-content text-2xl">{copy.generateDetailedTitle}</div>
+          <div className="font-content text-xl sm:text-2xl">{copy.generateDetailedTitle}</div>
           <div className="mt-1 text-xs text-subtext">{copy.generateDetailedHint}</div>
         </div>
         <button className="btn btn-secondary" onClick={props.onClose} type="button">
@@ -462,7 +462,7 @@ export function DetailedOutlineGenerationModal(props: DetailedOutlineGenerationM
         </div>
       ) : null}
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
         <button className="btn btn-secondary" onClick={props.onClose} type="button">
           {OUTLINE_COPY.cancel}
         </button>
@@ -518,12 +518,12 @@ export function ChapterSkeletonGenerationModal(props: ChapterSkeletonGenerationM
     <Modal
       open={props.open}
       onClose={props.onClose}
-      panelClassName="surface max-w-2xl p-6"
+      panelClassName="surface max-w-2xl p-4 sm:p-6"
       ariaLabel={copy.generateSkeletonTitle}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-content text-2xl">{copy.generateSkeletonTitle}</div>
+          <div className="font-content text-xl sm:text-2xl">{copy.generateSkeletonTitle}</div>
           <div className="mt-1 text-xs text-subtext">{copy.generateSkeletonHint}</div>
         </div>
         <button className="btn btn-secondary" onClick={props.onClose} type="button">
@@ -615,7 +615,7 @@ export function ChapterSkeletonGenerationModal(props: ChapterSkeletonGenerationM
               <summary className="cursor-pointer text-xs text-subtext ui-transition-fast hover:text-ink">
                 {OUTLINE_COPY.detailedOutline.skeletonStreamRawTitle ?? "流式输出"}
               </summary>
-              <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-words text-xs text-ink">
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs text-ink sm:max-h-60">
                 {props.streamRawText}
               </pre>
             </details>
@@ -626,7 +626,7 @@ export function ChapterSkeletonGenerationModal(props: ChapterSkeletonGenerationM
               <summary className="cursor-pointer text-xs text-subtext ui-transition-fast hover:text-ink">
                 {OUTLINE_COPY.detailedOutline.skeletonJsonPreviewTitle ?? "章节结构预览"}
               </summary>
-              <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-words text-xs text-ink">
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs text-ink sm:max-h-60">
                 {JSON.stringify(props.streamResult, null, 2)}
               </pre>
             </details>
@@ -634,7 +634,7 @@ export function ChapterSkeletonGenerationModal(props: ChapterSkeletonGenerationM
         </div>
       ) : null}
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
         <button className="btn btn-secondary" onClick={props.onClose} type="button">
           {OUTLINE_COPY.cancel}
         </button>

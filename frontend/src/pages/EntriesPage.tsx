@@ -611,7 +611,7 @@ export function EntriesPage() {
           <label className="grid gap-1">
             <span className="text-xs text-subtext">内容</span>
             <textarea
-              className="textarea atelier-content"
+              className="textarea atelier-content h-52 resize-y sm:h-auto"
               name="content"
               rows={12}
               value={form.content}

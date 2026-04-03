@@ -461,8 +461,8 @@ export function DashboardPage() {
                 disabled={creating}
                 onChange={() => setForm((v) => ({ ...v, mode: "generate" }))}
               />
-              <div className="grid gap-0.5">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 grid gap-0.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-ink">逐步生成</span>
                   <span className="rounded-atelier bg-accent/15 px-2 py-0.5 text-[11px] text-accent">推荐</span>
                 </div>
@@ -479,7 +479,7 @@ export function DashboardPage() {
                 disabled={creating}
                 onChange={() => setForm((v) => ({ ...v, mode: "parse" }))}
               />
-              <div className="grid gap-0.5">
+              <div className="min-w-0 grid gap-0.5">
                 <span className="text-sm font-medium text-ink">智能解析</span>
                 <span className="text-xs text-subtext">直接跳到模型配置，用智能解析导入已有大纲、角色、条目。</span>
               </div>

@@ -119,7 +119,7 @@ function AgentCard({ card }: { card: AgentCardState }) {
       </div>
 
       {card.streamingText ? (
-        <div className="mt-2 max-h-[60px] overflow-hidden rounded-atelier bg-canvas p-1.5 font-mono text-[10px] leading-tight text-subtext">
+        <div className="mt-2 max-h-[40px] overflow-hidden rounded-atelier bg-canvas p-1.5 font-mono text-[10px] leading-tight text-subtext sm:max-h-[60px]">
           {card.streamingText.slice(-200)}
         </div>
       ) : null}
@@ -208,12 +208,12 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
     <Modal
       open={props.open}
       onClose={props.onClose}
-      panelClassName="surface max-w-3xl p-6"
+      panelClassName="surface max-w-3xl p-4 sm:p-6"
       ariaLabel={OUTLINE_PARSING_COPY.parseTitle}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-content text-2xl">{OUTLINE_PARSING_COPY.parseTitle}</div>
+          <div className="font-content text-xl sm:text-2xl">{OUTLINE_PARSING_COPY.parseTitle}</div>
           <div className="mt-1 text-xs text-subtext">{OUTLINE_PARSING_COPY.parseHint}</div>
         </div>
         <button className="btn btn-secondary" onClick={props.onClose} type="button">
@@ -225,7 +225,7 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
         <label className="grid gap-1">
           <span className="text-xs text-subtext">{OUTLINE_PARSING_COPY.parseInputLabel}</span>
           <textarea
-            className="textarea atelier-content min-h-[180px] resize-y"
+            className="textarea atelier-content min-h-[120px] resize-y sm:min-h-[180px]"
             disabled={props.parsing}
             name="outline_parse_content"
             value={props.parseForm.content}
@@ -338,7 +338,7 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
                 <div className="mt-1 text-xs text-danger">{props.parseResult.warnings.join("；")}</div>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button
                 className={clsx(props.activeTab === "outline" ? "btn btn-primary" : "btn btn-secondary")}
                 onClick={() => props.onTabChange("outline")}
@@ -453,7 +453,7 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
             </details>
           ) : null}
 
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
             <button
               className="btn btn-secondary"
               disabled={!canApplyOutline}
@@ -478,7 +478,12 @@ export function OutlineParsingModal(props: OutlineParsingModalProps) {
             >
               {OUTLINE_PARSING_COPY.parseApplyEntries}
             </button>
-            <button className="btn btn-primary" disabled={!props.parseResult} onClick={props.onApplyAll} type="button">
+            <button
+              className="btn btn-primary col-span-2 sm:col-span-1"
+              disabled={!props.parseResult}
+              onClick={props.onApplyAll}
+              type="button"
+            >
               {OUTLINE_PARSING_COPY.parseApplyAll}
             </button>
           </div>
