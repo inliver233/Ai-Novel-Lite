@@ -1,40 +1,85 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Modal } from "./Modal";
 import { ConfirmContext } from "./confirm";
 import type { ChooseOptions, ConfirmApi, ConfirmChoice, ConfirmOptions } from "./confirm";
 
+type PendingRequest =
+  | { kind: "confirm"; resolve: (value: boolean) => void }
+  | { kind: "choose"; resolve: (value: ConfirmChoice) => void };
+
 export function ConfirmProvider(props: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [variant, setVariant] = useState<"confirm" | "choose">("confirm");
   const [options, setOptions] = useState<ConfirmOptions | ChooseOptions | null>(null);
-  const resolverRef = useRef<((value: unknown) => void) | null>(null);
+  const pendingRef = useRef<PendingRequest | null>(null);
+  const clearOptionsTimerRef = useRef<number | null>(null);
 
-  const confirm = useCallback(async (opts: ConfirmOptions) => {
+  const clearOptionsTimer = useCallback(() => {
+    if (clearOptionsTimerRef.current !== null) {
+      window.clearTimeout(clearOptionsTimerRef.current);
+      clearOptionsTimerRef.current = null;
+    }
+  }, []);
+
+  const resolvePendingAsDismissed = useCallback(() => {
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (!pending) return;
+    if (pending.kind === "choose") {
+      pending.resolve("cancel");
+      return;
+    }
+    pending.resolve(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearOptionsTimer();
+      resolvePendingAsDismissed();
+    };
+  }, [clearOptionsTimer, resolvePendingAsDismissed]);
+
+  const prepareOpen = useCallback(() => {
+    clearOptionsTimer();
+    resolvePendingAsDismissed();
+  }, [clearOptionsTimer, resolvePendingAsDismissed]);
+
+  const confirm = useCallback((opts: ConfirmOptions) => {
+    prepareOpen();
     setVariant("confirm");
     setOptions(opts);
     setOpen(true);
     return new Promise<boolean>((resolve) => {
-      resolverRef.current = resolve as (value: unknown) => void;
+      pendingRef.current = { kind: "confirm", resolve };
     });
-  }, []);
+  }, [prepareOpen]);
 
-  const choose = useCallback(async (opts: ChooseOptions) => {
+  const choose = useCallback((opts: ChooseOptions) => {
+    prepareOpen();
     setVariant("choose");
     setOptions(opts);
     setOpen(true);
     return new Promise<ConfirmChoice>((resolve) => {
-      resolverRef.current = resolve as (value: unknown) => void;
+      pendingRef.current = { kind: "choose", resolve };
     });
-  }, []);
+  }, [prepareOpen]);
 
-  const close = useCallback((value: unknown) => {
+  const close = useCallback((value: boolean | ConfirmChoice) => {
     setOpen(false);
-    const resolve = resolverRef.current;
-    resolverRef.current = null;
-    resolve?.(value);
-    window.setTimeout(() => setOptions(null), 400);
-  }, []);
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (pending?.kind === "choose") {
+      pending.resolve(value === "confirm" || value === "secondary" || value === "cancel" ? value : "cancel");
+    } else if (pending?.kind === "confirm") {
+      pending.resolve(value === true);
+    }
+    clearOptionsTimer();
+    clearOptionsTimerRef.current = window.setTimeout(() => {
+      setOptions(null);
+      clearOptionsTimerRef.current = null;
+    }, 400);
+  }, [clearOptionsTimer]);
 
   const api = useMemo<ConfirmApi>(() => ({ confirm, choose }), [choose, confirm]);
 

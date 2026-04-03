@@ -390,7 +390,7 @@ export function useDetailedOutlineState(
         if (err.code === "CONFLICT" && err.status === 409) {
           const replaceOk = await confirm.confirm({
             title: OUTLINE_COPY.detailedOutline.replaceChaptersTitle,
-            description: OUTLINE_COPY.detailedOutline.replaceChaptersDescription,
+            description: err.message || OUTLINE_COPY.detailedOutline.replaceChaptersDescription,
             confirmText: OUTLINE_COPY.detailedOutline.replaceChaptersConfirmText,
             danger: true,
           });
