@@ -1,0 +1,56 @@
+{
+  "task_id": "IMPL-003",
+  "title": "后端服务 — 细纲生成服务层实��",
+  "description": "实现细纲生成的核心服务逻辑：从大纲内容中提取卷信息，调用LLM为每卷生成细纲，解析并存储结果��",
+  "status": "pending",
+  "depends_on": ["IMPL-001", "IMPL-002"],
+  "priority": "critical",
+  "estimated_complexity": "high",
+  "focus_paths": [
+    "backend/app/services/detailed_outline_generation/",
+    "backend/app/services/outline_payload_normalizer.py"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "action": "创建 backend/app/services/detailed_outline_generation/ 目录",
+      "details": "参照 outline_generation/ 目录结构，创建 __init__.py, app_service.py, prepare_service.py"
+    },
+    {
+      "step": 2,
+      "action": "实现卷信息提取逻辑",
+      "details": "在 prepare_service.py 中实现 extract_volumes_from_outline(outline): 从outline.content_md和outline.structure_json中提取卷划分信息。如果structure_json已有volumes字段则直接使用；否则从content_md的markdown标题层级中解析卷结构(## 卷一, ## 第一卷等)。返回 list[VolumeInfo(number, title, chapter_range, summary_text)]"
+    },
+    {
+      "step": 3,
+      "action": "实现单卷细纲生成",
+      "details": "在 app_service.py 中实现 generate_detailed_outline_for_volume(outline, volume_info, context): 准备render_values(包含完整大纲、当前卷信息、前后卷概要)，调用LLM生成，解析JSON输出，存储到DetailedOutline记录，记录generation_run(type='detailed_outline_generate')"
+    },
+    {
+      "step": 4,
+      "action": "实现全量细纲生成",
+      "details": "在 app_service.py 中实现 generate_all_detailed_outlines(outline_id): 提取所有卷→逐卷生成细纲→存储。支持SSE流式事件(volume_start, volume_progress, volume_complete, all_complete)用于前端进度显示"
+    },
+    {
+      "step": 5,
+      "action": "扩展 outline_payload_normalizer.py",
+      "details": "增加 parse_detailed_outline_structure_json() 和 normalize_detailed_outline_content() 函数，处理细纲的结构化解析"
+    },
+    {
+      "step": 6,
+      "action": "实现从细纲批量创建章节",
+      "details": "新增 create_chapters_from_detailed_outline(detailed_outline_id): 从细纲的structure_json中提取章节信息，为每章创建Chapter记录，自动填充plan字段(来自细纲的chapter.summary + chapter.beats)"
+    }
+  ],
+  "acceptance_criteria": [
+    "能正确从大纲中提取卷信息",
+    "能为单卷生成有效的细纲JSON",
+    "SSE流式事件正确发送进度信息",
+    "从细纲创建的章节包含完整的plan字段",
+    "generation_run正确记录所有LLM调用"
+  ],
+  "convergence": {
+    "criteria": "完整流程可运行: 大纲→提取卷→生成细纲→解析存储",
+    "verification": "单元测试验证核心函数，手动测试端到端流程"
+  }
+}

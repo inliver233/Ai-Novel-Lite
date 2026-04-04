@@ -131,7 +131,7 @@ def _compute_chapter_offset(db: Session, detailed_outline: DetailedOutline) -> i
         try:
             structure = json.loads(volume.structure_json)
             chapters = structure.get("chapters") if isinstance(structure, dict) else None
-            offset += max(_extract_positive_chapter_numbers(chapters), default=0)
+            offset += len(_extract_positive_chapter_numbers(chapters))
         except Exception:
             pass
     return offset
@@ -287,15 +287,14 @@ def generate_chapter_skeleton_stream_events(
                 pass
 
         chapter_offset = _compute_chapter_offset(db, detailed_outline)
-        previous_chapter_numbers = {
-            chapter_offset + number
-            for number in _extract_positive_chapter_numbers(existing_structure.get("chapters"))
-        }
+        previous_raw = _extract_positive_chapter_numbers(existing_structure.get("chapters"))
+        previous_chapter_numbers = {chapter_offset + (i + 1) for i in range(len(previous_raw))}
         existing_structure["chapters"] = chapters
         detailed_outline.structure_json = json.dumps(existing_structure, ensure_ascii=False)
         # 不覆写 content_md — 保留原始细纲内容
 
-        new_chapter_numbers = {chapter_offset + number for number in _extract_positive_chapter_numbers(chapters)}
+        new_raw = _extract_positive_chapter_numbers(chapters)
+        new_chapter_numbers = {chapter_offset + (i + 1) for i in range(len(new_raw))}
         created_chapters = _create_chapter_records(
             db,
             detailed_outline,
@@ -426,14 +425,12 @@ def _create_chapter_records(
     replace_numbers: set[int] | None = None,
 ) -> list[dict[str, Any]]:
     existing_numbers: set[int] = set()
-    new_numbers: set[int] = set()
-    for ch in chapters:
-        try:
-            local_number = int(ch.get("number", 0))
-        except (TypeError, ValueError):
-            continue
-        if local_number > 0:
-            new_numbers.add(chapter_offset + local_number)
+    # Sort and enumerate to get normalized numbers
+    sorted_chs = sorted(
+        [ch for ch in chapters if isinstance(ch, dict) and int(ch.get("number", 0) or 0) > 0],
+        key=lambda c: int(c.get("number", 0)),
+    )
+    new_numbers = {chapter_offset + (i + 1) for i in range(len(sorted_chs))}
 
     numbers_to_replace = replace_numbers if replace_numbers is not None else new_numbers
 
@@ -462,15 +459,23 @@ def _create_chapter_records(
             ).all()
         }
 
+    # Sort chapters by raw number and use sequential local numbering
+    sorted_items = sorted(
+        [item for item in chapters if isinstance(item, dict)],
+        key=lambda c: int(c.get("number", 0)) if isinstance(c.get("number"), (int, float, str)) else 0,
+    )
+
     created: list[dict[str, Any]] = []
-    for item in chapters:
+    local_idx = 0
+    for item in sorted_items:
         try:
-            local_number = int(item.get("number", 0))
+            raw_number = int(item.get("number", 0))
         except (TypeError, ValueError):
             continue
-        if local_number <= 0:
+        if raw_number <= 0:
             continue
-        number = chapter_offset + local_number
+        local_idx += 1
+        number = chapter_offset + local_idx
         if not replace and number in existing_numbers:
             continue
 

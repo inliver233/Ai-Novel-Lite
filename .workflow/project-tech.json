@@ -1,0 +1,22 @@
+{
+  "project": "Ai-Novel-Demo",
+  "stack": {
+    "backend": {
+      "language": "Python",
+      "framework": "FastAPI",
+      "orm": "SQLAlchemy",
+      "migration": "Alembic",
+      "database": "SQLite",
+      "queue": "Redis + RQ"
+    },
+    "frontend": {
+      "language": "TypeScript",
+      "framework": "React 19",
+      "bundler": "Vite",
+      "styling": "Tailwind CSS",
+      "animation": "Framer Motion",
+      "testing": "Vitest"
+    }
+  },
+  "initialized_at": "2026-04-02T10:50:00Z"
+}

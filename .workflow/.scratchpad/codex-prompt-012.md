@@ -1,0 +1,259 @@
+## Task: DETAILED-012 — Update outline parsing agent to output volumes format
+
+The outline parsing agent ("智能解析") currently only extracts the OLD `chapters` format. It needs to output the NEW `volumes` format while maintaining backward compatibility with `chapters`.
+
+### Files to modify (exactly 3 files):
+
+#### File 1: `backend/app/services/outline_parsing_agent/prompts/structure_system.md`
+
+Replace the ENTIRE content of this file with the following new content (keep the exact formatting):
+
+```
+你是专业的小说大纲结构提取专家。从大纲文本中提取卷（volume）结构。
+
+## 提取字段
+
+每卷包含以下字段：
+- **number**（必填，整数）：卷编号，正整数，从 1 开始
+- **title**（必填，字符串）：卷标题，用"核心事件/核心主题"命名
+- **summary**（必填，字符串）：该卷的详细细纲（200~500字），必须包含：
+  · 本卷的核心冲突和关键转折
+  · 主要角色在本卷中的行动和变化
+  · 与前卷的承接和后卷的铺垫
+  · 关键伏笔的埋设或回收标注
+
+## 提取规则
+
+1. 卷编号必须为正整数，从 1 开始连续编号
+2. 识别文本中的卷/篇/部/arc 划分；若无明确划分，按故事阶段自行拆卷
+3. summary 中标注推进项类型：[信息+] [关系+/-] [资源+/-] [地位+/-] [伏笔↗植入] [伏笔↙回收]
+4. 同时提取整体故事弧线摘要（outline_md，markdown 格式）
+5. 如果处理的是大文档的片段，仅提取该片段中的卷
+
+## 输出格式（严格 JSON）
+
+你必须输出且仅输出一个 JSON 对象，结构如下：
+
+```json
+{
+  "outline_md": "## 故事弧线\n\n整体故事弧线摘要...",
+  "volumes": [
+    {
+      "number": 1,
+      "title": "入门与觉醒",
+      "summary": "[信息+] 张三抵达天剑宗，首次见到壮观的山门。[关系+] 结识同期入门的李四，两人因性格互补结为好友。[伏笔↗植入] 张三发现自己的灵根属性异常，长老暗中观察。师父赠予一枚古朴玉佩，叮嘱不可示人。宗门试炼开始，张三排名垫底但展现出超常的观察力和韧性。[资源+] 意外获得前辈遗留的修炼心法，开始秘密修炼。试炼结束时张三虽排名不高，但引起了内门长老的注意。本卷结尾，师父留下谜语后神秘失踪，张三决心追查真相。"
+    },
+    {
+      "number": 2,
+      "title": "追查与流亡",
+      "summary": "张三发现师父失踪与宗门高层有关，[信息+] 在师父密室找到加密卷轴和残缺地图。[关系+] 与李四联手调查，[伏笔↙回收] 玉佩在靠近特定区域时发出微光。宗门内部势力察觉张三的调查，[地位-] 被栽赃陷害为叛徒。危急时刻李四冒险帮助张三逃出宗门。张三成为流亡者，在荒野中艰难求生，同时研究师父留下的线索。本卷结尾发现线索指向北方禁地。"
+    }
+  ]
+}
+```
+
+## ⚠️ JSON 格式强制规则（违反任何一条都会导致解析失败）
+
+1. **仅输出 JSON** — 不输出任何解释、注释、markdown 标题、前言或总结
+2. **字符串内禁止裸换行** — outline_md 和 summary 中的换行必须写为 `\n`
+3. **字符串内双引号必须转义** — 写为 `\"`
+4. **禁止末尾逗号** — `[{...},]` 是非法的
+5. **number 必须是 JSON 数字类型** — 写 `1` 不要写 `"1"`
+6. **volumes 必须是数组** — 即使只有 1 卷
+7. **无卷时返回空** — `{"outline_md": "", "volumes": []}`
+8. 如需代码围栏，使用 ```json ... ```，围栏内不能有非 JSON 内容
+
+## 输出前必做检查
+
+输出前在心中逐条确认：
+- [ ] 输出是合法 JSON 吗？
+- [ ] outline_md 中的换行都写为 \n 了吗？
+- [ ] number 是数字不是字符串吗？
+- [ ] 数组末尾没有多余逗号吗？
+- [ ] JSON 结构完整闭合吗？
+- [ ] 每卷 summary 都有 200 字以上吗？
+```
+
+#### File 2: `backend/app/services/outline_parsing_agent/agents/structure_agent.py`
+
+Replace the `parse_response` method (lines 48-71) with the following that handles BOTH `volumes` and `chapters` formats:
+
+```python
+    def parse_response(self, raw_json: Any) -> dict[str, Any]:
+        if not isinstance(raw_json, dict):
+            return {"outline_md": "", "volumes": [], "chapters": []}
+
+        outline_md = _clean_str(raw_json.get("outline_md"))
+
+        # Prefer new volumes format
+        volumes_raw = raw_json.get("volumes")
+        volumes: list[dict[str, Any]] = []
+        if isinstance(volumes_raw, list):
+            for item in volumes_raw:
+                if not isinstance(item, dict):
+                    continue
+                number = _coerce_int(item.get("number"))
+                if number is None:
+                    continue
+                volumes.append(
+                    {
+                        "number": number,
+                        "title": _clean_str(item.get("title")),
+                        "summary": _clean_str(item.get("summary")),
+                    }
+                )
+
+        # Fallback: extract chapters (backward compat)
+        chapters_raw = raw_json.get("chapters")
+        chapters: list[dict[str, Any]] = []
+        if isinstance(chapters_raw, list):
+            for item in chapters_raw:
+                if not isinstance(item, dict):
+                    continue
+                number = _coerce_int(item.get("number"))
+                if number is None:
+                    continue
+                chapters.append(
+                    {
+                        "number": number,
+                        "title": _clean_str(item.get("title")),
+                        "beats": _clean_beats(item.get("beats")),
+                    }
+                )
+
+        # If we got volumes but no chapters, synthesize compat chapters
+        if volumes and not chapters:
+            chapters = [
+                {
+                    "number": v["number"],
+                    "title": v["title"],
+                    "beats": [v["summary"]] if v.get("summary") else [],
+                }
+                for v in volumes
+            ]
+
+        return {"outline_md": outline_md, "volumes": volumes, "chapters": chapters}
+```
+
+Also replace the `merge_results` method (lines 73-121) with:
+
+```python
+    def merge_results(self, chunk_results: list[dict[str, Any]]) -> dict[str, Any]:
+        if not chunk_results:
+            return {"outline_md": "", "volumes": [], "chapters": []}
+
+        outline_parts: list[str] = []
+        volumes_by_number: dict[int, dict[str, Any]] = {}
+        chapters_by_number: dict[int, dict[str, Any]] = {}
+
+        for result in chunk_results:
+            outline_md = _clean_str(result.get("outline_md"))
+            if outline_md:
+                outline_parts.append(outline_md)
+
+            # Merge volumes
+            volumes_raw = result.get("volumes")
+            if isinstance(volumes_raw, list):
+                for item in volumes_raw:
+                    if not isinstance(item, dict):
+                        continue
+                    number = _coerce_int(item.get("number"))
+                    if number is None:
+                        continue
+                    volume: dict[str, Any] = {
+                        "number": number,
+                        "title": _clean_str(item.get("title")),
+                        "summary": _clean_str(item.get("summary")),
+                    }
+                    existing = volumes_by_number.get(number)
+                    if existing is None:
+                        volumes_by_number[number] = volume
+                    elif len(_clean_str(volume.get("summary"))) > len(_clean_str(existing.get("summary"))):
+                        volumes_by_number[number] = volume
+
+            # Merge chapters (backward compat)
+            chapters_raw = result.get("chapters")
+            if not isinstance(chapters_raw, list):
+                continue
+
+            for item in chapters_raw:
+                if not isinstance(item, dict):
+                    continue
+                number = _coerce_int(item.get("number"))
+                if number is None:
+                    continue
+
+                chapter: dict[str, Any] = {
+                    "number": number,
+                    "title": _clean_str(item.get("title")),
+                    "beats": _clean_beats(item.get("beats")),
+                }
+
+                existing = chapters_by_number.get(number)
+                if existing is None:
+                    chapters_by_number[number] = chapter
+                    continue
+
+                existing_beats = existing.get("beats")
+                new_beats = chapter.get("beats")
+                existing_len = len(existing_beats) if isinstance(existing_beats, list) else 0
+                new_len = len(new_beats) if isinstance(new_beats, list) else 0
+
+                if new_len > existing_len:
+                    chapters_by_number[number] = chapter
+                    continue
+
+                if not _clean_str(existing.get("title")) and _clean_str(chapter.get("title")):
+                    existing["title"] = _clean_str(chapter.get("title"))
+
+        outline_md = "\n\n---\n\n".join([p for p in outline_parts if p.strip()])
+        merged_volumes = [volumes_by_number[n] for n in sorted(volumes_by_number)]
+        merged_chapters = [chapters_by_number[n] for n in sorted(chapters_by_number)]
+
+        # If we got volumes but no chapters, synthesize compat chapters
+        if merged_volumes and not merged_chapters:
+            merged_chapters = [
+                {
+                    "number": v["number"],
+                    "title": v["title"],
+                    "beats": [v["summary"]] if v.get("summary") else [],
+                }
+                for v in merged_volumes
+            ]
+
+        return {"outline_md": outline_md, "volumes": merged_volumes, "chapters": merged_chapters}
+```
+
+#### File 3: `backend/app/services/outline_parsing_agent/models.py`
+
+Change the `ParsedOutline` dataclass (lines 44-49) to add a `volumes` field:
+
+```python
+@dataclass
+class ParsedOutline:
+    """Extracted outline structure."""
+
+    outline_md: str = ""
+    volumes: list[dict[str, Any]] = field(default_factory=list)
+    chapters: list[dict[str, Any]] = field(default_factory=list)
+    # Each volume: {number: int, title: str, summary: str}
+    # Each chapter: {number: int, title: str, beats: list[str]}
+```
+
+And update the `to_dict` method of `ParseResult` (lines 95-131) — change the "outline" section (lines 98-101) to include volumes:
+
+```python
+        return {
+            "outline": {
+                "outline_md": self.outline.outline_md,
+                "volumes": self.outline.volumes,
+                "chapters": self.outline.chapters,
+            },
+```
+
+### Constraints
+- Do NOT change any other files
+- Do NOT add new imports
+- Keep all existing helper functions (_coerce_int, _clean_str, _clean_beats)
+- Preserve the overall class structure
+- Maintain backward compatibility with chapters format

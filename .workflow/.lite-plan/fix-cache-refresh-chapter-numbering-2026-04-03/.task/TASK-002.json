@@ -1,0 +1,24 @@
+{
+  "id": "TASK-002",
+  "title": "Fix cross-volume chapter numbering to use count-based offset with normalized local numbers",
+  "description": "Change _compute_chapter_offset in BOTH app_service.py and stream_service.py to use len() (count of chapters) instead of max(chapter_numbers). Also normalize chapter numbering in create_chapters_from_detailed_outline and _create_chapter_records to use sequential 1-based local numbers. This prevents double-counting when structure_json contains global numbers from the LLM prompt.",
+  "scope": "backend",
+  "files": [
+    {
+      "path": "backend/app/services/detailed_outline_generation/app_service.py",
+      "change": "1. _compute_chapter_offset (L660): change max() to len(). 2. create_chapters_from_detailed_outline (L752-763): sort chapters_raw by raw number, enumerate with 1-based index, use index as local_number for global_number = offset + index"
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "change": "1. _compute_chapter_offset (L134): change max() to len(). 2. _create_chapter_records (L466-473): sort chapters by raw number, enumerate with 1-based index, use index as local_number for number = chapter_offset + index"
+    }
+  ],
+  "convergence": {
+    "criteria": [
+      "Volume 1 with 6 chapters gets #1-#6; Volume 2 chapters start at #7 (no gap)",
+      "Works regardless of what numbers the LLM puts in structure_json",
+      "Both app_service.py and stream_service.py paths produce consistent numbering"
+    ]
+  },
+  "depends_on": []
+}

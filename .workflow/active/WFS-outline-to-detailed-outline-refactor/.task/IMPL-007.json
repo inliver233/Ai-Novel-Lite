@@ -1,0 +1,67 @@
+{
+  "task_id": "IMPL-007",
+  "title": "前端UI — 细纲管理界面 + 交互流程重构",
+  "description": "重构OutlinePage，增加细纲管理Tab。修改'从大纲创建章节'流程为'生成细纲→查看编辑细纲→从细纲创建章节'。学习现有UI设计风格。",
+  "status": "pending",
+  "depends_on": ["IMPL-004"],
+  "priority": "critical",
+  "estimated_complexity": "high",
+  "focus_paths": [
+    "frontend/src/pages/outline/OutlinePage.tsx",
+    "frontend/src/pages/outline/OutlinePageSections.tsx",
+    "frontend/src/pages/outline/useOutlinePageState.ts",
+    "frontend/src/pages/outline/outlineCopy.ts",
+    "frontend/src/pages/outline/outlineModels.ts",
+    "frontend/src/services/"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "action": "新增 API 服务层",
+      "details": "创建 frontend/src/services/detailedOutlinesApi.ts: listDetailedOutlines(projectId, outlineId), getDetailedOutline(id), generateDetailedOutlines(projectId, outlineId) — SSE流式, createChaptersFromDetailedOutline(detailedOutlineId, replace), updateDetailedOutline(id, data), deleteDetailedOutline(id)"
+    },
+    {
+      "step": 2,
+      "action": "新增状态管理 hook",
+      "details": "创建 useDetailedOutlineState.ts: 管理细纲列表、当前选中细纲、生成进度。包含 generate(启动生成并显示进度), selectVolume(选择某卷细纲), edit(编辑细纲内容), createChapters(从当前细纲创建章节)。使用与 useOutlineGenerationState 一致的SSE流式处理模式"
+    },
+    {
+      "step": 3,
+      "action": "创建细纲UI组件",
+      "details": "在 OutlinePageSections.tsx 中新增 DetailedOutlineSection 组件。包含: (1) 细纲列表(左侧panel显示各卷，类似ChapterListPanel风格) (2) 细纲详情(右侧显示选中卷的细纲内容，使用MarkdownEditor) (3) 章节预览(展示细纲中的章节列表，每章显示summary和beats)"
+    },
+    {
+      "step": 4,
+      "action": "修改 OutlinePage 布局",
+      "details": "在OutlinePage中添加Tab/步骤导航: [大纲] → [细纲] → [章节]。使用WizardNextBar组件的步骤模式。当大纲存在时显示'生成细纲'按钮(在OutlineActionsBar中)。当细纲存在时显示'从细纲创建章节'按钮"
+    },
+    {
+      "step": 5,
+      "action": "实现生成流程UI",
+      "details": "创建 DetailedOutlineGenerationModal: (1) 配置区域(每卷章节数建议, include_world_setting等上下文选项) (2) 生成进度区域(进度条显示 '正在生成第X卷/共Y卷', 每卷完成时显示绿色勾) (3) 完成后自动切换到细纲Tab。使用与OutlineGenerationModal一致的设计风格"
+    },
+    {
+      "step": 6,
+      "action": "修改'创建章节骨架'流程",
+      "details": "重构 createChaptersFromOutline: 如果有细纲，改为从细纲创建(调用 /detailed_outlines/{id}/create_chapters)，章节plan字段包含来自细纲的详细信息。如果没有细纲，保留原有直接从大纲创建的逻辑(向后兼容)"
+    },
+    {
+      "step": 7,
+      "action": "更新文案和模型定义",
+      "details": "在 outlineCopy.ts 中添加细纲相关UI文案。在 outlineModels.ts 中定义 DetailedOutline, DetailedOutlineGenResult 等类型。所有文案使用中文"
+    }
+  ],
+  "acceptance_criteria": [
+    "细纲Tab可正常切换和显示",
+    "生成细纲流程有完整的进度反馈",
+    "细纲内容可编辑和保存",
+    "从细纲创建的章节包含完整plan信息",
+    "无细纲时保留原有流程(向后兼容)",
+    "UI风格与现有大纲/章节页面一致",
+    "响应式设计(mobile/desktop)"
+  ],
+  "convergence": {
+    "criteria": "用户可完成: 大纲→生成细纲→查看编辑→创建章节 完整流程",
+    "verification": "手动端到端操作验证所有交互"
+  }
+}

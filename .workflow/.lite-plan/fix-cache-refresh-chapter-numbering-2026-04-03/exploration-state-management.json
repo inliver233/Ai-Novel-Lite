@@ -1,0 +1,370 @@
+{
+  "project_structure": "React SPA with custom state management. No React Query/TanStack Query/SWR/Zustand. State is managed via: (1) A hand-rolled external store (chapterStore) using Map-based caches with subscription/emit pattern consumed by React via useSyncExternalStore; (2) useProjectData hook for one-shot data fetching with no automatic cache invalidation; (3) A PersistentOutlet system that keeps the /writing page mounted (hidden via display:none) when navigating to /outline, preventing re-mount and thus preventing useEffect-based refetch on navigation. Backend is FastAPI+SQLAlchemy with chapter numbering computed via _compute_chapter_offset() that sums max local chapter numbers from earlier volumes structure_json.",
+  "relevant_files": [
+    {
+      "path": "frontend/src/services/chapterStore.ts",
+      "relevance": 1,
+      "rationale": "The central chapter cache. Contains invalidateProjectChapters() which sets stale=true, and loadProjectChapterMeta() which respects the stale flag but is only called on mount. The gap between marking stale and actually refetching is the root cause of bug 1.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "createChapterStore",
+        "invalidateProjectChapters",
+        "loadProjectChapterMeta",
+        "replaceProjectMeta",
+        "subscribeMeta"
+      ],
+      "key_code": [
+        {
+          "symbol": "invalidateProjectChapters()",
+          "location": "L330-L337",
+          "description": "Sets meta cache to stale=true and emits to subscribers. Triggers React re-render but no code calls loadMeta. CACHE-001 added this but only marks stale."
+        },
+        {
+          "symbol": "loadMeta()",
+          "location": "L223-L252",
+          "description": "Fetches chapter meta from API. Skips if data exists AND is NOT stale. When stale=true it WILL refetch but only if called. useChapterMetaList only calls on mount."
+        },
+        {
+          "symbol": "replaceProjectMeta()",
+          "location": "L143-L157",
+          "description": "Replaces all chapter meta, sorts by number, drops stale details, emits to subscribers."
+        },
+        {
+          "symbol": "subscribeMeta()",
+          "location": "L357-L366",
+          "description": "Registers listener for meta changes. Used by useSyncExternalStore in useChapterMetaList."
+        }
+      ],
+      "topic_relation": "Core data store. invalidation-without-refetch pattern is the architectural gap causing bug 1."
+    },
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "relevance": 1,
+      "rationale": "React bridge between chapterStore and components. Uses useSyncExternalStore. Calls loadProjectChapterMeta only once on mount (L44-46). Exposes stale flag and refresh() but nothing auto-calls refresh when stale becomes true.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterMetaList",
+        "subscribe",
+        "getSnapshot",
+        "refresh"
+      ],
+      "key_code": [
+        {
+          "symbol": "useEffect with loadProjectChapterMeta",
+          "location": "L43-L46",
+          "description": "Calls loadProjectChapterMeta once on mount. Writing page stays mounted via PersistentOutlet so only fires once."
+        },
+        {
+          "symbol": "refresh()",
+          "location": "L59-L62",
+          "description": "Wraps loadProjectChapterMeta with force:true. Available but not auto-invoked on stale."
+        }
+      ],
+      "topic_relation": "Missing link: detects stale via useSyncExternalStore but has no useEffect to auto-refetch. Adding stale-reactive useEffect fixes bug 1."
+    },
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "relevance": 0.95,
+      "rationale": "Contains createChapters() (L377-L419) and generateChapterSkeleton() (L265-L328). Both call invalidateProjectChapters() but neither calls markWizardProjectChanged().",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useDetailedOutlineState",
+        "createChapters",
+        "generateChapterSkeleton"
+      ],
+      "key_code": [
+        {
+          "symbol": "createChapters()",
+          "location": "L377-L419",
+          "description": "Creates chapters from detailed outline. Calls invalidateProjectChapters() but NOT markWizardProjectChanged()."
+        },
+        {
+          "symbol": "generateChapterSkeleton()",
+          "location": "L265-L328",
+          "description": "SSE skeleton generation. Calls invalidateProjectChapters(). Same issue: only marks stale."
+        }
+      ],
+      "topic_relation": "Producer side of bug: creates chapters and invalidates cache but signal does not propagate to refetch."
+    },
+    {
+      "path": "frontend/src/pages/writing/useWritingPageState.ts",
+      "relevance": 0.9,
+      "rationale": "Orchestrates all writing page state. Lines 148-156 have outlet-active refresh effect checking getWizardProjectChangedAt() but never set by outline page flows.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useWritingPageState",
+        "refreshChapters",
+        "refreshWriting",
+        "outletActive"
+      ],
+      "key_code": [
+        {
+          "symbol": "outlet-active refresh effect",
+          "location": "L148-L156",
+          "description": "When outletActive changes and changedAt differs, calls refreshWriting(), refreshChapters(). But outline page does NOT call markWizardProjectChanged()."
+        },
+        {
+          "symbol": "chaptersQuery via useChapterEditor",
+          "location": "L113-L138",
+          "description": "Chapters list from useChapterEditor -> useChapterMetaList. refreshChapters is loadProjectChapterMeta with force:true."
+        }
+      ],
+      "topic_relation": "Writing page has refresh infrastructure but outline page invalidation signal does not reach it."
+    },
+    {
+      "path": "frontend/src/pages/writing/useChapterEditor.ts",
+      "relevance": 0.85,
+      "rationale": "Uses useChapterMetaList (L57) for chapter list. Exposes refreshChapters (L59).",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterEditor",
+        "chaptersQuery",
+        "refreshChapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "chaptersQuery = useChapterMetaList(projectId)",
+          "location": "L57",
+          "description": "Data source for writing page chapter list. Fix to useChapterMetaList propagates here."
+        }
+      ],
+      "topic_relation": "Wraps useChapterMetaList. Fix should target useChapterMetaList."
+    },
+    {
+      "path": "frontend/src/components/layout/AppShell.tsx",
+      "relevance": 0.85,
+      "rationale": "PersistentOutlet (L116-L177) keeps /writing mounted. Line 105: ONLY /writing whitelisted for persistent caching.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "PersistentOutlet",
+        "PERSISTENT_OUTLET_CACHE_WHITELIST"
+      ],
+      "key_code": [
+        {
+          "symbol": "PERSISTENT_OUTLET_CACHE_WHITELIST",
+          "location": "L105",
+          "description": "Only /projects/:id/writing cached. Writing page stays mounted, useEffect loadProjectChapterMeta will not re-fire."
+        },
+        {
+          "symbol": "PersistentOutlet render",
+          "location": "L159-L177",
+          "description": "Cached outlets: display:none when not active. useSyncExternalStore subscriptions active but nothing reacts to stale."
+        }
+      ],
+      "topic_relation": "PersistentOutlet is architectural cause of bug 1: keeps writing page mounted."
+    },
+    {
+      "path": "frontend/src/pages/writing/useOutlineSwitcher.ts",
+      "relevance": 0.8,
+      "rationale": "Correct pattern: invalidateProjectChapters() AND refreshChapters() AND markWizardProjectChanged() (L55-L59).",
+      "role": "pattern_reference",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useOutlineSwitcher",
+        "markWizardProjectChanged",
+        "invalidateProjectChapters",
+        "refreshChapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "outline switch handler",
+          "location": "L50-L62",
+          "description": "Gold standard: markWizardProjectChanged + invalidateProjectChapters + refreshWriting + refreshChapters + refreshWizard."
+        }
+      ],
+      "topic_relation": "Reference pattern for correct invalidation. Reveals what createChapters is missing."
+    },
+    {
+      "path": "frontend/src/hooks/useProjectData.ts",
+      "relevance": 0.6,
+      "rationale": "Generic data fetching hook. Manual refresh() only, no automatic invalidation.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useProjectData",
+        "refresh"
+      ]
+    },
+    {
+      "path": "frontend/src/services/chaptersApi.ts",
+      "relevance": 0.5,
+      "rationale": "HTTP API layer for chapters with cursor-based pagination.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "fetchAllChapterMeta",
+        "fetchChapterDetail"
+      ]
+    },
+    {
+      "path": "frontend/src/services/wizard.ts",
+      "relevance": 0.5,
+      "rationale": "markWizardProjectChanged() (L133) sets localStorage timestamp. Writing page checks this. Outline page does NOT call it.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "markWizardProjectChanged",
+        "getWizardProjectChangedAt"
+      ]
+    },
+    {
+      "path": "frontend/src/pages/writing/useChapterCrud.ts",
+      "relevance": 0.5,
+      "rationale": "Writing page CRUD. Correct: createProjectChapter() auto-updates meta via upsertMetaItem() plus markWizardProjectChanged().",
+      "role": "pattern_reference",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterCrud",
+        "createChapter"
+      ]
+    },
+    {
+      "path": "frontend/src/hooks/usePersistentOutlet.tsx",
+      "relevance": 0.4,
+      "rationale": "usePersistentOutletIsActive() for outlet-active refresh gating.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "usePersistentOutletIsActive"
+      ]
+    },
+    {
+      "path": "frontend/src/hooks/useChapterDetail.ts",
+      "relevance": 0.4,
+      "rationale": "Chapter detail subscription hook. Same pattern as useChapterMetaList, no auto-refetch on stale.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterDetail"
+      ]
+    },
+    {
+      "path": "frontend/src/services/detailedOutlinesApi.ts",
+      "relevance": 0.35,
+      "rationale": "API for createChaptersFromDetailedOutline() backend chapter creation.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "createChaptersFromDetailedOutline"
+      ]
+    },
+    {
+      "path": "backend/app/services/detailed_outline_generation/app_service.py",
+      "relevance": 0.85,
+      "rationale": "create_chapters_from_detailed_outline() (L666-L797) and _compute_chapter_offset() (L640-L663). Offset sums max(local_chapter_numbers) from earlier volumes.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "create_chapters_from_detailed_outline",
+        "_compute_chapter_offset",
+        "_extract_positive_chapter_numbers"
+      ],
+      "key_code": [
+        {
+          "symbol": "_compute_chapter_offset()",
+          "location": "L640-L663",
+          "description": "Computes global offset by summing max(chapter_numbers) from earlier volumes. Volume 1 [1..6] max=6, volume 2 offset=6, chapter 1 becomes global 7."
+        },
+        {
+          "symbol": "create_chapters_from_detailed_outline()",
+          "location": "L666-L797",
+          "description": "Creates Chapter DB records. global_number = offset + local_number. Gap bug: offset wrong or local numbers not starting at 1."
+        }
+      ],
+      "topic_relation": "Chapter numbering offset from stored structure_json. Unexpected chapter numbers produce gaps."
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "relevance": 0.7,
+      "rationale": "SSE skeleton generation with duplicated _compute_chapter_offset() (L119-L137) and _create_chapter_records() (L419-L513).",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "_compute_chapter_offset",
+        "_create_chapter_records"
+      ],
+      "key_code": [
+        {
+          "symbol": "_compute_chapter_offset()",
+          "location": "L119-L137",
+          "description": "Identical to app_service version. Duplication means fix applied in both."
+        },
+        {
+          "symbol": "_create_chapter_records()",
+          "location": "L419-L513",
+          "description": "Creates records with offset-adjusted numbers. number = chapter_offset + local_number."
+        }
+      ],
+      "topic_relation": "Second code path with duplicated offset logic."
+    },
+    {
+      "path": "backend/tests/test_multi_volume_chapter_numbering.py",
+      "relevance": 0.7,
+      "rationale": "Tests for multi-volume numbering: contiguous, sparse, replace, conflict detection.",
+      "role": "test_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "TestMultiVolumeChapterNumbering"
+      ],
+      "key_code": [
+        {
+          "symbol": "test_uses_max_local_number_for_offset",
+          "location": "L155-L191",
+          "description": "Volume 1 chapters [1,3] max=3, volume 2 starts at 4. Confirms max-based offset."
+        }
+      ],
+      "topic_relation": "Tests validate numbering. Pass with current logic; bug 2 may be data issue."
+    },
+    {
+      "path": "backend/app/api/routes/detailed_outlines.py",
+      "relevance": 0.55,
+      "rationale": "API route for create_chapters (L515-L601) and generate_chapters_stream.",
+      "role": "integration_point",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "create_chapters",
+        "generate_chapters_stream"
+      ]
+    }
+  ],
+  "patterns": "State management: (1) Custom chapterStore with Map caches, subscription/emit, useSyncExternalStore bridge. No React Query. (2) Two-phase invalidation: stale=true then separate loadMeta call. (3) PersistentOutlet keeps writing page mounted so mount-based effects skip. (4) Correct pattern (useOutlineSwitcher): markWizardProjectChanged + invalidateProjectChapters + refreshChapters(). (5) Backend numbering: max-of-local-numbers offset.",
+  "dependencies": "Frontend: React 18 with useSyncExternalStore. react-router-dom with persistent outlet. No state management library. Backend: FastAPI + SQLAlchemy. Chapter numbering from DetailedOutline.structure_json.",
+  "integration_points": "Bug 1: createChapters() and generateChapterSkeleton() call invalidateProjectChapters() but useChapterMetaList does not auto-refetch on stale. Bug 2: structure_json local numbers fed to _compute_chapter_offset() max-based offset.",
+  "constraints": "1. PersistentOutlet keeps writing page mounted. 2. chapterStore is singleton. 3. Stale flag exists but no auto-refetch consumer. 4. Max-based offset so sparse local numbers create gaps. 5. Duplicated _compute_chapter_offset. 6. CACHE-001 added invalidation but not refetch.",
+  "clarification_needs": [
+    {
+      "question": "For bug 1, fix in useChapterMetaList (auto-refetch on stale) or useDetailedOutlineState (add markWizardProjectChanged)?",
+      "context": "Strategy A: auto-refetch on stale fixes all paths. Strategy B: markWizardProjectChanged fixes only these two paths.",
+      "options": [
+        "Strategy A: Add auto-refetch useEffect in useChapterMetaList when stale becomes true",
+        "Strategy B: Add markWizardProjectChanged() to outline chapter creation paths",
+        "Both: Auto-refetch in useChapterMetaList AND markWizardProjectChanged in outline paths"
+      ],
+      "recommended": 2
+    },
+    {
+      "question": "For bug 2, offset logic issue or LLM-generated structure_json data issue?",
+      "context": "Offset uses max(local_numbers). Volume 1 [1..6] offset=6, volume 2 starts 7. If LLM generates up to 7, offset=7, volume 2 starts 8.",
+      "options": [
+        "Defensive renumbering: renumber local chapters as 1..N",
+        "Fix offset to use count instead of max",
+        "Inspect actual structure_json data first"
+      ],
+      "recommended": 2
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-04-03T19:28:00+08:00",
+    "task_description": "Fix two bugs: (1) After outline generates chapters, writing page cache does not refresh (2) Cross-volume chapter numbering gap after volume 1 with 6 chapters, volume 2 starts from #8",
+    "source": "cli-explore-agent",
+    "exploration_angle": "state-management",
+    "exploration_index": 2,
+    "total_explorations": 3
+  }
+}

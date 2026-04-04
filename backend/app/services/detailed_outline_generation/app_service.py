@@ -657,7 +657,7 @@ def _compute_chapter_offset(db: Session, detail: DetailedOutline) -> int:
         try:
             structure = json.loads(vol.structure_json)
             chapters = structure.get("chapters") if isinstance(structure, dict) else None
-            offset += max(_extract_positive_chapter_numbers(chapters), default=0)
+            offset += len(_extract_positive_chapter_numbers(chapters))
         except Exception:
             pass
     return offset
@@ -694,7 +694,8 @@ def create_chapters_from_detailed_outline(
         )
 
     offset = _compute_chapter_offset(db, detail)
-    target_numbers = {offset + number for number in _extract_positive_chapter_numbers(chapters_raw)}
+    raw_numbers = _extract_positive_chapter_numbers(chapters_raw)
+    target_numbers = {offset + (i + 1) for i in range(len(raw_numbers))}
     target_numbers_text = _format_chapter_numbers(target_numbers)
 
     if replace and target_numbers:
@@ -749,18 +750,24 @@ def create_chapters_from_detailed_outline(
                 status_code=409,
             )
 
+    # Sort chapters by their raw number to maintain order, then assign sequential local indices
+    sorted_chapters = sorted(
+        [ch for ch in chapters_raw if isinstance(ch, dict)],
+        key=lambda c: int(c.get("number", 0)) if isinstance(c.get("number"), (int, float, str)) else 0,
+    )
+
     created: list[dict] = []
-    for ch_raw in chapters_raw:
-        if not isinstance(ch_raw, dict):
-            continue
+    local_idx = 0
+    for ch_raw in sorted_chapters:
         try:
-            local_number = int(ch_raw.get("number", 0))
+            raw_number = int(ch_raw.get("number", 0))
         except (TypeError, ValueError):
             continue
-        if local_number <= 0:
+        if raw_number <= 0:
             continue
 
-        global_number = offset + local_number
+        local_idx += 1
+        global_number = offset + local_idx
 
         title = str(ch_raw.get("title") or "")
         summary_text = str(ch_raw.get("summary") or "")

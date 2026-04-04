@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "session_id": "WFS-outline-to-detailed-outline-refactor",
+    "created_at": "2026-04-02T11:00:00Z",
+    "task_description": "重构大纲→章节流程，增加细纲中间层"
+  },
+  "prioritized_context": {
+    "user_intent": {
+      "goal": "增加细纲中间层: 大纲→细纲→章节骨架→正文",
+      "scope": "Frontend UI, Backend API, Database, Prompt System, Agent System",
+      "key_constraints": [
+        "保留现有功能",
+        "学习已有UI设计风格",
+        "参考MOSS三层规划体系",
+        "两条路径: 默认生成 + 智能解析"
+      ]
+    },
+    "priority_tiers": {
+      "critical": [
+        {"path": "backend/app/models/outline.py", "relevance": 0.95, "rationale": "大纲数据模型，需扩展支持卷结构"},
+        {"path": "backend/app/models/chapter.py", "relevance": 0.95, "rationale": "章节模型，plan字段已存在但需关联细纲"},
+        {"path": "backend/app/services/outline_generation/app_service.py", "relevance": 0.95, "rationale": "大纲生成服务，需增加细纲生成流程"},
+        {"path": "frontend/src/pages/outline/OutlinePage.tsx", "relevance": 0.95, "rationale": "大纲页面主组件，需增加细纲Tab/区域"},
+        {"path": "frontend/src/pages/outline/useOutlinePageState.ts", "relevance": 0.95, "rationale": "大纲状态管理，需增加细纲状态"},
+        {"path": "backend/app/services/outline_parsing_agent/coordinator.py", "relevance": 0.90, "rationale": "智能解析协调器，需增加细纲解析Agent"}
+      ],
+      "high": [
+        {"path": "backend/app/api/routes/outline.py", "relevance": 0.85, "rationale": "大纲API路由，需增加细纲生成端点"},
+        {"path": "backend/app/api/routes/chapters.py", "relevance": 0.85, "rationale": "章节API，需修改bulk_create从细纲创建"},
+        {"path": "backend/app/schemas/outline.py", "relevance": 0.85, "rationale": "大纲Schema需扩展"},
+        {"path": "backend/app/schemas/chapters.py", "relevance": 0.85, "rationale": "章节Schema已有plan字段"},
+        {"path": "frontend/src/pages/outline/OutlinePageSections.tsx", "relevance": 0.85, "rationale": "UI区域组件"},
+        {"path": "backend/app/services/chapter_generation/prepare_service.py", "relevance": 0.85, "rationale": "章节生成准备，需注入细纲上下文"},
+        {"path": "backend/app/services/chapter_context_service.py", "relevance": 0.85, "rationale": "上下文构建，需增加细纲前后文"},
+        {"path": "backend/app/resources/prompt_presets/", "relevance": 0.85, "rationale": "提示词预设，需增加细纲生成预设"}
+      ],
+      "medium": [
+        {"path": "frontend/src/pages/outline/useOutlineGenerationState.ts", "relevance": 0.75, "rationale": "生成状态，需修改为生成细纲"},
+        {"path": "frontend/src/pages/outline/useOutlineParsingState.ts", "relevance": 0.75, "rationale": "解析状态，需增加细纲Agent显示"},
+        {"path": "backend/app/services/outline_parsing_agent/agents/", "relevance": 0.75, "rationale": "需增加细纲提取Agent"},
+        {"path": "backend/app/services/generation_pipeline.py", "relevance": 0.70, "rationale": "生成管线需适配细纲"},
+        {"path": "backend/app/services/prompt_preset_render.py", "relevance": 0.70, "rationale": "提示词渲染需支持细纲变量"}
+      ]
+    },
+    "dependency_order": ["database", "backend-api", "prompt-system", "agent-system", "frontend-ui"]
+  },
+  "current_architecture": {
+    "outline_model": {
+      "table": "outlines",
+      "fields": ["id", "project_id", "title", "content_md", "structure_json"],
+      "structure_json_format": {"chapters": [{"number": "int", "title": "str", "beats": ["str"]}]}
+    },
+    "chapter_model": {
+      "table": "chapters",
+      "fields": ["id", "project_id", "outline_id", "number", "title", "plan", "content_md", "summary", "status"],
+      "note": "plan字段已存在（细纲占位），但当前未被充分利用"
+    },
+    "current_flow": "大纲(outline) → 章节骨架(bulk_create) → 正文(chapter_generate)",
+    "target_flow": "大纲(outline) → 细纲(detailed_outline) → 章节骨架(bulk_create with plans) → 正文(chapter_generate with context)"
+  },
+  "reference_patterns": {
+    "moss_three_layer": {
+      "strategic": "全书级大纲 - 卷划分、主线、角色蓝图",
+      "campaign": "战役规划(细纲) - 每20-50章，阶段目标、伏笔管理、数值预算",
+      "tactical": "战术规划(章节骨架) - 每1-5章，场景设计、人物行动、钩子设计"
+    }
+  },
+  "conflict_detection": {
+    "risk_level": "low",
+    "notes": "现有plan字段和plan_first功能可以复用，主要是新增细纲层"
+  }
+}

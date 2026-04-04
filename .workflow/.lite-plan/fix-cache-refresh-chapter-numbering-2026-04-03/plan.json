@@ -1,0 +1,12 @@
+{
+  "summary": "Fix two bugs: (1) writing page cache auto-refetch after outline creates chapters (2) cross-volume chapter numbering gap",
+  "approach": "Bug 1: Add stale-watching useEffect in useChapterMetaList. Bug 2: Change offset calculation to count-based and normalize local numbers to 1-based sequential in both app_service.py and stream_service.py",
+  "complexity": "Medium",
+  "estimated_time": "30min",
+  "recommended_execution": "Agent",
+  "task_ids": ["TASK-001", "TASK-002"],
+  "_metadata": {
+    "exploration_angles": ["dataflow", "state-management", "edge-cases"],
+    "session_id": "fix-cache-refresh-chapter-numbering-2026-04-03"
+  }
+}

@@ -1,0 +1,270 @@
+{
+  "project_structure": "Full-stack app: React SPA frontend (Vite + TypeScript + React Router) with FastAPI/SQLAlchemy backend. Frontend uses a custom in-memory chapterStore (pub-sub pattern with useSyncExternalStore) for chapter data caching, and useProjectData hooks for per-page data loading. Pages are loaded as persistent outlets (kept alive) and detect cross-page data changes via localStorage timestamps (wizard.ts markWizardProjectChanged / getWizardProjectChangedAt). The outline page has DetailedOutlineSection with chapter skeleton generation (streaming SSE). The writing page loads chapter data from chapterStore which has stale-check logic.",
+  "relevant_files": [
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "relevance": 1,
+      "rationale": "Contains generateChapterSkeleton() at L265-L326 which is the streaming chapter skeleton generation function. After SSE completes, it refreshes the detailed outline list and selected item, but does NOT call chapterStore.invalidateProjectChapters() or markWizardProjectChanged(). This is the primary bug location.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "generateChapterSkeleton",
+        "createChapters",
+        "chapterStore",
+        "refresh"
+      ],
+      "key_code": [
+        {
+          "symbol": "generateChapterSkeleton()",
+          "location": "L265-L326",
+          "description": "SSE streaming chapter skeleton generation. After backend creates chapters via _create_chapter_records(), this function calls refresh() and getDetailedOutline() but NEVER calls chapterStore.invalidateProjectChapters(). This is the root cause of stale writing page data."
+        },
+        {
+          "symbol": "createChapters()",
+          "location": "L375-L417",
+          "description": "Non-streaming chapter creation path. The previous fix (commit bc36a2a) correctly added chapterStore.invalidateProjectChapters() here at L389 and L406, but the streaming path (generateChapterSkeleton) was missed."
+        }
+      ],
+      "topic_relation": "Dataflow analysis shows this file is the origin of the stale cache bug: generateChapterSkeleton creates chapters server-side but never signals the chapterStore to invalidate its cache, so the writing page reads stale (empty) data."
+    },
+    {
+      "path": "frontend/src/services/chapterStore.ts",
+      "relevance": 0.95,
+      "rationale": "Central chapter data cache with invalidateProjectChapters() at L330 which marks meta snapshot as stale. The writing page useChapterMetaList subscribes to this store. When stale=true, loadProjectChapterMeta will force-refetch from API.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "invalidateProjectChapters",
+        "loadProjectChapterMeta",
+        "loadChapterDetail",
+        "subscribeMeta"
+      ],
+      "key_code": [
+        {
+          "symbol": "invalidateProjectChapters()",
+          "location": "L330-L337",
+          "description": "Marks meta cache as stale and optionally drops detail caches. When called, subscribeMeta listeners fire, triggering re-render in useChapterMetaList."
+        },
+        {
+          "symbol": "loadProjectChapterMeta()",
+          "location": "L223-L252",
+          "description": "Returns cached data if not stale and not forced. Key line L225: cache bypass only when stale=true."
+        }
+      ],
+      "topic_relation": "Dataflow identifies this store as the caching layer causing staleness. Its invalidation mechanism is the designed solution but not invoked from skeleton generation."
+    },
+    {
+      "path": "frontend/src/services/wizard.ts",
+      "relevance": 0.85,
+      "rationale": "Contains markWizardProjectChanged() at L133 which writes a localStorage timestamp and emits a custom DOM event. The writing page reads this timestamp on activation to detect cross-page changes.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "markWizardProjectChanged",
+        "getWizardProjectChangedAt",
+        "emitWizardProgressInvalidated"
+      ],
+      "key_code": [
+        {
+          "symbol": "markWizardProjectChanged()",
+          "location": "L133-L136",
+          "description": "Writes ISO timestamp to localStorage and dispatches ainovel:wizard:progress_invalidated custom event with refresh=true. Cross-page change notification mechanism."
+        },
+        {
+          "symbol": "getWizardProjectChangedAt()",
+          "location": "L138-L140",
+          "description": "Reads localStorage timestamp. Writing page compares against cached value to detect changes."
+        }
+      ],
+      "topic_relation": "Dataflow identifies this as the second missing signal: markWizardProjectChanged() is the cross-page notification. Writing page useEffect at L148-L156 compares changedAt timestamps, but skeleton generation never calls it."
+    },
+    {
+      "path": "frontend/src/pages/writing/useWritingPageState.ts",
+      "relevance": 0.85,
+      "rationale": "Writing page state orchestrator. Contains useEffect at L148-L156 that detects cross-page changes via getWizardProjectChangedAt() comparison and triggers refreshChapters(). Consumer side of stale data.",
+      "role": "integration_point",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useWritingPageState",
+        "writingQuery",
+        "refreshChapters",
+        "refreshWriting"
+      ],
+      "key_code": [
+        {
+          "symbol": "cross-page change detection useEffect",
+          "location": "L148-L156",
+          "description": "Detects page activation and compares localStorage changedAt timestamp. If changed, calls refreshWriting(), refreshChapters(), refreshWizard()."
+        },
+        {
+          "symbol": "useChapterEditor initialization",
+          "location": "L113-L138",
+          "description": "Creates chapter editor with useChapterMetaList subscription. Chapters from chapterStore. If not invalidated, shows stale list."
+        }
+      ],
+      "topic_relation": "Dataflow shows this is the data consumer. Two refresh mechanisms: (1) chapterStore.invalidateProjectChapters triggers subscribeMeta, (2) wizard changedAt triggers refreshChapters. Neither activated by generateChapterSkeleton."
+    },
+    {
+      "path": "frontend/src/pages/writing/useChapterEditor.ts",
+      "relevance": 0.75,
+      "rationale": "Contains useChapterMetaList(projectId) at L57 subscribing to chapterStore. Also chapter detail loading via chapterStore.loadChapterDetail at L125.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterEditor",
+        "useChapterMetaList",
+        "loadChapterDetail",
+        "refreshChapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "chaptersQuery = useChapterMetaList(projectId)",
+          "location": "L57",
+          "description": "Subscribes to chapterStore meta snapshots. When invalidateProjectChapters marks stale=true, auto-triggers loadProjectChapterMeta."
+        }
+      ],
+      "topic_relation": "Dataflow shows this hook bridges chapterStore to writing page UI. Makes chapterStore.invalidateProjectChapters() the most direct fix path."
+    },
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "relevance": 0.75,
+      "rationale": "React hook wrapping chapterStore subscription via useSyncExternalStore. On mount calls chapterStore.loadProjectChapterMeta at L45.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterMetaList",
+        "subscribeMeta",
+        "getMetaSnapshot",
+        "loadProjectChapterMeta"
+      ],
+      "key_code": [
+        {
+          "symbol": "useSyncExternalStore(subscribe, getSnapshot, getSnapshot)",
+          "location": "L41",
+          "description": "React 18 subscription. When emitMeta fires (triggered by invalidateProjectChapters), forces re-render."
+        }
+      ],
+      "topic_relation": "Link between chapterStore invalidation signals and React UI updates."
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "relevance": 0.7,
+      "rationale": "Backend service creating chapter records via _create_chapter_records() at L419-L513. After SSE, new Chapter rows committed to DB.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "generate_chapter_skeleton_stream_events",
+        "_create_chapter_records"
+      ],
+      "key_code": [
+        {
+          "symbol": "_create_chapter_records()",
+          "location": "L419-L513",
+          "description": "Creates Chapter ORM records in database. Commits at L512. Records in DB but frontend cache unaware."
+        }
+      ],
+      "topic_relation": "Confirms backend creates DB records during SSE stream. Cache invalidation gap is frontend-side."
+    },
+    {
+      "path": "backend/app/api/routes/detailed_outlines.py",
+      "relevance": 0.6,
+      "rationale": "API route with generate_chapters_stream endpoint at L646 and create_chapters at L515.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "generate_chapters_stream",
+        "create_chapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "generate_chapters_stream()",
+          "location": "L646-L709",
+          "description": "POST /detailed_outlines/{id}/generate_chapters_stream - SSE endpoint called by frontend."
+        }
+      ],
+      "topic_relation": "API layer between frontend and backend. Confirms chapters created server-side during streaming."
+    },
+    {
+      "path": "frontend/src/services/detailedOutlinesApi.ts",
+      "relevance": 0.5,
+      "rationale": "TypeScript API client for detailed outlines. Defines ChapterSkeletonGenerateRequest type at L98-L107.",
+      "role": "type_definition",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "ChapterSkeletonGenerateRequest",
+        "createChaptersFromDetailedOutline",
+        "DetailedOutline"
+      ]
+    },
+    {
+      "path": "frontend/src/pages/writing/useOutlineSwitcher.ts",
+      "relevance": 0.5,
+      "rationale": "Shows correct cache invalidation pattern: chapterStore.invalidateProjectChapters at L57 plus markWizardProjectChanged at L55. Reference pattern for the fix.",
+      "role": "pattern_reference",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useOutlineSwitcher",
+        "invalidateProjectChapters",
+        "markWizardProjectChanged"
+      ]
+    },
+    {
+      "path": "frontend/src/hooks/useProjectData.ts",
+      "relevance": 0.4,
+      "rationale": "Generic project data hook used by useWritingPageState. refresh() called in cross-page change detection.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useProjectData",
+        "refresh"
+      ]
+    },
+    {
+      "path": "frontend/src/pages/outline/useOutlinePageState.ts",
+      "relevance": 0.4,
+      "rationale": "Outline page state orchestrator creating useDetailedOutlineState at L363.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useOutlinePageState",
+        "useDetailedOutlineState"
+      ]
+    },
+    {
+      "path": "frontend/src/services/chaptersApi.ts",
+      "relevance": 0.35,
+      "rationale": "Low-level chapter CRUD API functions called by chapterStore transport.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "fetchAllChapterMeta",
+        "fetchChapterDetail"
+      ]
+    }
+  ],
+  "patterns": "Cache invalidation pattern: (1) chapterStore.invalidateProjectChapters(projectId) marks meta stale=true, triggers subscribeMeta listeners re-rendering useChapterMetaList; (2) markWizardProjectChanged(projectId) writes localStorage timestamp + dispatches DOM event, detected by writing page useEffect on activation. Both should fire after chapter-creating ops. createChapters follows pattern (commit bc36a2a). useOutlineSwitcher follows at L55-L58. generateChapterSkeleton is the only chapter-creating path missing both signals.",
+  "dependencies": "Frontend: useDetailedOutlineState.ts -> chapterStore.ts (imported L17, used in createChapters but NOT generateChapterSkeleton). useDetailedOutlineState.ts -> wizard.ts (NOT imported). chapterStore.ts -> chaptersApi.ts. useChapterMetaList.ts -> chapterStore.ts. useWritingPageState.ts -> useChapterEditor.ts -> useChapterMetaList.ts -> chapterStore.ts. useWritingPageState.ts -> wizard.ts. Backend: detailed_outlines.py -> stream_service.py -> Chapter model.",
+  "integration_points": "Fix at useDetailedOutlineState.ts generateChapterSkeleton(): (1) after refresh() add chapterStore.invalidateProjectChapters(projectId), (2) add markWizardProjectChanged(projectId) import from wizard.ts. chapterStore already imported L17. projectId available from hook args. Must add projectId to useCallback deps.",
+  "constraints": "1. generateChapterSkeleton depends on [refresh, toast] -- must add projectId. 2. chapterStore imported at L17. 3. markWizardProjectChanged needs new import from wizard.ts. 4. Mirror createChapters pattern: if (projectId) chapterStore.invalidateProjectChapters(projectId). 5. Handle ABORTED case at L310-L314 (partial generation may create chapters).",
+  "clarification_needs": [
+    {
+      "question": "Should the fix also call markWizardProjectChanged(projectId) in addition to chapterStore.invalidateProjectChapters()?",
+      "context": "createChapters only calls invalidateProjectChapters. Writing page has two refresh paths: (1) chapterStore subscription (immediate) and (2) wizard changedAt (on activation). Both ensure different navigation scenarios.",
+      "options": [
+        "Add only chapterStore.invalidateProjectChapters (match createChapters)",
+        "Add both invalidateProjectChapters and markWizardProjectChanged (recommended)",
+        "Add both plus backfill markWizardProjectChanged to createChapters for consistency"
+      ],
+      "recommended": 1
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-04-03T19:00:00+08:00",
+    "task_description": "Trace dataflow for bug: after generating chapter skeleton on detailed outline page, writing page shows stale data until manual refresh.",
+    "source": "cli-explore-agent",
+    "exploration_angle": "dataflow",
+    "exploration_index": 1,
+    "total_explorations": 1,
+    "duration_seconds": 120
+  }
+}

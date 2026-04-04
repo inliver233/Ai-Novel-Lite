@@ -1,0 +1,46 @@
+{
+  "task_id": "IMPL-001",
+  "title": "数据库模型 — 新增 detailed_outlines 表 + Alembic 迁移",
+  "description": "创建细纲(DetailedOutline)数据模型和数据库迁移脚本。这是整个细纲系统的基础。",
+  "status": "pending",
+  "depends_on": [],
+  "priority": "critical",
+  "estimated_complexity": "low",
+  "focus_paths": [
+    "backend/app/models/detailed_outline.py",
+    "backend/app/schemas/detailed_outline.py",
+    "backend/alembic/versions/"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "action": "创建 backend/app/models/detailed_outline.py",
+      "details": "新建 DetailedOutline 模型: id(String36 PK), outline_id(FK→outlines.id CASCADE), project_id(FK→projects.id CASCADE), volume_number(Integer), volume_title(String255), content_md(Text nullable), structure_json(Text nullable), status(String32 default='planned', values: planned/generating/done), created_at(DateTime), updated_at(DateTime)。UniqueConstraint(outline_id, volume_number)。索引: ix_detailed_outlines_outline_id, ix_detailed_outlines_project_id"
+    },
+    {
+      "step": 2,
+      "action": "创建 backend/app/schemas/detailed_outline.py",
+      "details": "定义 DetailedOutlineOut, DetailedOutlineCreate(volume_number, volume_title, content_md?, structure?), DetailedOutlineUpdate(volume_title?, content_md?, structure?, status?), DetailedOutlineListItem(id, outline_id, volume_number, volume_title, status, updated_at)。structure字段使用与outline相同的validate_json_chars验证"
+    },
+    {
+      "step": 3,
+      "action": "在 backend/app/models/__init__.py 注册模型",
+      "details": "导入 DetailedOutline 使 Alembic 能检测到"
+    },
+    {
+      "step": 4,
+      "action": "生成 Alembic 迁移",
+      "details": "运行 alembic revision --autogenerate -m 'add_detailed_outlines_table'，检查生成的迁移脚本"
+    }
+  ],
+  "acceptance_criteria": [
+    "DetailedOutline 模型可通过 SQLAlchemy 正常创建表",
+    "Alembic 迁移可正向执行和回滚",
+    "Schema 验证通过 Pydantic 校验",
+    "字段约束正确 (UniqueConstraint, 外键级联删除)"
+  ],
+  "convergence": {
+    "criteria": "数据库表创建成功，模型可正常 CRUD",
+    "verification": "alembic upgrade head 无报错"
+  }
+}

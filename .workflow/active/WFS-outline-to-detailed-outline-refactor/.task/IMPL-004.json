@@ -1,0 +1,45 @@
+{
+  "task_id": "IMPL-004",
+  "title": "后端API — 细纲 CRUD + 生成端点",
+  "description": "创建细纲相关的REST API路由：列表、详情、创建、更新、删除、生成(流式)、从细纲创建章节。",
+  "status": "pending",
+  "depends_on": ["IMPL-001", "IMPL-003"],
+  "priority": "critical",
+  "estimated_complexity": "medium",
+  "focus_paths": [
+    "backend/app/api/routes/detailed_outlines.py",
+    "backend/app/api/routes/__init__.py"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "action": "创建 backend/app/api/routes/detailed_outlines.py",
+      "details": "参照 outlines.py 路由风格，创建以下端点: GET /projects/{project_id}/outlines/{outline_id}/detailed_outlines (列表), POST /projects/{project_id}/outlines/{outline_id}/detailed_outlines (手动创建), GET /detailed_outlines/{detailed_outline_id} (详情), PUT /detailed_outlines/{detailed_outline_id} (更新), DELETE /detailed_outlines/{detailed_outline_id} (删除)"
+    },
+    {
+      "step": 2,
+      "action": "添加生成端点(流式SSE)",
+      "details": "POST /projects/{project_id}/outlines/{outline_id}/detailed_outlines/generate — 调用generate_all_detailed_outlines服务，返回SSE流。POST /projects/{project_id}/outlines/{outline_id}/detailed_outlines/{volume_number}/generate — 单卷重新生成"
+    },
+    {
+      "step": 3,
+      "action": "添加从细纲创建章节端点",
+      "details": "POST /detailed_outlines/{detailed_outline_id}/create_chapters — 调用create_chapters_from_detailed_outline服务，从细纲的structure_json提取章节信息创建Chapter记录。参数: replace(bool) 是否替换现有章节"
+    },
+    {
+      "step": 4,
+      "action": "注册路由到主app",
+      "details": "在 backend/app/api/routes/__init__.py 中注册 detailed_outlines router"
+    }
+  ],
+  "acceptance_criteria": [
+    "所有CRUD端点返回正确的HTTP状态码和响应格式",
+    "流式生成端点正确发送SSE事件",
+    "从细纲创建章节端点正确创建带plan字段的章节",
+    "遵循项目的API CONVENTIONS(ok_payload格式, 错误处理)"
+  ],
+  "convergence": {
+    "criteria": "所有API端点可通过HTTP客户端正常调用",
+    "verification": "curl/httpie 手动测试各端点"
+  }
+}

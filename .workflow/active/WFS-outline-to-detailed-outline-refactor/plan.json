@@ -1,0 +1,48 @@
+{
+  "session_id": "WFS-outline-to-detailed-outline-refactor",
+  "plan_version": "1.0",
+  "created_at": "2026-04-02T11:15:00Z",
+  "shared_context": {
+    "goal": "增加细纲中间层: 大纲→细纲→章节骨架→正文",
+    "tech_stack": {
+      "backend": "Python / FastAPI / SQLAlchemy / Alembic / SQLite",
+      "frontend": "TypeScript / React 19 / Vite / Tailwind CSS",
+      "llm": "Multi-provider (Anthropic/OpenAI/Gemini)",
+      "prompt_system": "Block-based preset with Jinja2 templates"
+    },
+    "constraints": [
+      "向后兼容: 无细纲时保留所有现有功能",
+      "遵循现有代码风格和API约定",
+      "SSE流式生成反馈",
+      "UI风格一致性"
+    ]
+  },
+  "execution_phases": [
+    {
+      "phase": "A",
+      "name": "Foundation",
+      "parallel": true,
+      "tasks": ["IMPL-001", "IMPL-002"]
+    },
+    {
+      "phase": "B",
+      "name": "Core Services",
+      "parallel": true,
+      "tasks": ["IMPL-003", "IMPL-005"]
+    },
+    {
+      "phase": "C",
+      "name": "Integration",
+      "parallel": true,
+      "tasks": ["IMPL-004", "IMPL-006"]
+    },
+    {
+      "phase": "D",
+      "name": "Frontend",
+      "parallel": false,
+      "tasks": ["IMPL-007"]
+    }
+  ],
+  "total_tasks": 7,
+  "executor": "agent"
+}

@@ -1,0 +1,19 @@
+{
+  "session_id": "ccw-bugfix-20260403",
+  "workflow": "bugfix.standard",
+  "status": "completed",
+  "created_at": "2026-04-03T00:00:00Z",
+  "updated_at": "2026-04-03T00:01:00Z",
+  "analysis": {
+    "goal": "Fix two bugs: (1) writing page cache not refreshing after outline generates chapters (2) chapter numbering discontinuity across volumes",
+    "scope": ["outline", "writing"],
+    "constraints": ["must find root cause before fixing"],
+    "task_type": "bugfix",
+    "complexity": "medium"
+  },
+  "command_chain": [
+    { "index": 0, "command": "workflow-lite-plan", "status": "completed" },
+    { "index": 1, "command": "workflow-test-fix", "status": "completed" }
+  ],
+  "current_index": 0
+}

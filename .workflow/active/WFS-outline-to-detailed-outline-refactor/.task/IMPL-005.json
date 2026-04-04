@@ -1,0 +1,58 @@
+{
+  "task_id": "IMPL-005",
+  "title": "智能解析Agent — 新增细纲提取Agent",
+  "description": "在智能解析管线中增加细纲提取Agent，使解析流程可以从非结构化文本中提取卷级细纲信息。更新PlannerAgent的任务分解逻辑以支持细纲任务。",
+  "status": "pending",
+  "depends_on": ["IMPL-001"],
+  "priority": "high",
+  "estimated_complexity": "medium",
+  "focus_paths": [
+    "backend/app/services/outline_parsing_agent/agents/",
+    "backend/app/services/outline_parsing_agent/prompts/",
+    "backend/app/services/outline_parsing_agent/coordinator.py",
+    "backend/app/services/outline_parsing_agent/models.py"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "action": "创建细纲提取Agent提示词",
+      "details": "新建 prompts/detailed_outline_system.md 和 prompts/detailed_outline_user.md。系统提示词定义角色为'小说细纲结构化提取专家'，任务是从原始文本中识别卷级结构并提取每卷的详细章节规划。输出格式: {detailed_outlines: [{volume_number, volume_title, volume_summary, chapters: [{number, title, summary, beats[], characters[], foreshadowing[]}]}]}"
+    },
+    {
+      "step": 2,
+      "action": "更新 PlannerAgent 任务分解逻辑",
+      "details": "修改 prompts/planner_system.md，增加'detailed_outline'任务类型。当检测到文本包含卷级结构时(volumes/卷/第X卷等标记)，自动在task_plan中添加detailed_outline类型的子任务。更新复杂度评估逻辑"
+    },
+    {
+      "step": 3,
+      "action": "更新 models.py",
+      "details": "在SubTask.type中增加'detailed_outline'类型。在ParseResult中增加 detailed_outlines: list[ParsedDetailedOutline] 字段。定义ParsedDetailedOutline数据类"
+    },
+    {
+      "step": 4,
+      "action": "更新 coordinator.py",
+      "details": "在动态Agent分发逻辑中支持type='detailed_outline'的子任务。合并细纲提取结果到最终ParseResult。更新SSE事件发送以包含细纲Agent的进度"
+    },
+    {
+      "step": 5,
+      "action": "更新前端解析结果模型",
+      "details": "修改 frontend/src/pages/outline/outlineParsingModels.ts 增加detailed_outlines字段。在AgentCard的图标映射中添加detailed_outline类型(使用BookOpen或类似图标)"
+    },
+    {
+      "step": 6,
+      "action": "更新解析结果应用逻辑",
+      "details": "在 OutlineParsingSection.tsx 的结果Tab中增加'细纲'标签页，显示解析出的细纲列表。添加'应用细纲'按钮，调用API存储解析出的细纲到detailed_outlines表"
+    }
+  ],
+  "acceptance_criteria": [
+    "PlannerAgent在检测到卷结构时正确生成detailed_outline子任务",
+    "细纲提取Agent能从文本中提取结构化的卷级章节规划",
+    "解析结果正确包含detailed_outlines字段",
+    "前端AgentCard正确显示细纲Agent的执行状态",
+    "应用细纲按钮能正确存储数据"
+  ],
+  "convergence": {
+    "criteria": "智能解析管线能端到端提取并存储细纲",
+    "verification": "使用包含卷结构的测试文本验证完整流程"
+  }
+}

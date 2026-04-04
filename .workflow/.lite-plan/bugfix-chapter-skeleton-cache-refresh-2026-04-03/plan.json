@@ -1,0 +1,12 @@
+{
+  "summary": "Add missing chapterStore cache invalidation to generateChapterSkeleton() streaming path",
+  "approach": "Mirror the existing createChapters() invalidation pattern — add chapterStore.invalidateProjectChapters(projectId) after SSE completes",
+  "complexity": "Low",
+  "estimated_time": "5 minutes",
+  "recommended_execution": "Agent",
+  "task_ids": ["TASK-001"],
+  "_metadata": {
+    "exploration_angles": ["dataflow", "state-management", "edge-cases"],
+    "root_cause": "generateChapterSkeleton() missed cache invalidation that createChapters() has (commit bc36a2a partial fix)"
+  }
+}

@@ -45,6 +45,12 @@ export function useChapterMetaList(projectId: string | undefined): {
     void chapterStore.loadProjectChapterMeta(projectId);
   }, [projectId]);
 
+  // Auto-refetch when cache is invalidated (e.g., from outline page creating chapters)
+  useEffect(() => {
+    if (!projectId || !snapshot.stale) return;
+    void chapterStore.loadProjectChapterMeta(projectId);
+  }, [projectId, snapshot.stale]);
+
   useEffect(() => {
     if (!snapshot.error) {
       lastErrorKeyRef.current = null;

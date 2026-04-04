@@ -1,0 +1,19 @@
+{
+  "id": "TASK-001",
+  "title": "Fix stale cache auto-refetch in useChapterMetaList",
+  "description": "Add useEffect that watches snapshot.stale and triggers loadProjectChapterMeta when stale becomes true. This ensures the writing page auto-refetches chapter data when invalidateProjectChapters is called from the outline page.",
+  "scope": "frontend",
+  "files": [
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "change": "Add useEffect after L46 that watches snapshot.stale and calls chapterStore.loadProjectChapterMeta(projectId) when stale is true"
+    }
+  ],
+  "convergence": {
+    "criteria": [
+      "When outline creates chapters and calls invalidateProjectChapters, the writing page automatically refetches chapter list without manual refresh",
+      "No infinite loop: stale is reset to false after successful refetch (already handled by replaceProjectMeta at chapterStore.ts:154)"
+    ]
+  },
+  "depends_on": []
+}

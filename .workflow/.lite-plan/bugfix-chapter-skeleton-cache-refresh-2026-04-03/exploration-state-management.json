@@ -1,0 +1,316 @@
+{
+  "project_structure": "Monorepo with backend (Python/FastAPI) and frontend (React 19 + Vite + TypeScript). Frontend uses NO external state management library -- relies on custom store pattern (Map-based cache with useSyncExternalStore hooks) plus React useState/useContext. AppShell uses PersistentOutlet keeping /writing route mounted (display:none) when navigating to other pages. Cross-page cache coordination via wizard localStorage timestamp (markWizardProjectChanged/getWizardProjectChangedAt) checked on writing page reactivation.",
+  "relevant_files": [
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "relevance": 1.0,
+      "rationale": "Contains generateChapterSkeleton() (L265-326) -- the skeleton parse operation. After completion calls refresh() and re-fetches selected detail, but does NOT call chapterStore.invalidateProjectChapters() nor markWizardProjectChanged(). Also has createChapters() (L375-417) patched in bc36a2a but skeleton path missed.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "generateChapterSkeleton",
+        "createChapters",
+        "useDetailedOutlineState"
+      ],
+      "key_code": [
+        {
+          "symbol": "generateChapterSkeleton()",
+          "location": "L265-L326",
+          "description": "SSE streaming skeleton generation. After connect(), calls refresh() and getDetailedOutline(). MISSING: no invalidateProjectChapters() and no markWizardProjectChanged(). Root cause of cache bug."
+        },
+        {
+          "symbol": "createChapters()",
+          "location": "L375-L417",
+          "description": "Creates chapters from detailed outline. Has invalidateProjectChapters() from commit bc36a2a. Works correctly, but skeleton path missed."
+        }
+      ],
+      "topic_relation": "Primary bug location: generateChapterSkeleton completes server-side chapter creation but never signals chapterStore or wizard system."
+    },
+    {
+      "path": "frontend/src/services/chapterStore.ts",
+      "relevance": 0.95,
+      "rationale": "Central custom cache store. Map-based CacheEntry for meta lists and detail entries. invalidateProjectChapters() (L330-337) sets stale flag. loadMeta() (L223-252) skips fetch if !stale.",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "createChapterStore",
+        "invalidateProjectChapters",
+        "invalidateChapterDetail",
+        "loadMeta",
+        "loadDetail"
+      ],
+      "key_code": [
+        {
+          "symbol": "invalidateProjectChapters()",
+          "location": "L330-L337",
+          "description": "Sets meta entry snapshot.stale=true and emits. dropDetails=true purges cached detail entries. Should be called after skeleton generation."
+        },
+        {
+          "symbol": "loadMeta()",
+          "location": "L223-L252",
+          "description": "Fetches chapter meta. Short-circuits if !force and data exists and !stale. stale=true triggers re-fetch."
+        },
+        {
+          "symbol": "loadDetail()",
+          "location": "L254-L284",
+          "description": "Fetches single chapter detail. Same short-circuit logic as loadMeta."
+        }
+      ],
+      "topic_relation": "Caching layer blocking writing page from updated data. invalidateProjectChapters works but is not called from skeleton generation."
+    },
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "relevance": 0.85,
+      "rationale": "Hook wrapping chapterStore for chapter list. useSyncExternalStore (L41). useEffect (L43-46) triggers loadProjectChapterMeta on mount only.",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterMetaList"
+      ],
+      "key_code": [
+        {
+          "symbol": "useChapterMetaList()",
+          "location": "L17-L72",
+          "description": "Subscribes via useSyncExternalStore. useEffect at L43 calls loadProjectChapterMeta once on mount."
+        }
+      ],
+      "topic_relation": "Reacts to stale-flag changes but stale flag never set for skeleton path because invalidateProjectChapters never called."
+    },
+    {
+      "path": "frontend/src/hooks/useChapterDetail.ts",
+      "relevance": 0.75,
+      "rationale": "Hook for individual chapter detail. useSyncExternalStore (L44), loadChapterDetail on mount (L46-49). Detail entries NOT auto-marked stale unless dropDetails used.",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterDetail"
+      ],
+      "key_code": [
+        {
+          "symbol": "useChapterDetail()",
+          "location": "L16-L75",
+          "description": "Subscribes to detail snapshots. New skeleton chapters invisible because meta list stale."
+        }
+      ],
+      "topic_relation": "Depends on meta list to know which chapters exist. Stale meta means new skeleton chapters not selectable."
+    },
+    {
+      "path": "frontend/src/pages/writing/useWritingPageState.ts",
+      "relevance": 0.85,
+      "rationale": "Writing page state orchestrator. Reactivation logic (L148-156) checks getWizardProjectChangedAt. generateChapterSkeleton never calls markWizardProjectChanged so detection fails.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useWritingPageState"
+      ],
+      "key_code": [
+        {
+          "symbol": "reactivation useEffect",
+          "location": "L148-L156",
+          "description": "Fires on outletActive change. Compares getWizardProjectChangedAt with ref. If changed, calls refreshWriting(), refreshChapters(), refreshWizard(). ONLY mechanism for cached writing page to detect external changes."
+        },
+        {
+          "symbol": "writingQuery",
+          "location": "L78-L105",
+          "description": "Loads outline, preset, characters, entries. Does NOT load chapters -- from useChapterEditor/useChapterMetaList."
+        }
+      ],
+      "topic_relation": "Consumer side: reactivation mechanism could refresh chapters but depends on markWizardProjectChanged which skeleton generation omits."
+    },
+    {
+      "path": "frontend/src/pages/writing/useChapterEditor.ts",
+      "relevance": 0.8,
+      "rationale": "Chapter list loading (useChapterMetaList L57) and detail loading (chapterStore.loadChapterDetail L125). Where stale data manifests in writing page.",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterEditor",
+        "chaptersQuery",
+        "refreshChapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "chaptersQuery = useChapterMetaList(projectId)",
+          "location": "L57-L60",
+          "description": "Chapter list for sidebar. Stale meta snapshot means sidebar shows old chapters."
+        },
+        {
+          "symbol": "activeId useEffect (loadDetail)",
+          "location": "L109-L144",
+          "description": "Loads chapter detail when activeId changes. New skeleton chapters never selectable because meta list stale."
+        }
+      ],
+      "topic_relation": "Where stale cache manifests in UI: chapter sidebar and editor read from chapterStore, neither refreshed after skeleton generation."
+    },
+    {
+      "path": "frontend/src/components/layout/AppShell.tsx",
+      "relevance": 0.7,
+      "rationale": "PersistentOutlet (L116-177) caches writing page with display:none. Whitelist at L105 only includes /writing route.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "PersistentOutlet",
+        "PERSISTENT_OUTLET_CACHE_WHITELIST"
+      ],
+      "key_code": [
+        {
+          "symbol": "PERSISTENT_OUTLET_CACHE_WHITELIST",
+          "location": "L105",
+          "description": "Only /projects/:projectId/writing -- writing page kept alive in persistent outlet cache."
+        },
+        {
+          "symbol": "PersistentOutlet",
+          "location": "L116-L177",
+          "description": "LRU cache (max 3) for route elements. Cached routes with display:none when not active."
+        }
+      ],
+      "topic_relation": "Architectural reason the bug exists: PersistentOutlet keeps writing page alive so React does not remount. Cache invalidation must be proactive."
+    },
+    {
+      "path": "frontend/src/services/wizard.ts",
+      "relevance": 0.7,
+      "rationale": "markWizardProjectChanged() (L133-136) writes localStorage timestamp and dispatches CustomEvent. Cross-page signaling for writing page reactivation.",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "markWizardProjectChanged",
+        "getWizardProjectChangedAt"
+      ],
+      "key_code": [
+        {
+          "symbol": "markWizardProjectChanged()",
+          "location": "L133-L136",
+          "description": "Writes ISO timestamp to localStorage and dispatches WIZARD_PROGRESS_INVALIDATED_EVENT."
+        },
+        {
+          "symbol": "getWizardProjectChangedAt()",
+          "location": "L138-L140",
+          "description": "Reads localStorage timestamp for writing page reactivation."
+        }
+      ],
+      "topic_relation": "Missing link: generateChapterSkeleton creates chapters server-side but never calls markWizardProjectChanged."
+    },
+    {
+      "path": "frontend/src/hooks/usePersistentOutlet.tsx",
+      "relevance": 0.5,
+      "rationale": "Provides usePersistentOutletIsActive() for outlet reactivation detection.",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "usePersistentOutletIsActive"
+      ]
+    },
+    {
+      "path": "frontend/src/hooks/useProjectData.ts",
+      "relevance": 0.4,
+      "rationale": "Generic project data fetching hook used by useWritingPageState.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useProjectData"
+      ]
+    },
+    {
+      "path": "frontend/src/services/chaptersApi.ts",
+      "relevance": 0.4,
+      "rationale": "API functions for chapter CRUD. fetchAllChapterMeta (L51-68) is the network call.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "fetchAllChapterMeta",
+        "chapterDetailToListItem"
+      ]
+    },
+    {
+      "path": "frontend/src/services/detailedOutlinesApi.ts",
+      "relevance": 0.35,
+      "rationale": "API types for detailed outline operations including ChapterSkeletonGenerateRequest.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "ChapterSkeletonGenerateRequest",
+        "createChaptersFromDetailedOutline"
+      ]
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "relevance": 0.6,
+      "rationale": "Backend skeleton generation SSE stream. _create_chapter_records (L419-513) creates Chapter DB rows.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "generate_chapter_skeleton_stream_events",
+        "_create_chapter_records"
+      ],
+      "key_code": [
+        {
+          "symbol": "_create_chapter_records()",
+          "location": "L419-L513",
+          "description": "Creates Chapter model instances in DB. replace=true deletes existing first. Confirms chapters created server-side."
+        }
+      ],
+      "topic_relation": "Confirms backend creates chapters during skeleton generation -- bug is purely frontend cache invalidation."
+    },
+    {
+      "path": "frontend/src/pages/writing/useOutlineSwitcher.ts",
+      "relevance": 0.5,
+      "rationale": "Reference for correct cache invalidation. L57 calls invalidateProjectChapters with dropDetails:true.",
+      "role": "pattern_reference",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useOutlineSwitcher"
+      ],
+      "key_code": [
+        {
+          "symbol": "outline switch handler",
+          "location": "L36-L78",
+          "description": "markWizardProjectChanged + invalidateProjectChapters(dropDetails:true) + refreshWriting + refreshChapters + refreshWizard. Complete pattern."
+        }
+      ],
+      "topic_relation": "Pattern reference showing complete invalidation chain that generateChapterSkeleton should replicate."
+    },
+    {
+      "path": "frontend/src/services/chapterStore.test.ts",
+      "relevance": 0.3,
+      "rationale": "Test file for chapterStore. invalidateProjectChapters test at L78.",
+      "role": "test_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "invalidateProjectChapters test"
+      ]
+    }
+  ],
+  "patterns": "1. Custom Store: Singleton chapterStore with Map caching, listener subscription, useSyncExternalStore. No external state lib. 2. Cache Invalidation: Two-level -- invalidateProjectChapters for meta (stale flag), invalidateChapterDetail for details. Stale triggers re-fetch on next loadMeta. 3. Cross-Page Signaling: localStorage timestamps via markWizardProjectChanged + CustomEvent. Writing page checks on PersistentOutlet reactivation. 4. PersistentOutlet: Writing page mounted with display:none when navigating away. Reactivation via outletActive. 5. Mutation Pattern: (a) chapterStore.invalidateProjectChapters(projectId), (b) markWizardProjectChanged(projectId).",
+  "dependencies": "Cache chain: useChapterMetaList -> chapterStore -> chaptersApi.fetchAllChapterMeta -> /api/projects/{id}/chapters/meta. Detail: useChapterEditor -> chapterStore.loadChapterDetail -> /api/chapters/{id}. Skeleton: generateChapterSkeleton -> SSEPostClient -> /api/detailed_outlines/{id}/generate_chapters_stream (backend creates Chapter records). Signal: markWizardProjectChanged -> localStorage + CustomEvent -> useWritingPageState reactivation -> refreshChapters(). MISSING: generateChapterSkeleton does not connect to invalidateProjectChapters or markWizardProjectChanged.",
+  "integration_points": "1. generateChapterSkeleton in useDetailedOutlineState.ts -- needs invalidation. 2. chapterStore.invalidateProjectChapters(projectId). 3. markWizardProjectChanged(projectId). 4. Writing page reactivation useEffect (L148-156). 5. useChapterMetaList useSyncExternalStore subscription.",
+  "constraints": "1. PersistentOutlet keeps writing page mounted -- no remount refresh. 2. chapterStore singleton -- outline page mutations affect writing page store. 3. invalidateProjectChapters sets stale=true, no immediate fetch. 4. Writing page refresh requires markWizardProjectChanged. 5. Previous fix (bc36a2a) only covered createChapters, not generateChapterSkeleton.",
+  "clarification_needs": [
+    {
+      "question": "Should generateChapterSkeleton call invalidateProjectChapters with dropDetails: true (purge stale details since skeleton may replace chapters)?",
+      "context": "Backend _create_chapter_records with replace=true deletes and recreates chapters with new IDs. Cached detail entries for old IDs become orphaned. dropDetails:true cleans up but forces re-fetch.",
+      "options": [
+        "dropDetails: true (clean, matches useOutlineSwitcher, prevents orphan entries)",
+        "dropDetails: false (lighter, only marks meta stale)"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "Should the fix also force-refresh chapter meta immediately, or rely on reactivation mechanism?",
+      "context": "invalidateProjectChapters sets stale only. Combined with markWizardProjectChanged, reactivation effect calls refreshChapters. Both signals together should suffice.",
+      "options": [
+        "Rely on invalidate + markWizardProjectChanged (reactivation handles refresh)",
+        "Also call loadProjectChapterMeta(projectId, {force:true}) immediately"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-04-03T19:00:00+08:00",
+    "task_description": "State-management exploration for bugfix: skeleton generation on outline page does not refresh chapter data on writing page, requiring manual page refresh",
+    "source": "cli-explore-agent",
+    "exploration_angle": "state-management",
+    "exploration_index": 1,
+    "total_explorations": 1,
+    "duration_seconds": 120
+  }
+}

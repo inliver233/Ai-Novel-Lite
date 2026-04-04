@@ -1,0 +1,224 @@
+{
+  "project_structure": "React SPA with React Router (createBrowserRouter), persistent outlet caching for writing page, custom chapterStore (external store with useSyncExternalStore). OutlinePage and WritingPage. WritingPage cached via PersistentOutlet. Backend: FastAPI + SQLAlchemy, SSE streaming.",
+  "relevant_files": [
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "relevance": 1,
+      "rationale": "Contains createChapters() (L375-417, patched in bc36a2a) and generateChapterSkeleton() (L265-326). Previous fix added invalidateProjectChapters() only to createChapters(). generateChapterSkeleton() does NOT call invalidateProjectChapters() or markWizardProjectChanged().",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "createChapters",
+        "generateChapterSkeleton"
+      ],
+      "key_code": [
+        {
+          "symbol": "generateChapterSkeleton()",
+          "location": "L265-L326",
+          "description": "SSE streaming skeleton generation. Calls refresh() but NEVER invalidateProjectChapters() or markWizardProjectChanged(). Primary missing cache invalidation."
+        },
+        {
+          "symbol": "createChapters()",
+          "location": "L375-L417",
+          "description": "Non-streaming chapter creation. Patched in bc36a2a. Works correctly."
+        }
+      ],
+      "topic_relation": "TWO chapter-creation paths. bc36a2a only covered createChapters(). generateChapterSkeleton() missed."
+    },
+    {
+      "path": "frontend/src/services/chapterStore.ts",
+      "relevance": 0.9,
+      "rationale": "External store for chapter caching. invalidateProjectChapters() L330 sets stale. loadMeta() L223 checks stale for refetch.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "invalidateProjectChapters",
+        "loadMeta"
+      ],
+      "key_code": [
+        {
+          "symbol": "invalidateProjectChapters()",
+          "location": "L330-L337",
+          "description": "Marks stale and emits. Added to createChapters() but NOT generateChapterSkeleton()."
+        },
+        {
+          "symbol": "loadMeta()",
+          "location": "L223-L252",
+          "description": "L225: if data and not stale, returns cached. Why writing page shows stale data."
+        }
+      ],
+      "topic_relation": "Stale check L225 is gatekeeper. Without invalidateProjectChapters(), loadMeta returns cached data."
+    },
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "relevance": 0.85,
+      "rationale": "Bridges chapterStore to WritingPage via useSyncExternalStore. Initial load without force:true.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterMetaList"
+      ],
+      "key_code": [
+        {
+          "symbol": "useEffect load",
+          "location": "L43-L46",
+          "description": "loadProjectChapterMeta without force:true. Returns cached if not stale."
+        },
+        {
+          "symbol": "subscription",
+          "location": "L28-L41",
+          "description": "subscribeMeta. emitMeta triggers re-render. PersistentOutlet keeps subscriber."
+        }
+      ],
+      "topic_relation": "PersistentOutlet keeps hook subscribed. Would propagate if called."
+    },
+    {
+      "path": "frontend/src/components/layout/AppShell.tsx",
+      "relevance": 0.8,
+      "rationale": "PersistentOutlet (L104-177) caches WritingPage. Whitelist L105 caches writing path only.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "PersistentOutlet"
+      ],
+      "key_code": [
+        {
+          "symbol": "WHITELIST",
+          "location": "L105",
+          "description": "Only writing path cached. WritingPage stays alive on outline page."
+        },
+        {
+          "symbol": "render",
+          "location": "L159-L176",
+          "description": "display:none when not active."
+        }
+      ],
+      "topic_relation": "PersistentOutlet central to bug. Cached hooks would receive invalidation if called."
+    },
+    {
+      "path": "frontend/src/pages/writing/useWritingPageState.ts",
+      "relevance": 0.75,
+      "rationale": "Secondary refresh (L148-156) via getWizardProjectChangedAt on outletActive.",
+      "role": "integration_point",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useWritingPageState",
+        "outletActive"
+      ],
+      "key_code": [
+        {
+          "symbol": "outletActive effect",
+          "location": "L148-L156",
+          "description": "On outletActive + changedAt mismatch triggers refresh. Needs markWizardProjectChanged()."
+        }
+      ],
+      "topic_relation": "Fallback refresh needs markWizardProjectChanged(). Never called by generateChapterSkeleton."
+    },
+    {
+      "path": "frontend/src/pages/writing/useChapterEditor.ts",
+      "relevance": 0.7,
+      "rationale": "Empty chapters causes activeId=null (L92-96). Blank writing page.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterEditor"
+      ],
+      "key_code": [
+        {
+          "symbol": "auto-select",
+          "location": "L91-L96",
+          "description": "If chapters empty, activeId=null. Blank page."
+        }
+      ],
+      "topic_relation": "Stale cache = blank page until manual refresh."
+    },
+    {
+      "path": "frontend/src/hooks/usePersistentOutlet.tsx",
+      "relevance": 0.6,
+      "rationale": "usePersistentOutletIsActive() gates localStorage refresh.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "usePersistentOutletIsActive"
+      ]
+    },
+    {
+      "path": "frontend/src/pages/writing/useOutlineSwitcher.ts",
+      "relevance": 0.55,
+      "rationale": "Pattern: L57 invalidateProjectChapters + L55 markWizardProjectChanged. Complete invalidation pattern.",
+      "role": "pattern_reference",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "switchOutline",
+        "invalidateProjectChapters",
+        "markWizardProjectChanged"
+      ]
+    },
+    {
+      "path": "frontend/src/services/wizard.ts",
+      "relevance": 0.5,
+      "rationale": "markWizardProjectChanged() L133 writes localStorage. Missing from generateChapterSkeleton.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "markWizardProjectChanged",
+        "getWizardProjectChangedAt"
+      ]
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "relevance": 0.5,
+      "rationale": "Creates Chapter rows (L493-512). Confirms real chapters needing cache update.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "Chapter",
+        "db.commit"
+      ]
+    },
+    {
+      "path": "backend/app/api/routes/detailed_outlines.py",
+      "relevance": 0.45,
+      "rationale": "create_chapters (L515) and generate_chapters_stream (L646). Both create chapters. Frontend only invalidates first.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "create_chapters",
+        "generate_chapters_stream"
+      ]
+    }
+  ],
+  "patterns": "Cache invalidation: invalidateProjectChapters marks stale + emits to useSyncExternalStore. Cross-page: markWizardProjectChanged writes localStorage. Complete pattern in useOutlineSwitcher: markWizardProjectChanged -> invalidateProjectChapters -> refreshWriting -> refreshChapters.",
+  "dependencies": "useDetailedOutlineState -> chapterStore, detailedOutlinesApi, SSEPostClient. useChapterMetaList -> chapterStore. useWritingPageState -> useChapterEditor -> useChapterMetaList -> chapterStore. PersistentOutlet keeps WritingPage alive.",
+  "integration_points": "(1) invalidateProjectChapters() direct store invalidation via useSyncExternalStore to PersistentOutlet cached pages. (2) markWizardProjectChanged() localStorage signal on outletActive.",
+  "constraints": "PersistentOutlet keeps WritingPage mounted. loadMeta L225 (data+not stale=cached) means missing invalidateProjectChapters causes persistent stale data. Fix must add both calls to generateChapterSkeleton().",
+  "clarification_needs": [
+    {
+      "question": "Should fix handle abort case where SSE aborted but partial chapters created?",
+      "context": "Backend commits during streaming. Abort leaves partial chapters.",
+      "options": [
+        "Fix only success path",
+        "Fix both success and abort paths"
+      ],
+      "recommended": 1
+    },
+    {
+      "question": "Should fix include markWizardProjectChanged() plus invalidateProjectChapters()?",
+      "context": "Two channels. bc36a2a only added one. useOutlineSwitcher uses both.",
+      "options": [
+        "Only invalidateProjectChapters()",
+        "Both invalidateProjectChapters() and markWizardProjectChanged()"
+      ],
+      "recommended": 1
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-04-03T19:45:00+08:00",
+    "task_description": "Edge cases: skeleton generation not showing on writing page. bc36a2a only covered createChapters not generateChapterSkeleton.",
+    "source": "cli-explore-agent",
+    "exploration_angle": "edge-cases",
+    "exploration_index": 1,
+    "total_explorations": 1,
+    "duration_seconds": 85
+  }
+}

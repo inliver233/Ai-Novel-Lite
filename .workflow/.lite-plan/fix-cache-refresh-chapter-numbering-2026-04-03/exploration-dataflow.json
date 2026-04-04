@@ -1,0 +1,327 @@
+{
+  "project_structure": "Full-stack application with React frontend (Vite + TypeScript) and Python FastAPI backend (SQLAlchemy). Frontend uses a custom external store pattern (chapterStore) with useSyncExternalStore for chapter state management, NOT React Query. Outline pages and writing pages are separate route-level components that share state through the singleton chapterStore. Backend uses SQLAlchemy ORM with SQLite, chapters belong to outlines and have global numbering across volumes.",
+  "relevant_files": [
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "relevance": 1,
+      "rationale": "Central hook for writing page chapter list loading. useEffect on L43-46 only depends on [projectId] so invalidateProjectChapters stale flag does not trigger refetch.",
+      "role": "modify_target",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterMetaList",
+        "subscribe",
+        "getSnapshot",
+        "refresh"
+      ],
+      "key_code": [
+        {
+          "symbol": "useEffect (initial load)",
+          "location": "L43-L46",
+          "description": "Only fires on [projectId] change. ROOT CAUSE: stale flag does not re-run this effect."
+        },
+        {
+          "symbol": "subscribe callback",
+          "location": "L28-L34",
+          "description": "Subscribes to subscribeMeta. Re-render on stale but no refetch."
+        },
+        {
+          "symbol": "refresh()",
+          "location": "L59-L62",
+          "description": "Force reload. Never called automatically when stale."
+        }
+      ],
+      "topic_relation": "Broken link: invalidateProjectChapters -> emitMeta -> re-render -> NO refetch."
+    },
+    {
+      "path": "frontend/src/services/chapterStore.ts",
+      "relevance": 1,
+      "rationale": "Singleton chapter cache store. invalidateProjectChapters() sets stale:true. loadMeta() checks stale flag. Store logic correct but hook does not complete refetch cycle.",
+      "role": "modify_target",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "createChapterStore",
+        "chapterStore",
+        "invalidateProjectChapters",
+        "loadMeta",
+        "subscribeMeta",
+        "emitMeta"
+      ],
+      "key_code": [
+        {
+          "symbol": "invalidateProjectChapters()",
+          "location": "L330-L337",
+          "description": "Sets stale=true and calls emitMeta. Does NOT trigger refetch."
+        },
+        {
+          "symbol": "loadMeta()",
+          "location": "L223-L252",
+          "description": "If stale=true fetches from API. Correct but not called after cross-page invalidation."
+        },
+        {
+          "symbol": "subscribeMeta()",
+          "location": "L357-L365",
+          "description": "Re-render on emitMeta but only stale snapshot."
+        }
+      ],
+      "topic_relation": "Store stale flagging correct but hook layer does not call loadMeta when stale detected."
+    },
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "relevance": 0.95,
+      "rationale": "createChapters() and generateChapterSkeleton() call invalidateProjectChapters after chapter creation. PRODUCER side.",
+      "role": "integration_point",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useDetailedOutlineState",
+        "createChapters",
+        "generateChapterSkeleton"
+      ],
+      "key_code": [
+        {
+          "symbol": "createChapters()",
+          "location": "L377-L419",
+          "description": "invalidateProjectChapters at L391 and L408."
+        },
+        {
+          "symbol": "generateChapterSkeleton()",
+          "location": "L265-L328",
+          "description": "invalidateProjectChapters at L301."
+        }
+      ],
+      "topic_relation": "Invalidation calls correct but consumer has gap."
+    },
+    {
+      "path": "frontend/src/pages/writing/useChapterEditor.ts",
+      "relevance": 0.9,
+      "rationale": "Uses useChapterMetaList at L57. refreshChapters could fix bug if called on stale.",
+      "role": "modify_target",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useChapterEditor",
+        "chaptersQuery",
+        "refreshChapters",
+        "activeId"
+      ],
+      "key_code": [
+        {
+          "symbol": "chaptersQuery",
+          "location": "L57",
+          "description": "Instantiates chapter meta list."
+        },
+        {
+          "symbol": "refreshChapters",
+          "location": "L59",
+          "description": "Force-refresh with force:true."
+        }
+      ],
+      "topic_relation": "Writing page entry point for chapter data."
+    },
+    {
+      "path": "frontend/src/pages/writing/useWritingPageState.ts",
+      "relevance": 0.85,
+      "rationale": "Wizard-based refresh (L148-L156) not connected to outline chapter creation.",
+      "role": "integration_point",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "useWritingPageState",
+        "refreshChapters",
+        "refreshWriting"
+      ],
+      "key_code": [
+        {
+          "symbol": "useEffect wizard refresh",
+          "location": "L148-L156",
+          "description": "Checks getWizardProjectChangedAt. Not triggered by outline chapter creation."
+        }
+      ],
+      "topic_relation": "Secondary refresh mechanism NOT connected to outline chapter creation."
+    },
+    {
+      "path": "backend/app/services/detailed_outline_generation/app_service.py",
+      "relevance": 0.95,
+      "rationale": "_compute_chapter_offset and create_chapters_from_detailed_outline for cross-volume numbering. Core of bug 2.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "create_chapters_from_detailed_outline",
+        "_compute_chapter_offset",
+        "_extract_positive_chapter_numbers"
+      ],
+      "key_code": [
+        {
+          "symbol": "_compute_chapter_offset()",
+          "location": "L640-L663",
+          "description": "offset=sum(max(chapter_numbers)) from earlier volumes. If LLM starts at 2 global skips a number."
+        },
+        {
+          "symbol": "create_chapters_from_detailed_outline()",
+          "location": "L666-L797",
+          "description": "global_number = offset + local_number at L763."
+        },
+        {
+          "symbol": "_extract_positive_chapter_numbers()",
+          "location": "L597-L611",
+          "description": "Extracts positive numbers from structure_json."
+        }
+      ],
+      "topic_relation": "Chapter numbering: local + offset = global. Gaps if LLM starts at 2."
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "relevance": 0.85,
+      "rationale": "Parallel path with duplicated _compute_chapter_offset and _create_chapter_records.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "generate_chapter_skeleton_stream_events",
+        "_create_chapter_records",
+        "_compute_chapter_offset"
+      ],
+      "key_code": [
+        {
+          "symbol": "_compute_chapter_offset()",
+          "location": "L119-L137",
+          "description": "Identical duplicated logic."
+        },
+        {
+          "symbol": "_create_chapter_records()",
+          "location": "L419-L513",
+          "description": "number = offset + local_number at L473."
+        }
+      ],
+      "topic_relation": "Two parallel paths. Fix must cover both."
+    },
+    {
+      "path": "frontend/src/services/detailedOutlinesApi.ts",
+      "relevance": 0.7,
+      "rationale": "createChaptersFromDetailedOutline() API client.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "createChaptersFromDetailedOutline"
+      ],
+      "key_code": [
+        {
+          "symbol": "createChaptersFromDetailedOutline()",
+          "location": "L84-L96",
+          "description": "POST with optional replace."
+        }
+      ],
+      "topic_relation": "API bridge for chapter creation."
+    },
+    {
+      "path": "frontend/src/services/chaptersApi.ts",
+      "relevance": 0.7,
+      "rationale": "fetchAllChapterMeta() called by chapterStore.loadMeta.",
+      "role": "dependency",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "fetchAllChapterMeta",
+        "fetchChapterMetaPage"
+      ],
+      "key_code": [
+        {
+          "symbol": "fetchAllChapterMeta()",
+          "location": "L51-L68",
+          "description": "Paginated fetch. Called by loadMeta."
+        }
+      ],
+      "topic_relation": "Data retrieval endpoint."
+    },
+    {
+      "path": "backend/app/api/routes/detailed_outlines.py",
+      "relevance": 0.8,
+      "rationale": "API routes for chapter creation from detailed outlines.",
+      "role": "integration_point",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "create_chapters",
+        "generate_chapters_stream"
+      ],
+      "key_code": [
+        {
+          "symbol": "create_chapters()",
+          "location": "L515-L600",
+          "description": "POST endpoint."
+        },
+        {
+          "symbol": "generate_chapters_stream()",
+          "location": "L646-L709",
+          "description": "SSE endpoint."
+        }
+      ],
+      "topic_relation": "Both create chapters via different paths."
+    },
+    {
+      "path": "backend/app/api/routes/chapters.py",
+      "relevance": 0.6,
+      "rationale": "GET /chapters/meta returning paginated chapter list.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "list_chapter_meta"
+      ]
+    },
+    {
+      "path": "backend/app/models/chapter.py",
+      "relevance": 0.7,
+      "rationale": "Chapter model with UniqueConstraint on (outline_id, number).",
+      "role": "type_definition",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "Chapter"
+      ],
+      "key_code": [
+        {
+          "symbol": "Chapter model",
+          "location": "L12-L27",
+          "description": "UniqueConstraint prevents duplicates but allows gaps."
+        }
+      ],
+      "topic_relation": "Global number across volumes."
+    },
+    {
+      "path": "frontend/src/services/wizard.ts",
+      "relevance": 0.5,
+      "rationale": "Cross-page refresh via localStorage. Not used by outline createChapters.",
+      "role": "context_only",
+      "discovery_source": "dependency-trace",
+      "key_symbols": [
+        "markWizardProjectChanged"
+      ]
+    },
+    {
+      "path": "backend/tests/test_multi_volume_chapter_numbering.py",
+      "relevance": 0.6,
+      "rationale": "Existing tests. Missing edge case where LLM starts from 2.",
+      "role": "test_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "TestMultiVolumeChapterNumbering"
+      ]
+    },
+    {
+      "path": "frontend/src/pages/writing/useOutlineSwitcher.ts",
+      "relevance": 0.5,
+      "rationale": "Working invalidate + explicit refresh pattern reference.",
+      "role": "pattern_reference",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useOutlineSwitcher"
+      ]
+    }
+  ],
+  "patterns": "1. EXTERNAL STORE PATTERN: chapterStore is a singleton external store using useSyncExternalStore with listener-based change propagation. 2. STALE FLAG PATTERN: invalidateProjectChapters marks data stale, loadMeta checks stale flag. Auto-revalidation step is missing from useChapterMetaList. 3. SSE STREAMING: Chapter creation from outlines uses SSE streaming for progress. 4. CROSS-PAGE COMMUNICATION: Wizard service provides localStorage-based signaling but is not used for outline-to-writing chapter creation. 5. CHAPTER OFFSET: global_number = sum(max(local_numbers) per earlier volume) + local_number.",
+  "dependencies": "FRONTEND: useWritingPageState -> useChapterEditor -> useChapterMetaList -> chapterStore (singleton) -> chaptersApi -> backend API. useDetailedOutlineState -> detailedOutlinesApi -> backend API + chapterStore.invalidateProjectChapters. BACKEND: routes/detailed_outlines.py -> services/detailed_outline_generation/app_service.py and services/chapter_skeleton_generation/stream_service.py. Both use models/chapter.py and both have independent _compute_chapter_offset functions (duplicated code).",
+  "integration_points": "1. OUTLINE-TO-WRITING CACHE: chapterStore.invalidateProjectChapters called from outline page at L301, L314, L391, L408. Writing page useChapterMetaList subscribes but does not auto-refetch on stale. 2. CHAPTER CREATION API: Two paths - POST /detailed_outlines/{id}/create_chapters and POST /detailed_outlines/{id}/generate_chapters_stream. Both compute global chapter numbers via offset. 3. WIZARD REFRESH: markWizardProjectChanged -> localStorage -> writing page detects change -> refreshChapters(). NOT triggered by outline chapter creation.",
+  "constraints": "1. chapterStore is a singleton shared across all pages in same browser tab. 2. Outline and writing pages are separate routes sharing state only through chapterStore and localStorage. 3. UniqueConstraint on (outline_id, number) prevents duplicate numbers but allows gaps. 4. _compute_chapter_offset is duplicated in two backend files. 5. Writing page dirty state guard prevents refresh when user has unsaved changes.",
+  "clarification_needs": [],
+  "_metadata": {
+    "timestamp": "2026-04-03T00:00:00Z",
+    "task_description": "Fix two bugs: (1) Writing page cache not refreshing after outline creates chapters (2) Cross-volume chapter numbering gaps",
+    "source": "cli-explore-agent",
+    "exploration_angle": "dataflow",
+    "exploration_index": 1,
+    "total_explorations": 3
+  }
+}

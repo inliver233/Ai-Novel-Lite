@@ -1,0 +1,356 @@
+{
+  "project_structure": "Full-stack app: Python/FastAPI backend (backend/app/) with SQLAlchemy ORM, React/TypeScript frontend (frontend/src/). Chapter numbering chain: LLM generates detailed outline with chapter numbers stored in DetailedOutline.structure_json, skeleton generation may update structure_json, then create_chapters_from_detailed_outline or _create_chapter_records creates Chapter rows with global numbers as offset + local_number. Frontend chapterStore uses stale-on-invalidate (mark stale, no auto-refetch).",
+  "relevant_files": [
+    {
+      "path": "backend/app/services/detailed_outline_generation/app_service.py",
+      "relevance": 1,
+      "rationale": "Contains _compute_chapter_offset() (L640-663) computing global offset via max() of chapter numbers from earlier volumes. Also create_chapters_from_detailed_outline() (L666-797) applying offset + local_number.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "_compute_chapter_offset",
+        "create_chapters_from_detailed_outline",
+        "_extract_positive_chapter_numbers",
+        "_volumes_from_structure",
+        "_volumes_from_markdown",
+        "_normalize_chapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "_compute_chapter_offset()",
+          "location": "L640-L663",
+          "description": "Computes offset via max(chapter_numbers) from earlier volumes. ROOT CAUSE: if LLM outputs GLOBAL numbers because prompt said chapter_number_start=7, offset double-counts. Assumes LOCAL but prompt instructs GLOBAL."
+        },
+        {
+          "symbol": "create_chapters_from_detailed_outline()",
+          "location": "L666-L797",
+          "description": "Creates Chapter DB records. global = offset + local (L763). If GLOBAL numbers in structure_json, double-counts."
+        },
+        {
+          "symbol": "_extract_positive_chapter_numbers()",
+          "location": "L597-L611",
+          "description": "Extracts number field as-is. No local/global distinction."
+        },
+        {
+          "symbol": "_volumes_from_structure()",
+          "location": "L122-L154",
+          "description": "Builds VolumeInfo. vol2 after 6-chapter vol1 gets chapter_range_start=7."
+        },
+        {
+          "symbol": "_volumes_from_markdown()",
+          "location": "L157-L197",
+          "description": "Parses volumes from markdown. vol1 with 6 headings -> vol2 chapter_range_start=7."
+        },
+        {
+          "symbol": "_normalize_chapters()",
+          "location": "L851-L883",
+          "description": "Preserves number as-is from LLM. No global-to-local conversion."
+        }
+      ],
+      "topic_relation": "Primary file for numbering gap. _compute_chapter_offset assumes LOCAL but prompt instructs GLOBAL. offset(6)+global(7)=13 not 7."
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/stream_service.py",
+      "relevance": 0.95,
+      "rationale": "Parallel _compute_chapter_offset() (L119-137) and _create_chapter_records() (L419-513) for skeleton. Same logic. Updates structure_json at L294.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "_compute_chapter_offset",
+        "_create_chapter_records",
+        "generate_chapter_skeleton_stream_events"
+      ],
+      "key_code": [
+        {
+          "symbol": "_compute_chapter_offset()",
+          "location": "L119-L137",
+          "description": "Identical to app_service.py. Same vulnerability."
+        },
+        {
+          "symbol": "_create_chapter_records()",
+          "location": "L419-L513",
+          "description": "chapter_offset + local_number (L473). Replace deletes matching numbers."
+        },
+        {
+          "symbol": "generate_chapter_skeleton_stream_events()",
+          "location": "L140-L334",
+          "description": "L289 offset, L294 replaces structure_json, L298 creates numbers with offset."
+        }
+      ],
+      "topic_relation": "Same numbering bug. Modifies structure_json (L294) propagating numbers to later volumes."
+    },
+    {
+      "path": "backend/app/services/detailed_outline_generation/prepare_service.py",
+      "relevance": 0.85,
+      "rationale": "Sets chapter_number_start (L76) from volume_info.chapter_range_start. Causes LLM to generate global numbers.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "prepare_detailed_outline_render_values"
+      ],
+      "key_code": [
+        {
+          "symbol": "prepare_detailed_outline_render_values()",
+          "location": "L14-L82",
+          "description": "L76 sets chapter_number_start = chapter_range_start. vol2 after 6ch vol1 becomes 7."
+        }
+      ],
+      "topic_relation": "Origin of chapter_number_start. Mismatch: tell LLM start=7 AND add offset=6."
+    },
+    {
+      "path": "backend/app/resources/prompt_presets/detailed_outline_generate_v1/templates/sys.story.volume_context.md",
+      "relevance": 0.8,
+      "rationale": "Prompt template with chapter_number_start. Causes GLOBAL numbering when > 1.",
+      "role": "modify_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "chapter_number_start"
+      ],
+      "key_code": [
+        {
+          "symbol": "chapter_number_start template",
+          "location": "L23-L25",
+          "description": "Jinja2 block. vol2 with start=7 tells LLM to start at 7."
+        }
+      ],
+      "topic_relation": "Direct cause of ambiguity. Tells LLM global but offset assumes local."
+    },
+    {
+      "path": "backend/app/services/detailed_outline_generation/models.py",
+      "relevance": 0.7,
+      "rationale": "VolumeInfo with chapter_range_start (L14) flowing to prompt.",
+      "role": "type_definition",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "VolumeInfo"
+      ],
+      "key_code": [
+        {
+          "symbol": "VolumeInfo",
+          "location": "L7-L16",
+          "description": "Dataclass: number, title, beats_text, chapter_range_start, chapter_range_end."
+        }
+      ],
+      "topic_relation": "chapter_range_start correct but creates conflict between prompt and offset."
+    },
+    {
+      "path": "backend/app/models/chapter.py",
+      "relevance": 0.7,
+      "rationale": "Chapter model: number (L18), UniqueConstraint(outline_id, number) L26. GLOBAL number.",
+      "role": "type_definition",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "Chapter"
+      ],
+      "key_code": [
+        {
+          "symbol": "Chapter model",
+          "location": "L12-L27",
+          "description": "number is global integer. UniqueConstraint(outline_id,number). No volume_id."
+        }
+      ],
+      "topic_relation": "No volume awareness. All mapping in _compute_chapter_offset."
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/parse_service.py",
+      "relevance": 0.7,
+      "rationale": "Skeleton parser preserves number as-is (L105-142).",
+      "role": "dependency",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "parse_chapter_skeleton_output",
+        "_normalize_skeleton_chapters"
+      ],
+      "key_code": [
+        {
+          "symbol": "_normalize_skeleton_chapters()",
+          "location": "L105-L142",
+          "description": "Preserves number as-is. Global numbers pass through."
+        }
+      ],
+      "topic_relation": "Parser preserves LLM numbers. Global feed into _compute_chapter_offset."
+    },
+    {
+      "path": "backend/app/api/routes/detailed_outlines.py",
+      "relevance": 0.75,
+      "rationale": "create_chapters (L515-600). L554 hardcodes chapter_range_start=1 for on-demand.",
+      "role": "integration_point",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "create_chapters",
+        "generate_chapters_stream"
+      ],
+      "key_code": [
+        {
+          "symbol": "create_chapters()",
+          "location": "L515-L600",
+          "description": "L554 hardcodes chapter_range_start=1. Wrong for vol > 1."
+        }
+      ],
+      "topic_relation": "Hardcoded start=1 wrong for multi-volume."
+    },
+    {
+      "path": "backend/tests/test_multi_volume_chapter_numbering.py",
+      "relevance": 0.8,
+      "rationale": "Tests assume LOCAL numbering. Missing GLOBAL number test.",
+      "role": "test_target",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "TestMultiVolumeChapterNumbering"
+      ],
+      "key_code": [
+        {
+          "symbol": "test_applies_offset()",
+          "location": "L51-L118",
+          "description": "LOCAL numbers: vol2 at global 3,4,5. Missing GLOBAL test."
+        },
+        {
+          "symbol": "test_max_offset()",
+          "location": "L155-L191",
+          "description": "Sparse: vol1 [1,3]->offset=3, vol2 ch1->4."
+        }
+      ],
+      "topic_relation": "Tests LOCAL but miss GLOBAL edge case from chapter_number_start."
+    },
+    {
+      "path": "frontend/src/components/writing/ChapterVirtualList.tsx",
+      "relevance": 0.6,
+      "rationale": "Displays #{chapter.number} (L20). As-is from API.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "ChapterVirtualList",
+        "renderTitle"
+      ],
+      "key_code": [
+        {
+          "symbol": "renderTitle()",
+          "location": "L16-L31",
+          "description": "Number displayed as-is. No gap detection."
+        }
+      ],
+      "topic_relation": "Displays backend number. No transformation."
+    },
+    {
+      "path": "frontend/src/services/chapterStore.ts",
+      "relevance": 0.65,
+      "rationale": "invalidateProjectChapters (L330-337) marks stale, no auto-refetch.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "chapterStore",
+        "invalidateProjectChapters",
+        "loadMeta"
+      ],
+      "key_code": [
+        {
+          "symbol": "invalidateProjectChapters()",
+          "location": "L330-L337",
+          "description": "Sets stale=true, emits. No refetch."
+        },
+        {
+          "symbol": "loadMeta()",
+          "location": "L223-L252",
+          "description": "Skips if not stale. Only called on mount or explicit refresh."
+        }
+      ],
+      "topic_relation": "Stale flag unused by auto-refetch."
+    },
+    {
+      "path": "frontend/src/hooks/useChapterMetaList.ts",
+      "relevance": 0.6,
+      "rationale": "useSyncExternalStore, load only on [projectId] change. No stale refetch.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "useChapterMetaList"
+      ],
+      "key_code": [
+        {
+          "symbol": "useChapterMetaList()",
+          "location": "L17-L72",
+          "description": "Initial load on projectId change. No stale-watching effect."
+        }
+      ],
+      "topic_relation": "Missing auto-refetch means chapters invisible until manual refresh."
+    },
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "relevance": 0.7,
+      "rationale": "createChapters (L377-418) calls API then invalidate (L391). Skeleton invalidates (L301).",
+      "role": "integration_point",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "createChapters",
+        "generateChapterSkeleton"
+      ],
+      "key_code": [
+        {
+          "symbol": "createChapters",
+          "location": "L377-L418",
+          "description": "API call then invalidate at L391. Stale but no refetch."
+        },
+        {
+          "symbol": "skeleton flow",
+          "location": "L299-L314",
+          "description": "Invalidates at L301. Same issue."
+        }
+      ],
+      "topic_relation": "Cache invalidation insufficient: writing page no auto-refetch."
+    },
+    {
+      "path": "frontend/src/pages/writing/writingUtils.ts",
+      "relevance": 0.5,
+      "rationale": "nextChapterNumber() (L23-26) finds max+1.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "nextChapterNumber"
+      ]
+    },
+    {
+      "path": "backend/app/services/chapter_skeleton_generation/prepare_service.py",
+      "relevance": 0.55,
+      "rationale": "Skeleton render values. No chapter_number_start.",
+      "role": "context_only",
+      "discovery_source": "bash-scan",
+      "key_symbols": [
+        "prepare_chapter_skeleton_render_values"
+      ]
+    }
+  ],
+  "patterns": "Chapter numbering: (1) VolumeInfo.chapter_range_start computed globally (7 for vol2 after 6-chapter vol1). (2) LLM may generate local or global numbers depending on prompt. (3) _compute_chapter_offset = sum(max(chapter_numbers)) from earlier volumes. (4) Global = offset + structure_json number. (5) System EXPECTS local but prompt INSTRUCTS global via chapter_number_start. Two parallel implementations in app_service.py and stream_service.py.",
+  "dependencies": "Backend: SQLAlchemy ORM (Chapter, DetailedOutline, Outline), JSON for structure_json, Jinja2 for prompts. Frontend: chapterStore (useSyncExternalStore), React hooks, SSE. Chain: prompt -> LLM -> parse_service -> structure_json -> _compute_chapter_offset -> _create_chapter_records -> Chapter DB.",
+  "integration_points": "1. POST /detailed_outlines/{id}/create_chapters -> create_chapters_from_detailed_outline(). 2. POST /detailed_outlines/{id}/generate_chapters_stream -> _create_chapter_records(). 3. Frontend: useDetailedOutlineState -> chapterStore.invalidateProjectChapters. 4. useChapterMetaList -> chapterStore.subscribeMeta. 5. Outline and writing pages share chapterStore but writing page no auto-refetch on stale.",
+  "constraints": "1. Chapter.number unique per outline_id (UniqueConstraint). 2. _compute_chapter_offset uses max() not count(). 3. LLM output non-deterministic re chapter_number_start. 4. Two code paths must produce consistent numbering. 5. structure_json mutable: skeleton overwrites chapters affecting later offsets.",
+  "clarification_needs": [
+    {
+      "question": "Should fix normalize LLM output to local (1-based) numbers, or change _compute_chapter_offset to handle global numbers?",
+      "context": "Core mismatch: prompt tells LLM global (chapter_number_start=7) but _compute_chapter_offset assumes local and adds offset.",
+      "options": [
+        "Normalize LLM output to local 1-based numbers when storing in structure_json",
+        "Remove chapter_number_start from prompt so LLM always generates 1-based",
+        "Change _compute_chapter_offset to detect global numbers and skip offset"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "For cache refresh, add auto-refetch on stale to useChapterMetaList or use cross-page event?",
+      "context": "invalidateProjectChapters marks stale but writing page hook has no auto-refetch effect.",
+      "options": [
+        "Add useEffect in useChapterMetaList that calls loadProjectChapterMeta when stale",
+        "Use custom event or BroadcastChannel for cross-page signaling"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-04-03T12:00:00Z",
+    "task_description": "Edge-cases exploration for chapter numbering across volumes: tracing full chain from outline data to chapter creation, identifying gap bug where vol1 has 6 chapters but vol2 starts at #8 instead of #7",
+    "source": "cli-explore-agent",
+    "exploration_angle": "edge-cases",
+    "exploration_index": 3,
+    "total_explorations": 3,
+    "duration_seconds": 120
+  }
+}

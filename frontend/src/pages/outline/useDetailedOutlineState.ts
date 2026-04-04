@@ -298,6 +298,7 @@ export function useDetailedOutlineState(
 
         await client.connect();
         await refresh();
+        if (projectId) chapterStore.invalidateProjectChapters(projectId);
         // 刷新当前选中的细纲详情
         try {
           const updated = await getDetailedOutline(detailedOutlineId);
@@ -310,6 +311,7 @@ export function useDetailedOutlineState(
         if (error instanceof SSEError && error.code === "ABORTED") {
           toast.toastSuccess(OUTLINE_COPY.detailedOutline.generateSkeletonCanceled);
           await refresh();
+          if (projectId) chapterStore.invalidateProjectChapters(projectId);
           return;
         }
         if (error instanceof SSEError || error instanceof ApiError) {
@@ -322,7 +324,7 @@ export function useDetailedOutlineState(
         setSkeletonGenerating(false);
       }
     },
-    [refresh, toast],
+    [projectId, refresh, toast],
   );
 
   const cancelEdit = useCallback(() => {

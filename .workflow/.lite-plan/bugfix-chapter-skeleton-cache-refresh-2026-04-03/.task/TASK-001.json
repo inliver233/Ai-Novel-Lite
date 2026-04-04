@@ -1,0 +1,21 @@
+{
+  "id": "TASK-001",
+  "title": "Add chapterStore cache invalidation to generateChapterSkeleton()",
+  "description": "The generateChapterSkeleton() function creates chapters via SSE streaming but never invalidates the chapterStore cache. Add chapterStore.invalidateProjectChapters(projectId) after SSE completes (both success and abort paths), matching the existing createChapters() pattern.",
+  "scope": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+  "files": [
+    {
+      "path": "frontend/src/pages/outline/useDetailedOutlineState.ts",
+      "change": "Add chapterStore.invalidateProjectChapters(projectId) after await refresh() in generateChapterSkeleton() success path (L300) and abort path (L312). Add projectId to useCallback dependency array (L325)."
+    }
+  ],
+  "depends_on": [],
+  "convergence": {
+    "criteria": [
+      "chapterStore.invalidateProjectChapters(projectId) called after SSE success path",
+      "chapterStore.invalidateProjectChapters(projectId) called after SSE abort path",
+      "projectId added to useCallback dependency array",
+      "Writing page shows parsed skeleton results without manual refresh"
+    ]
+  }
+}
